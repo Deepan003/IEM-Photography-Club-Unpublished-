@@ -524,6 +524,7 @@ body {
 .sec-vis .sec-content > .reveal-card:nth-child(8)  { animation: itemRise 0.60s cubic-bezier(0.22,1,0.36,1) 825ms both; }
 .sec-vis .sec-content > .reveal-card:nth-child(n+9){ animation: itemRise 0.60s cubic-bezier(0.22,1,0.36,1) 860ms both; }
 
+
 /* ── Join "Be Part of Our Story" section animations ─────────
    Each text block enters with its own stagger, then the red
    "Story" word pulses with a soft glow indefinitely.        */
