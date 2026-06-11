@@ -2111,7 +2111,7 @@ export default function MainPage({ onLoginSuccess }) {
               className="absolute inset-0 w-full h-full object-cover"
               style={{ filter: 'grayscale(100%) brightness(0.44) contrast(1.18)' }}
             >
-              <source src="/video%20landscape.mp4" type="video/mp4" />
+              <source src="https://college-photography-competition-iem.s3.ap-south-1.amazonaws.com/videos/hero-desktop.mp4" type="video/mp4" />
             </video>
             {/* Top vignette — helps navbar white text stand out */}
             <div className="absolute top-0 left-0 right-0 pointer-events-none" style={{
@@ -2234,7 +2234,7 @@ export default function MainPage({ onLoginSuccess }) {
             className="absolute inset-0 w-full h-full object-cover"
             style={{ filter: 'grayscale(100%) brightness(0.48) contrast(1.2)' }}
           >
-            <source src="/video.mp4" type="video/mp4" />
+            <source src="https://college-photography-competition-iem.s3.ap-south-1.amazonaws.com/videos/hero-mobile.mp4" type="video/mp4" />
           </video>
           {/* Frosted glass layer */}
           <div className="absolute inset-0" style={{
