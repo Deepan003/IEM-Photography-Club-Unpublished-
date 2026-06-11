@@ -1,0 +1,2188 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Dashboard mobile compaction ──────────────────────────────────────────────
+   While a dashboard (member/core/coordinator/admin) is mounted, the root font is
+   nudged down ONLY below the lg breakpoint (1024px) where the mobile layout is
+   active. Because every Tailwind size is rem-based, this proportionally tightens
+   fonts, padding, gaps, widths and radii into a compact, app-like feel.
+   Desktop (>=1024px) is never touched — no rule applies there.                   */
+@media (max-width: 1023px) {
+  html.dash-compact      { font-size: 13.5px; }
+}
+@media (max-width: 400px) {
+  html.dash-compact      { font-size: 12.75px; }
+}
+/* Keep text inputs >=16px-equivalent so iOS doesn't auto-zoom on focus */
+@media (max-width: 1023px) {
+  html.dash-compact input:not([type='checkbox']):not([type='radio']),
+  html.dash-compact textarea,
+  html.dash-compact select { font-size: 16px; }
+}
+
+/* ── Downloading overlay animations ──────────────────────────────────────── */
+@keyframes dl-blob-1 {
+  0%,100% { border-radius:60% 40% 30% 70%/60% 30% 70% 40%; transform:scale(1) rotate(0deg); }
+  33%     { border-radius:30% 70% 60% 40%/50% 60% 30% 70%; transform:scale(1.12) rotate(60deg); }
+  66%     { border-radius:50% 40% 70% 30%/40% 50% 60% 70%; transform:scale(0.92) rotate(120deg); }
+}
+@keyframes dl-blob-2 {
+  0%,100% { border-radius:30% 70% 60% 40%/50% 40% 70% 50%; transform:scale(1) rotate(0deg); }
+  50%     { border-radius:70% 30% 40% 60%/60% 70% 30% 40%; transform:scale(1.15) rotate(-90deg); }
+}
+@keyframes dl-blob-3 {
+  0%,100% { border-radius:50% 60% 30% 70%/40% 60% 50% 60%; transform:scale(1) rotate(0deg); }
+  40%     { border-radius:70% 30% 60% 40%/30% 70% 40% 60%; transform:scale(1.08) rotate(50deg); }
+  80%     { border-radius:40% 60% 50% 50%/60% 40% 60% 40%; transform:scale(0.94) rotate(-25deg); }
+}
+@keyframes dl-icon-glow {
+  0%,100% { box-shadow:0 0 0 0 rgba(220,38,38,0.25),0 0 18px rgba(220,38,38,0.1); }
+  50%     { box-shadow:0 0 0 10px rgba(220,38,38,0),0 0 34px rgba(220,38,38,0.28); }
+}
+@keyframes dl-arrow-drop {
+  0%,100% { transform:translateY(0px); }
+  50%     { transform:translateY(3.5px); }
+}
+@keyframes dl-dot {
+  0%,80%,100% { opacity:0.2; }
+  40%         { opacity:1; }
+}
+@keyframes dl-wave {
+  0%   { background-position:0% 0%; }
+  100% { background-position:300% 0%; }
+}
+@keyframes dl-fade-in {
+  from { opacity:0; transform:translateY(5px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes dl-card-in {
+  from { opacity:0; transform:scale(0.88) translateY(16px); }
+  to   { opacity:1; transform:scale(1) translateY(0); }
+}
+@keyframes dl-backdrop-in {
+  from { opacity:0; }
+  to   { opacity:1; }
+}
+
+/* ── Liquid fill loader animations ─────────────────────────────────────── */
+@keyframes liq-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes liq-shimmer {
+  0%   { transform: translateX(-150%); opacity: 0.5; }
+  50%  { opacity: 1; }
+  100% { transform: translateX(250%); opacity: 0.5; }
+}
+@keyframes liq-reveal {
+  from { opacity: 0; transform: scale(1.04); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes liq-image-fill {
+  from { clip-path: inset(100% 0 0 0); }
+  to   { clip-path: inset(0% 0 0 0); }
+}
+/* Seamless horizontal wave drift — path repeats every 50% of its width */
+@keyframes liq-wave {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+/* Bubbles rising through the liquid, fading near the surface */
+@keyframes liq-bubble {
+  0%   { transform: translateY(0) scale(0.7);   opacity: 0; }
+  18%  { opacity: 0.8; }
+  80%  { opacity: 0.5; }
+  100% { transform: translateY(-380%) scale(1.1); opacity: 0; }
+}
+
+/* ── Skeleton shimmer ───────────────────────────────────────────────────── */
+@keyframes skeleton-wave {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.10) 50%,
+    rgba(255,255,255,0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-wave 1.6s ease-in-out infinite;
+}
+/* Light theme variant */
+html.light .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,0.05) 25%,
+    rgba(0,0,0,0.12) 50%,
+    rgba(0,0,0,0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-wave 1.6s ease-in-out infinite;
+}
+
+/* ── Toast animations ───────────────────────────────────────────────────── */
+@keyframes toast-in {
+  0%   { opacity: 0; transform: scale(0.82) translateY(12px); }
+  65%  { opacity: 1; transform: scale(1.03) translateY(-3px); }
+  85%  { transform: scale(0.985) translateY(1px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes toast-out {
+  0%   { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.88); }
+}
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+@keyframes toast-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes toast-scrim-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.toast-item {
+  animation: toast-in 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+/* Offset center into the dashboard content area (past the 280px sidebar) */
+.toast-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+}
+@media (min-width: 768px) {
+  .toast-container {
+    left: calc(50% + 140px);
+  }
+}
+@keyframes auth-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(4px); }
+}
+
+/* ── Tab transition animations ──────────────────────────────────────────── */
+/* Fires on mount → triggers automatically when React swaps tab content.
+   key={tab} on the wrapper div causes remount, replaying this animation.  */
+@keyframes tab-enter {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; }
+}
+/* Main top-level tab panel (0.32s) */
+.tab-panel {
+  animation: tab-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* Sub-tab panels inside expanded cards (faster, snappier) */
+.tab-panel-sub {
+  animation: tab-enter 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Tell the browser our theme so it stops "fixing" form controls ──── */
+/* Chrome / OS-level forced-dark or extensions like Dark Reader repaint */
+/* inputs & textareas with a native white box + auto text color when    */
+/* they don't know the page already supplies its own dark palette.      */
+/* `color-scheme` is the standards way to opt out of that repainting.   */
+html.light { color-scheme: light; }
+html:not(.light) { color-scheme: dark; }
+html.light input, html.light textarea, html.light select,
+html.light input::placeholder, html.light textarea::placeholder {
+  color-scheme: light;
+}
+html:not(.light) input, html:not(.light) textarea, html:not(.light) select,
+html:not(.light) input::placeholder, html:not(.light) textarea::placeholder {
+  color-scheme: dark;
+}
+
+/* ── Kill browser autofill white-box / invisible-text override ──────── */
+/* Chrome paints autofilled inputs with a forced light background and   */
+/* -webkit-text-fill-color, which makes white (dark-theme) text vanish. */
+/* `box-shadow: ... transparent` does NOT cancel it — must paint an     */
+/* OPAQUE shadow matching the real theme background on top of it.       */
+html:not(.light) input:-webkit-autofill,
+html:not(.light) input:-webkit-autofill:hover,
+html:not(.light) input:-webkit-autofill:focus,
+html:not(.light) input:-webkit-autofill:active,
+html:not(.light) textarea:-webkit-autofill,
+html:not(.light) textarea:-webkit-autofill:hover,
+html:not(.light) textarea:-webkit-autofill:focus,
+html:not(.light) select:-webkit-autofill {
+  -webkit-text-fill-color: #f5f5f5 !important;
+  caret-color: #f5f5f5 !important;
+  transition: background-color 600000s 0s, color 600000s 0s !important;
+  box-shadow: inset 0 0 0 1000px #170808 !important;
+}
+html.light input:-webkit-autofill,
+html.light input:-webkit-autofill:hover,
+html.light input:-webkit-autofill:focus,
+html.light input:-webkit-autofill:active,
+html.light textarea:-webkit-autofill,
+html.light textarea:-webkit-autofill:hover,
+html.light textarea:-webkit-autofill:focus,
+html.light select:-webkit-autofill {
+  -webkit-text-fill-color: #1f2430 !important;
+  caret-color: #1f2430 !important;
+  transition: background-color 600000s 0s, color 600000s 0s !important;
+  box-shadow: inset 0 0 0 1000px #fdf7f7 !important;
+}
+
+/* ── Font system ─────────────────────────────────────────── */
+/* Clash Display  = hero heading + preloader (ORIGINAL — DO NOT TOUCH) */
+/* Oswald         = preloader fade-in (ORIGINAL — DO NOT TOUCH)        */
+/* Cormorant      = editorial headings (ORIGINAL — DO NOT TOUCH)       */
+/* Breathing      = section headings (ORIGINAL — DO NOT TOUCH)         */
+/* MADEVoyager    = all body text, UI, buttons, labels (NEW)           */
+.font-display   { font-family: 'Cormorant Garamond', Georgia, serif; }
+.font-clash     { font-family: 'ClashDisplay', 'Oswald', sans-serif; }
+.font-cine      { font-family: 'Oswald', sans-serif; }
+.font-tech      { font-family: 'MADEVoyager', 'Inter', system-ui, sans-serif; }
+.font-body      { font-family: 'MADEVoyager', 'Inter', system-ui, sans-serif; }
+
+/* ── MADE Voyager (local OTF — 5 weights) ───────────────── */
+@font-face {
+  font-family: 'MADEVoyager';
+  src: url('../made-voyager-personal-use/MADEVoyagerPERSONAL_USE-Thin.otf') format('opentype');
+  font-weight: 100; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'MADEVoyager';
+  src: url('../made-voyager-personal-use/MADEVoyagerPERSONAL_USE-Light.otf') format('opentype');
+  font-weight: 300; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'MADEVoyager';
+  src: url('../made-voyager-personal-use/MADEVoyagerPERSONAL_USE-Regular.otf') format('opentype');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'MADEVoyager';
+  src: url('../made-voyager-personal-use/MADEVoyagerPERSONAL_USE-Medium.otf') format('opentype');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'MADEVoyager';
+  src: url('../made-voyager-personal-use/MADEVoyagerPERSONAL_USE-Bold.otf') format('opentype');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+
+/* font-inter now uses MADEVoyager for all body/UI text.
+   Breathing, Clash, Oswald, Cormorant classes are explicitly separate and untouched. */
+.font-inter {
+  font-family: 'MADEVoyager', 'Inter', system-ui, -apple-system, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.055em; /* slightly wider — Voyager characters need breathing room */
+}
+.font-voyager { letter-spacing: 0.055em; }
+/* Allow Tailwind weight overrides to work correctly */
+.font-inter.font-normal   { font-weight: 400; }
+.font-inter.font-light    { font-weight: 300; }
+.font-inter.font-semibold { font-weight: 700; }
+.font-inter.font-bold     { font-weight: 700; }
+.font-inter.font-black    { font-weight: 700; }
+.font-inter.font-medium   { font-weight: 500; }
+
+/* Voyager utility class for explicit use */
+.font-voyager { font-family: 'MADEVoyager', 'Inter', system-ui, sans-serif; }
+
+/* ── Breathing font (local TTF) ─────────────────────────── */
+@font-face {
+  font-family: 'Breathing';
+  src: url('/Breathing.ttf') format('truetype');
+  font-weight: 400; font-style: normal; font-display: swap;
+  /* Exclude digits (U+0030-0039) — Breathing has no number glyphs and shows
+     tofu boxes for them. Numbers fall through to Georgia/serif instead. */
+  unicode-range: U+0000-002F, U+003A-FFFF;
+}
+
+.font-breathing { font-family: 'Breathing', 'Cormorant Garamond', Georgia, serif; }
+
+/* ── ShineCard sweep animation — gloss travels left → right ─ */
+@keyframes shineSweep {
+  0%   { transform: translateX(-120%) skewX(-18deg); }
+  100% { transform: translateX(400%)  skewX(-18deg); }
+}
+
+/* ── Accent line shine — bright spot sweeps left → right ──── */
+@keyframes accentShine {
+  0%   { transform: translateX(-150%); }
+  100% { transform: translateX(700%); }
+}
+
+/* ── Theme reveal — smooth realistic glass shatter ──────────── */
+@keyframes glassShatter {
+  /* Impact flash */
+  0%   { opacity:1;    transform:scale(1) perspective(400px) rotateX(0);
+         filter:brightness(1) blur(0px); backdrop-filter:blur(14px); }
+  /* Bright impact — glass catches light */
+  12%  { opacity:1;    transform:scale(1.01) perspective(400px) rotateX(-1deg);
+         filter:brightness(3) blur(0px); backdrop-filter:blur(16px); }
+  /* Cracks spread — slight warp */
+  28%  { opacity:0.85; transform:scale(1.025) perspective(400px) rotateX(2deg) skewX(0.5deg);
+         filter:brightness(1.6) blur(1px); backdrop-filter:blur(10px); }
+  /* Pieces start falling/dispersing */
+  55%  { opacity:0.45; transform:scale(1.06) perspective(400px) rotateX(5deg) skewX(-0.8deg);
+         filter:brightness(1.2) blur(4px); backdrop-filter:blur(4px); }
+  /* Gone */
+  100% { opacity:0;    transform:scale(1.14) perspective(400px) rotateX(10deg);
+         filter:brightness(1) blur(10px); backdrop-filter:blur(0px); }
+}
+@keyframes themeReveal {
+  from { opacity:0; transform:translateY(5px) scale(0.98); filter:blur(2px); }
+  to   { opacity:1; transform:translateY(0)   scale(1);    filter:blur(0px); }
+}
+
+/* ── Siri-style SCREEN EDGE glow — full viewport aura ──────── */
+@keyframes siriScreenGlow {
+  0%   { box-shadow: inset 0 0 80px 18px rgba(220,38,38,0.35),  inset 0 0 200px 60px rgba(220,38,38,0.08); }
+  14%  { box-shadow: inset 0 0 80px 18px rgba(255,120,0,0.35),  inset 0 0 200px 60px rgba(255,120,0,0.08); }
+  28%  { box-shadow: inset 0 0 80px 18px rgba(234,179,8,0.35),  inset 0 0 200px 60px rgba(234,179,8,0.08); }
+  42%  { box-shadow: inset 0 0 80px 18px rgba(16,185,129,0.35), inset 0 0 200px 60px rgba(16,185,129,0.08); }
+  57%  { box-shadow: inset 0 0 80px 18px rgba(59,130,246,0.35), inset 0 0 200px 60px rgba(59,130,246,0.08); }
+  71%  { box-shadow: inset 0 0 80px 18px rgba(139,92,246,0.35), inset 0 0 200px 60px rgba(139,92,246,0.08); }
+  85%  { box-shadow: inset 0 0 80px 18px rgba(236,72,153,0.35), inset 0 0 200px 60px rgba(236,72,153,0.08); }
+  100% { box-shadow: inset 0 0 80px 18px rgba(220,38,38,0.35),  inset 0 0 200px 60px rgba(220,38,38,0.08); }
+}
+
+/* ── Legacy card border (kept for compat) ───────────────────── */
+@keyframes siriGlow {
+  0%   { box-shadow:0 0 0 2px rgba(220,38,38,0.8),0 0 40px rgba(220,38,38,0.3); }
+  33%  { box-shadow:0 0 0 2px rgba(234,179,8,0.8),0 0 40px rgba(234,179,8,0.3); }
+  66%  { box-shadow:0 0 0 2px rgba(139,92,246,0.8),0 0 40px rgba(139,92,246,0.3); }
+  100% { box-shadow:0 0 0 2px rgba(220,38,38,0.8),0 0 40px rgba(220,38,38,0.3); }
+}
+
+/* ── Winner card shine sweep ────────────────────────────────── */
+@keyframes winnerShine {
+  0%   { transform: translateX(-180%) skewX(-20deg); }
+  100% { transform: translateX(350%)  skewX(-20deg); }
+}
+@keyframes medalPulse {
+  0%, 100% { opacity:0.6; transform:scale(1); }
+  50%       { opacity:1;   transform:scale(1.15); }
+}
+@keyframes winnerCardIn {
+  from { opacity:0; transform:translateY(32px) scale(0.94); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+/* Celebration overlay — full screen fill → contracts toward edges → fades */
+@keyframes celebFill {
+  0%   { opacity:0; }
+  8%   { opacity:1; }
+  65%  { opacity:1; }
+  100% { opacity:0; }
+}
+@keyframes celebText {
+  0%   { opacity:0; transform:translateY(16px) scale(0.95); }
+  12%  { opacity:1; transform:translateY(0)    scale(1); }
+  65%  { opacity:1; transform:translateY(0)    scale(1); }
+  90%  { opacity:0; transform:translateY(-12px) scale(0.97); }
+  100% { opacity:0; }
+}
+@keyframes celebContract {
+  0%,65% {
+    -webkit-mask-image: radial-gradient(ellipse 200% 200% at center, black 0%, black 100%);
+    mask-image:         radial-gradient(ellipse 200% 200% at center, black 0%, black 100%);
+  }
+  100% {
+    -webkit-mask-image: radial-gradient(ellipse 200% 200% at center, transparent 0%, transparent 70%, black 85%, black 100%);
+    mask-image:         radial-gradient(ellipse 200% 200% at center, transparent 0%, transparent 70%, black 85%, black 100%);
+  }
+}
+@keyframes winnerViewerBorder {
+  0%   { border-color:rgba(255,215,0,0.9); }
+  25%  { border-color:rgba(220,38,38,0.9); }
+  50%  { border-color:rgba(139,92,246,0.9); }
+  75%  { border-color:rgba(59,130,246,0.9); }
+  100% { border-color:rgba(255,215,0,0.9); }
+}
+
+/* ── Slot carousel slide animations ─────────────────────────── */
+@keyframes slideInFromRight {
+  from { transform: translateX(56px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes slideInFromLeft {
+  from { transform: translateX(-56px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+/* ── Section scroll-reveal (IntersectionObserver) ────────── */
+@keyframes secReveal {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Global scroll performance ──────────────────────────────
+   Promotes the page to its own GPU compositing layer so scroll
+   never blocks the main thread.                              */
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+  text-rendering: optimizeSpeed;
+}
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+* { box-sizing: border-box; }
+
+/* Section wrapper: start hidden, fade in when .sec-vis applied */
+.sec-hidden { opacity: 0; }
+.sec-vis    {
+  opacity: 1;
+  transition: opacity 0.8s ease;
+}
+
+.sec-vis > div > *:nth-child(1) { animation: secReveal 1.1s cubic-bezier(0.22,1,0.36,1) 0ms   both; }
+.sec-vis > div > *:nth-child(2) { animation: secReveal 1.1s cubic-bezier(0.22,1,0.36,1) 120ms both; }
+.sec-vis > div > *:nth-child(3) { animation: secReveal 1.1s cubic-bezier(0.22,1,0.36,1) 230ms both; }
+.sec-vis > div > *:nth-child(4) { animation: secReveal 1.1s cubic-bezier(0.22,1,0.36,1) 330ms both; }
+.sec-vis > div > *:nth-child(5) { animation: secReveal 1.1s cubic-bezier(0.22,1,0.36,1) 420ms both; }
+.sec-vis > div > *:nth-child(n+6) { animation: secReveal 1.1s cubic-bezier(0.22,1,0.36,1) 500ms both; }
+
+/* ── Professional scroll-reveal animations ───────────────── */
+/* Text wipes up from below — clip-path mask approach        */
+@keyframes wipeUp {
+  from { transform: translateY(60px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes wipeRight {
+  from { transform: translateX(-40px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+@keyframes lineDraw {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+/* Mask-based reveal for headings */
+.reveal-mask { overflow: hidden; }
+.reveal-mask .reveal-inner {
+  display: block;
+  animation: wipeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.reveal-mask .reveal-inner.delay-1 { animation-delay: 0.1s; }
+.reveal-mask .reveal-inner.delay-2 { animation-delay: 0.22s; }
+.reveal-mask .reveal-inner.delay-3 { animation-delay: 0.34s; }
+
+/* ── Dark / Light mode tokens ────────────────────────────── */
+/* Default = dark (class="dark" on <html>)                    */
+:root {
+  --bg:          #050505;
+  --bg-2:        #0a0a0a;
+  --bg-3:        #0d0d0d;
+  --surface:     rgba(255,255,255,0.06);
+  --border:      rgba(255,255,255,0.09);
+  --border-top:  rgba(255,255,255,0.20);
+  --text-1:      #ffffff;
+  --text-2:      rgba(255,255,255,0.65);
+  --text-3:      rgba(255,255,255,0.35);
+  --glass-bg:    rgba(8,8,8,0.88);
+  --card-bg:     rgba(10,10,10,0.90);
+  --red:         #dc2626;
+  --red-glow:    rgba(220,38,38,0.25);
+}
+
+html.light {
+  --bg:          #e8ecf3;
+  --bg-2:        #f2f5fa;
+  --bg-3:        #eef1f7;
+  --surface:     rgba(255,255,255,0.72);
+  --border:      rgba(174,185,210,0.40);
+  --border-top:  rgba(255,255,255,0.92);
+  --text-1:      #0f172a;
+  --text-2:      #334155;
+  --text-3:      #64748b;
+  --glass-bg:    rgba(255,255,255,0.78);
+  --card-bg:     rgba(255,255,255,0.92);
+  --red:         #dc2626;
+  --red-glow:    rgba(220,38,38,0.12);
+  --neo-dark:    rgba(163,177,200,0.50);
+  --neo-light:   rgba(255,255,255,0.88);
+}
+
+/* Theme-aware utilities */
+.theme-bg   { background-color: var(--bg);   }
+.theme-bg2  { background-color: var(--bg-2); }
+.theme-bg3  { background-color: var(--bg-3); }
+.theme-text { color: var(--text-1); }
+.theme-text2{ color: var(--text-2); }
+.theme-text3{ color: var(--text-3); }
+
+/* Theme-aware glass layer */
+.theme-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid var(--border);
+  border-top-color: var(--border-top);
+}
+
+/* Light mode glass-input override — inset neumorphic */
+html.light .glass-input {
+  background: rgba(232,236,243,0.90);
+  border: 1px solid rgba(255,255,255,0.75);
+  border-bottom-color: rgba(163,177,200,0.38);
+  box-shadow:
+    inset 3px 3px 8px rgba(163,177,200,0.38),
+    inset -2px -2px 6px rgba(255,255,255,0.80);
+  color: #0f172a;
+}
+html.light .glass-input::placeholder { color: rgba(100,116,139,0.65); }
+html.light .glass-input:focus {
+  background: rgba(235,240,250,0.92);
+  border-color: rgba(220,38,38,0.40);
+  border-bottom-color: rgba(220,38,38,0.40);
+  box-shadow:
+    inset 3px 3px 8px rgba(163,177,200,0.32),
+    inset -2px -2px 6px rgba(255,255,255,0.80),
+    0 0 0 3px rgba(220,38,38,0.10);
+}
+
+html.light .auth-glass, html.light .theme-glass {
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border: 1px solid rgba(255,255,255,0.92);
+  border-top-color: rgba(255,255,255,0.98);
+  box-shadow:
+    10px 10px 24px rgba(163,177,200,0.42),
+    -7px -7px 16px rgba(255,255,255,0.90),
+    inset 0 1px 0 rgba(255,255,255,0.98);
+}
+
+/* Light mode glass-btn — neumorphic 3-D raised */
+html.light .glass-btn {
+  background: rgba(244,247,252,0.90);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.92);
+  border-top-color: rgba(255,255,255,0.98);
+  border-bottom-color: rgba(163,177,200,0.35);
+  box-shadow:
+    5px 5px 12px rgba(163,177,200,0.48),
+    -4px -4px 10px rgba(255,255,255,0.90),
+    inset 0 1px 0 rgba(255,255,255,0.95);
+  color: #0f172a;
+}
+html.light .glass-btn:hover {
+  background: rgba(255,255,255,0.95);
+  border-top-color: rgba(255,255,255,1);
+  box-shadow:
+    8px 8px 18px rgba(163,177,200,0.55),
+    -5px -5px 12px rgba(255,255,255,0.92),
+    inset 0 1px 0 rgba(255,255,255,1);
+  transform: translateY(-3px) scale(1.025);
+}
+html.light .glass-btn:active {
+  box-shadow:
+    inset 4px 4px 10px rgba(163,177,200,0.45),
+    inset -3px -3px 7px rgba(255,255,255,0.78);
+  transform: translateY(1px) scale(0.970);
+  background: rgba(232,236,243,0.95);
+}
+html.light .glass-btn-red {
+  background: rgba(255,242,242,0.90);
+  color: #dc2626;
+  border: 1px solid rgba(255,255,255,0.88);
+  border-top-color: rgba(255,255,255,0.96);
+  border-bottom-color: rgba(220,38,38,0.22);
+  box-shadow:
+    5px 5px 12px rgba(163,177,200,0.42),
+    -4px -4px 10px rgba(255,255,255,0.88),
+    inset 0 1px 0 rgba(255,255,255,0.95),
+    0 0 0 1px rgba(220,38,38,0.08) inset;
+}
+html.light .glass-btn-red:hover {
+  background: rgba(255,235,235,0.95);
+  box-shadow:
+    8px 8px 18px rgba(163,177,200,0.48),
+    -5px -5px 12px rgba(255,255,255,0.90),
+    0 0 14px rgba(220,38,38,0.14),
+    inset 0 1px 0 rgba(255,255,255,0.98);
+  color: #b91c1c;
+}
+html.light .glass-btn-light {
+  background: rgba(244,247,252,0.90);
+  color: #0f172a;
+  border: 1px solid rgba(255,255,255,0.92);
+  border-top-color: rgba(255,255,255,0.98);
+  border-bottom-color: rgba(163,177,200,0.35);
+  box-shadow:
+    5px 5px 12px rgba(163,177,200,0.48),
+    -4px -4px 10px rgba(255,255,255,0.90),
+    inset 0 1px 0 rgba(255,255,255,0.95);
+}
+html.light .glass-btn-light:hover {
+  background: rgba(255,255,255,0.95);
+  box-shadow:
+    8px 8px 18px rgba(163,177,200,0.55),
+    -5px -5px 12px rgba(255,255,255,0.92),
+    inset 0 1px 0 rgba(255,255,255,1);
+  color: #0f172a;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LIQUID GLASS MORPHISM
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────
+   LIQUID GLASS MORPHISM  — iOS 26 / visionOS-inspired
+   Design rules (maintain across all future updates):
+     • Buttons: pill/rounded, 3-D depth, shimmer sweep, scale on hover
+     • Colors: backdrop-blurred, semi-transparent, red accent glow
+     • Mobile: min touch target 48px, generous padding
+     • Motion: cubic-bezier spring for "alive" feel
+   ───────────────────────────────────────────────────────────────── */
+
+/* iOS full-button glow — triggered via JS class, not :active              */
+/* Expands slightly and fades — exactly how iOS buttons feel               */
+@keyframes btnGlow {
+  0%   { opacity: 0.80; transform: scale(0.97); }
+  25%  { opacity: 0.55; transform: scale(1.00); }
+  100% { opacity: 0;    transform: scale(1.03); }
+}
+.btn-glowing::before {
+  animation: btnGlow 0.38s cubic-bezier(0.25,0.46,0.45,0.94) forwards !important;
+  opacity: 0.80 !important;
+}
+
+/* Navbar press flash (for nav links) */
+@keyframes navFlash {
+  0%   { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+.nav-flash { animation: navFlash 0.3s ease-out forwards; }
+
+/* Theme-icon spin when toggled */
+@keyframes iconSpin {
+  0%   { transform: rotate(0deg)   scale(0.8); }
+  50%  { transform: rotate(180deg) scale(1.15); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+.icon-spin { animation: iconSpin 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+
+/* iOS-style tap glow — kept for CSS fallback */
+@keyframes iosTapGlow {
+  0%   { opacity: 0.80; }
+  100% { opacity: 0;    }
+}
+/* Shimmer sweep */
+@keyframes glassShimmer {
+  0%   { transform: translateX(-130%) skewX(-18deg); opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { transform: translateX(230%)  skewX(-18deg); opacity: 0; }
+}
+/* Outer red glow pulse */
+@keyframes redGlow {
+  0%,100% { box-shadow: var(--gb-shadow), 0 0 20px 2px rgba(220,38,38,0.22); }
+  50%     { box-shadow: var(--gb-shadow), 0 0 36px 6px rgba(220,38,38,0.42); }
+}
+/* Postcard card neomorphic shadow — static (animated box-shadow is too expensive) */
+.postcard-neo-dark  { box-shadow: -3px -3px 8px rgba(255,255,255,0.025), 5px 5px 16px rgba(0,0,0,0.88); }
+.postcard-neo-light { box-shadow: -3px -3px 8px rgba(255,255,255,0.9), 4px 4px 10px rgba(0,0,0,0.1); }
+
+/* ── Core glass layer (all buttons inherit this) ─────────── */
+.glass-btn {
+  /* geometry */
+  position: relative; overflow: hidden; cursor: pointer;
+  border-radius: 12px;          /* smooth rounded-rectangle */
+  display: inline-flex; align-items: center; justify-content: center;
+  /* glass fill */
+  background: rgba(255,255,255,0.07);
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  /* borders — top brighter = specular highlight (3-D effect) */
+  border: 1px solid rgba(255,255,255,0.10);
+  border-top-color: rgba(255,255,255,0.26);
+  border-bottom-color: rgba(0,0,0,0.18);
+  /* 3-D multi-layer shadows */
+  --gb-shadow:
+    0 1px 0 rgba(255,255,255,0.08) inset,
+    0 -1px 0 rgba(0,0,0,0.14) inset,
+    0 2px 0 rgba(0,0,0,0.06),
+    0 4px 10px rgba(0,0,0,0.22),
+    0 10px 32px rgba(0,0,0,0.16);
+  box-shadow: var(--gb-shadow);
+  /* spring transition */
+  transition:
+    transform   0.36s cubic-bezier(0.34,1.56,0.64,1),
+    box-shadow  0.36s cubic-bezier(0.34,1.56,0.64,1),
+    background  0.28s ease,
+    border-color 0.28s ease;
+  /* text */
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: #fff;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  /* iOS: min 48px touch target */
+  min-height: 48px;
+}
+
+/* iOS tap-glow overlay (::before) — fills entire button with light on press
+   Content sits above (z-index on children) so text stays visible.          */
+.glass-btn::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  border-radius: inherit;
+  background: rgba(255,255,255,0.28);
+  opacity: 0;
+  z-index: 1;
+}
+.glass-btn:active::before {
+  animation: iosTapGlow 0.38s ease-out forwards;
+}
+/* For red buttons the tap-flash is a warm pink/red glow */
+.glass-btn-red::before { background: rgba(255,160,160,0.40); }
+
+/* Make sure all inner content floats above the glow */
+.glass-btn > * { position: relative; z-index: 2; }
+
+/* Shimmer layer */
+.glass-btn::after {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background: linear-gradient(108deg,
+    transparent 30%,
+    rgba(255,255,255,0.14) 50%,
+    transparent 70%);
+  transform: translateX(-130%) skewX(-18deg);
+}
+
+/* Hover — iOS-like lift + glow + scale */
+.glass-btn { will-change: transform; }
+.glass-btn:hover {
+  background: rgba(255,255,255,0.11);
+  border-top-color: rgba(255,255,255,0.38);
+  border-color: rgba(255,255,255,0.18);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.12) inset,
+    0 -1px 0 rgba(0,0,0,0.12) inset,
+    0 6px 18px rgba(0,0,0,0.24),
+    0 18px 52px rgba(0,0,0,0.16),
+    0 0 0 1px rgba(255,255,255,0.07);
+  transform: translateY(-3px) scale(1.025);
+}
+.glass-btn:hover::after { animation: glassShimmer 0.72s ease-out forwards; }
+
+/* Press — squish down */
+.glass-btn:active {
+  transform: translateY(1px) scale(0.970);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.06) inset,
+    0 -1px 0 rgba(0,0,0,0.12) inset,
+    0 1px 4px rgba(0,0,0,0.20),
+    0 4px 12px rgba(0,0,0,0.12);
+  transition-duration: 0.10s;
+}
+
+/* ── Red-accent (primary CTA) ────────────────────────────── */
+.glass-btn-red {
+  background: rgba(220,38,38,0.15);
+  border-color: rgba(220,38,38,0.24);
+  border-top-color: rgba(255,110,110,0.35);
+  border-bottom-color: rgba(150,10,10,0.24);
+  --gb-shadow:
+    0 1px 0 rgba(255,130,130,0.12) inset,
+    0 -1px 0 rgba(0,0,0,0.14) inset,
+    0 4px 12px rgba(0,0,0,0.24),
+    0 10px 32px rgba(220,38,38,0.18);
+  box-shadow: var(--gb-shadow);
+}
+.glass-btn-red:hover {
+  background: rgba(220,38,38,0.26);
+  border-color: rgba(220,38,38,0.46);
+  border-top-color: rgba(255,130,130,0.56);
+  box-shadow:
+    0 1px 0 rgba(255,150,150,0.18) inset,
+    0 -1px 0 rgba(0,0,0,0.14) inset,
+    0 6px 18px rgba(0,0,0,0.24),
+    0 18px 56px rgba(220,38,38,0.38),
+    0 0 0 1px rgba(220,38,38,0.20);
+  animation: redGlow 2.2s ease-in-out infinite;
+}
+
+/* ── Light (white tint) for dark hero sections ───────────── */
+.glass-btn-light {
+  background: rgba(255,255,255,0.11);
+  border-color: rgba(255,255,255,0.24);
+  border-top-color: rgba(255,255,255,0.42);
+  border-bottom-color: rgba(0,0,0,0.10);
+}
+.glass-btn-light:hover {
+  background: rgba(255,255,255,0.19);
+  border-color: rgba(255,255,255,0.36);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.20) inset,
+    0 6px 18px rgba(0,0,0,0.20),
+    0 18px 52px rgba(255,255,255,0.12),
+    0 0 0 1px rgba(255,255,255,0.10);
+}
+
+/* ── Full pill shape (join/cta buttons) ──────────────────── */
+.glass-pill { border-radius: 999px !important; }
+
+/* ── Social icon glass ───────────────────────────────────── */
+.glass-icon {
+  border-radius: 10px;
+  padding: 8px;
+  transition:
+    transform    0.28s cubic-bezier(0.34,1.56,0.64,1),
+    background   0.28s ease,
+    box-shadow   0.28s ease;
+}
+.glass-icon:hover {
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transform: translateY(-2px) scale(1.12);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+
+/* ── Nav link hover — SVG border draw + neomorphic press + scale ────
+   strokeDasharray: large enough to cover any nav link perimeter.
+   Starts fully offset (hidden), draws clockwise on hover.
+   ─────────────────────────────────────────────────────────── */
+.nav-roll {
+  position: relative;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.22s ease;
+}
+
+/* Scale up + neomorphic inset on hover */
+.nav-roll:hover {
+  transform: scale(1.07);
+  box-shadow: inset 2px 2px 6px rgba(0,0,0,0.55),
+              inset -1px -1px 3px rgba(255,255,255,0.04);
+}
+html.light .nav-roll:hover {
+  box-shadow: inset 2px 2px 5px rgba(0,0,0,0.09),
+              inset -2px -2px 5px rgba(255,255,255,0.80);
+}
+
+/* SVG rect: hidden by default */
+.nav-roll .nav-svg-rect {
+  stroke: rgba(220, 38, 38, 0.55);
+  stroke-dasharray: 800;
+  stroke-dashoffset: 800;
+  transition: stroke-dashoffset 0s;
+}
+html.light .nav-roll .nav-svg-rect { stroke: rgba(220, 38, 38, 0.48); }
+
+/* On hover: draw clockwise */
+.nav-roll:hover .nav-svg-rect {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.75s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Click/press: scale down + deeper inset for tactile feel */
+.nav-roll:active {
+  transform: scale(0.96);
+  box-shadow: inset 3px 3px 8px rgba(0,0,0,0.65),
+              inset -1px -1px 2px rgba(255,255,255,0.03);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+html.light .nav-roll:active {
+  box-shadow: inset 3px 3px 7px rgba(0,0,0,0.14),
+              inset -2px -2px 5px rgba(255,255,255,0.70);
+}
+
+/* ── Section card 3-D lift ───────────────────────────────── */
+.glass-card-hover {
+  transition:
+    transform    0.35s cubic-bezier(0.34,1.56,0.64,1),
+    box-shadow   0.35s cubic-bezier(0.34,1.56,0.64,1),
+    background   0.28s ease,
+    border-color 0.28s ease;
+  will-change: transform;
+}
+.glass-card-hover:hover {
+  background: rgba(255,255,255,0.03) !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.35), 0 2px 0 rgba(255,255,255,0.04) inset;
+  transform: translateY(-4px);
+}
+
+/* ── Glass form inputs ───────────────────────────────────── */
+.glass-input {
+  display: block;
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-top-color: rgba(255,255,255,0.04);
+  border-radius: 11px;
+  padding: 12px 16px;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset;
+  transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  outline: none;
+  -webkit-appearance: none;
+}
+.glass-input::placeholder { color: rgba(255,255,255,0.22); }
+.glass-input:focus {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(220,38,38,0.45);
+  border-top-color: rgba(220,38,38,0.25);
+  box-shadow:
+    0 0 0 3px rgba(220,38,38,0.14),
+    0 1px 0 rgba(255,255,255,0.04) inset;
+}
+
+/* ── Auth modal glass card — neomorphic with clean drop shadow ────────────── */
+.auth-glass {
+  background: rgba(10,10,14,0.88);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-top-color: rgba(255,255,255,0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    0 2px 8px rgba(0,0,0,0.4),
+    0 8px 24px rgba(0,0,0,0.38);
+}
+html.light .auth-glass {
+  background: rgba(255,255,255,0.84);
+  backdrop-filter: blur(32px) saturate(210%);
+  -webkit-backdrop-filter: blur(32px) saturate(210%);
+  border: 1px solid rgba(255,255,255,0.92);
+  border-top-color: rgba(255,255,255,0.98);
+  box-shadow:
+    12px 12px 28px rgba(163,177,200,0.45),
+    -8px -8px 18px rgba(255,255,255,0.92),
+    inset 0 1px 0 rgba(255,255,255,0.98),
+    0 0 0 1px rgba(174,185,210,0.12);
+}
+
+/* ── Mobile bottom-sheet slide-up ────────────────────────── */
+@keyframes sheetUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   }
+}
+.auth-sheet-mobile {
+  animation: sheetUp 0.42s cubic-bezier(0.32,0.72,0,1) forwards;
+}
+.auth-modal-desktop {
+  animation: modalIn 0.32s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+
+/* ── Keyframe animations ─────────────────────────────────── */
+@keyframes focusIn {
+  0%   { filter: blur(20px); opacity: 0; transform: scale(.95); }
+  100% { filter: blur(0);    opacity: 1; transform: scale(1);   }
+}
+@keyframes fadeInSlow {
+  0%   { opacity: 0; transform: scale(.98); filter: blur(4px); }
+  100% { opacity: 1; transform: scale(1);   filter: blur(0);   }
+}
+@keyframes slideUpFade {
+  0%   { opacity: 0; transform: translateY(50px); filter: blur(10px); }
+  100% { opacity: 1; transform: translateY(0);    filter: blur(0);    }
+}
+@keyframes quickZoom {
+  0%   { opacity: 0; transform: scale(.9); }
+  100% { opacity: 1; transform: scale(1);  }
+}
+/* ── Event gallery animations ──────────────────────────────────────────────── */
+/* Banner cell glassmorphic border glow — soft repeating pulse */
+@keyframes bannerBorderShine {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(220,38,38,0.10), 0 0 10px 1px rgba(220,38,38,0.06), inset 0 1px 0 rgba(255,255,255,0.08); }
+  50%      { box-shadow: 0 0 0 1px rgba(220,38,38,0.28), 0 0 22px 4px rgba(220,38,38,0.16), inset 0 1px 0 rgba(255,255,255,0.18); }
+}
+/* Enter: scale up + fade in */
+@keyframes galleryPhotoIn {
+  0%   { opacity: 0; transform: scale(0.92) translateZ(0); }
+  100% { opacity: 1; transform: scale(1.00) translateZ(0); }
+}
+/* Exit animations — each cell gets a different one */
+@keyframes exitSlideLeft  { 0%{opacity:1;transform:translateX(0) scale(1)}  100%{opacity:0;transform:translateX(-22px) scale(0.95)} }
+@keyframes exitSlideRight { 0%{opacity:1;transform:translateX(0) scale(1)}  100%{opacity:0;transform:translateX(22px)  scale(0.95)} }
+@keyframes exitSlideDown  { 0%{opacity:1;transform:translateY(0) scale(1)}  100%{opacity:0;transform:translateY(18px)  scale(0.96)} }
+@keyframes exitSlideUp    { 0%{opacity:1;transform:translateY(0) scale(1)}  100%{opacity:0;transform:translateY(-18px) scale(0.96)} }
+@keyframes exitScaleFade  { 0%{opacity:1;transform:scale(1)}                100%{opacity:0;transform:scale(1.05)} }
+
+/* ── Event name change animations — horizontal slide (safe for tall script fonts) ─ */
+@keyframes nameSlideOut {
+  0%   { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(28px); }
+}
+@keyframes nameSlideIn {
+  0%   { opacity: 0; transform: translateX(-24px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+@keyframes float {
+  0%,100% { transform: translateY(0);    }
+  50%     { transform: translateY(-15px); }
+}
+/* CSS 3D floating camera — fallback when WebGL unavailable */
+@keyframes cssCamera3d {
+  0%   { transform: perspective(900px) rotateY(-18deg) rotateX(6deg)  translateY(0px);   }
+  25%  { transform: perspective(900px) rotateY(-5deg)  rotateX(2deg)  translateY(-14px); }
+  50%  { transform: perspective(900px) rotateY( 18deg) rotateX(-4deg) translateY(-8px);  }
+  75%  { transform: perspective(900px) rotateY( 5deg)  rotateX(3deg)  translateY(-18px); }
+  100% { transform: perspective(900px) rotateY(-18deg) rotateX(6deg)  translateY(0px);   }
+}
+@keyframes lensRotate {
+  to { transform: rotate(360deg); }
+}
+@keyframes glitch {
+  0%,80%,100% { text-shadow:  2px  2px 0 rgba(255,0,0,.5), -2px -2px 0 rgba(0,0,255,.5); }
+  20%         { text-shadow: -2px  2px 0 rgba(255,0,0,.5),  2px -2px 0 rgba(0,0,255,.5); }
+  40%         { text-shadow:  2px -2px 0 rgba(255,0,0,.5), -2px  2px 0 rgba(0,0,255,.5); }
+  60%         { text-shadow: -2px -2px 0 rgba(255,0,0,.5),  2px  2px 0 rgba(0,0,255,.5); }
+}
+@keyframes textPan {
+  0%,100% { background-position: 0%   50%; }
+  50%     { background-position: 100% 50%; }
+}
+/* Mobile hero — cinematic entrance: blur+rise → quick glitch flash → settle */
+@keyframes mobileTextReveal {
+  0%   { opacity:0; filter:blur(14px) drop-shadow(0 3px 20px rgba(0,0,0,1)); transform:translateY(16px); }
+  55%  { opacity:0.8; filter:blur(2px) drop-shadow(0 3px 20px rgba(0,0,0,1)); transform:translateY(3px); }
+  70%  { opacity:1; filter:blur(0) drop-shadow( 4px 2px 0 rgba(255,0,0,.6)) drop-shadow(-4px -2px 0 rgba(0,120,255,.6)) drop-shadow(0 3px 20px rgba(0,0,0,1)); transform:translateY(0); }
+  74%  { opacity:1; filter:blur(0) drop-shadow(-4px 2px 0 rgba(255,0,0,.6)) drop-shadow( 4px -2px 0 rgba(0,120,255,.6)) drop-shadow(0 3px 20px rgba(0,0,0,1)); transform:translateY(0); }
+  78%  { opacity:1; filter:blur(0) drop-shadow( 4px -2px 0 rgba(255,0,0,.6)) drop-shadow(-4px  2px 0 rgba(0,120,255,.6)) drop-shadow(0 3px 20px rgba(0,0,0,1)); transform:translateY(0); }
+  82%  { opacity:1; filter:blur(0) drop-shadow(0 0 0 transparent)                                                         drop-shadow(0 3px 20px rgba(0,0,0,1)); transform:translateY(0); }
+  86%  { opacity:1; filter:blur(0) drop-shadow( 3px 1px 0 rgba(255,0,0,.45)) drop-shadow(-3px -1px 0 rgba(0,120,255,.45)) drop-shadow(0 3px 20px rgba(0,0,0,1)); transform:translateY(0); }
+  100% { opacity:1; filter:blur(0) drop-shadow(0 0 28px rgba(160,160,160,0.16)) drop-shadow(0 3px 20px rgba(0,0,0,1)); transform:translateY(0); }
+}
+/* Mobile nav — item slide-in with stagger */
+@keyframes mobileNavItemIn {
+  0%   { opacity:0; transform:translateX(-20px); }
+  100% { opacity:1; transform:translateX(0); }
+}
+/* Mobile nav — ripple burst from touch point */
+@keyframes mobileNavRipple {
+  0%   { transform:translate(-50%,-50%) scale(0); opacity:0.7; }
+  100% { transform:translate(-50%,-50%) scale(6); opacity:0; }
+}
+/* Mobile hero tagline entrance */
+@keyframes mobileTaglineReveal {
+  0%   { opacity:0; transform:translateY(6px); }
+  100% { opacity:1; transform:translateY(0); }
+}
+/* Mobile hero — click-triggered glitch burst */
+@keyframes mobileGlitchBurst {
+  0%,80%,100% { filter:drop-shadow( 3px  2px 0 rgba(255,0,0,.72)) drop-shadow(-3px -2px 0 rgba(0,120,255,.72)) drop-shadow(0 3px 20px rgba(0,0,0,1)); }
+  20%         { filter:drop-shadow(-3px  2px 0 rgba(255,0,0,.72)) drop-shadow( 3px -2px 0 rgba(0,120,255,.72)) drop-shadow(0 3px 20px rgba(0,0,0,1)); }
+  40%         { filter:drop-shadow( 3px -2px 0 rgba(255,0,0,.72)) drop-shadow(-3px  2px 0 rgba(0,120,255,.72)) drop-shadow(0 3px 20px rgba(0,0,0,1)); }
+  60%         { filter:drop-shadow(-3px -2px 0 rgba(255,0,0,.72)) drop-shadow( 3px  2px 0 rgba(0,120,255,.72)) drop-shadow(0 3px 20px rgba(0,0,0,1)); }
+}
+@keyframes filmBurn {
+  0%          { opacity: 0; }
+  10%         { opacity: .6; background: linear-gradient(90deg,#ff4500,#ff8c00,#fff); }
+  20%         { opacity: .2; }
+  30%         { opacity: .9; background: linear-gradient(90deg,#fff,#ffaa00,#ff4500); filter: brightness(2); }
+  50%         { opacity: .1; }
+  70%         { opacity: .8; background: linear-gradient(90deg,#f00,#fff); }
+  90%         { opacity: .3; }
+  100%        { opacity: 0;  }
+}
+@keyframes flashSuccess {
+  0%   { background-color: white;       opacity: 1; }
+  100% { background-color: transparent; opacity: 1; }
+}
+/*
+  logoSweep: diagonal glint sweeps across the logo periodically.
+  The sweep div is clipped by the parent's overflow:hidden.
+  At -150%/+150% the element is fully off-screen → invisible during reset.
+  6s period = about one visible sweep every 6 seconds.
+*/
+@keyframes logoSweep {
+  /* Hold left (invisible — clipped) */
+  0%, 28%     { transform: translateX(-150%) skewX(-8deg); opacity: 1; }
+  /* Sweep to right */
+  43%         { transform: translateX(150%)  skewX(-8deg); opacity: 1; }
+  /* Disappear at right, then instantly reset to left (both off-screen) */
+  43.5%       { transform: translateX(150%)  skewX(-8deg); opacity: 0; }
+  43.6%       { transform: translateX(-150%) skewX(-8deg); opacity: 0; }
+  44%, 100%   { transform: translateX(-150%) skewX(-8deg); opacity: 1; }
+}
+
+/* Intro screen border edge sweep */
+@keyframes borderSweep {
+  0%, 68%, 100% { opacity: 0; }
+  30%, 55%      { opacity: 1; }
+}
+@keyframes scrollBounce {
+  0%,100% { transform: translateY(0);   opacity: .8; }
+  50%     { transform: translateY(8px); opacity: .4; }
+}
+@keyframes clickPulse {
+  0%,100% { opacity: .65; }
+  50%     { opacity: 1;   }
+}
+
+/* ── Utility classes ─────────────────────────────────────── */
+.animate-focus         { animation: focusIn 2s cubic-bezier(.25,.46,.45,.94) forwards; }
+.animate-slide-up      { animation: slideUpFade 1.2s cubic-bezier(.22,1,.36,1) forwards; opacity: 0; animation-delay: .5s; }
+.animate-quick-zoom    { animation: quickZoom .4s cubic-bezier(.175,.885,.32,1.275) forwards; }
+.animate-fade-in-slow  { animation: fadeInSlow 3s ease-out forwards; }
+.animate-float         { animation: float 6s ease-in-out infinite; }
+.animate-spin-slow     { animation: lensRotate 20s linear infinite; }
+.animate-text-pan      { animation: textPan 20s ease infinite; background-size: 150%; }
+.animate-film-burn     { animation: filmBurn .8s ease-out forwards; }
+.animate-flash         { animation: flashSuccess .5s ease-out forwards; }
+.animate-scroll-bounce { animation: scrollBounce 1.6s ease-in-out infinite; }
+.animate-click-pulse   { animation: clickPulse 2s ease-in-out infinite; }
+
+/* ── Member card float & glow animations ───────────────────────────────────── */
+@keyframes memberCoreFloat {
+  0%, 100% { transform: translateY(0px)   scale(1);    }
+  50%       { transform: translateY(-5px) scale(1.008); }
+}
+@keyframes memberCoordFloat {
+  0%, 100% { transform: translateY(0px);   }
+  50%       { transform: translateY(-3px); }
+}
+@keyframes memberCircleFloat {
+  0%, 100% { transform: translateY(0px);    }
+  50%       { transform: translateY(-1.5px); }
+}
+@keyframes coreGlowPulse {
+  0%, 100% { box-shadow: 0 2px 12px rgba(220,38,38,0.10), 0 0 0 1px rgba(220,38,38,0.30); }
+  50%       { box-shadow: 0 6px 28px rgba(220,38,38,0.30), 0 0 0 1px rgba(220,38,38,0.55); }
+}
+@keyframes coordGlowPulse {
+  0%, 100% { box-shadow: 0 2px 10px rgba(37,99,235,0.08), 0 0 0 1px rgba(37,99,235,0.28); }
+  50%       { box-shadow: 0 5px 22px rgba(37,99,235,0.22), 0 0 0 1px rgba(37,99,235,0.50); }
+}
+/* Past core card — gentle golden sway + glow pulse */
+@keyframes pastCoreFloat {
+  0%,100% { transform: translateY(0px) rotate(0deg);   }
+  30%     { transform: translateY(-3px) rotate(0.4deg); }
+  65%     { transform: translateY(-2px) rotate(-0.3deg);}
+}
+@keyframes pastCoreGlow {
+  0%,100% { box-shadow: 0 3px 14px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,168,76,0.28); }
+  40%     { box-shadow: 0 6px 22px rgba(201,168,76,0.22), 0 0 0 1px rgba(201,168,76,0.5); }
+  70%     { box-shadow: 0 4px 18px rgba(201,168,76,0.14), 0 0 0 1px rgba(201,168,76,0.38); }
+}
+
+/* Border beam — the rotating div inside the 1.5px padding wrapper */
+@keyframes borderBeamRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+/* Subtle flickering border glow for the expand button */
+/* Idle amber breathing glow for Show Past Members button */
+@keyframes pastMembersGlow {
+  0%,100% { box-shadow: 0 0 6px 0px rgba(212,170,80,0.10), inset 0 0 6px 0px rgba(212,170,80,0.04); }
+  50%     { box-shadow: 0 0 18px 3px rgba(212,170,80,0.20), inset 0 0 10px 1px rgba(212,170,80,0.07); }
+}
+/* ✦ icon slow pulse */
+@keyframes pastStarPulse {
+  0%,100% { opacity: 0.55; transform: scale(1)    rotate(0deg); }
+  50%     { opacity: 0.90; transform: scale(1.18)  rotate(18deg); }
+}
+/* Alumni card slow B&W breathe */
+@keyframes passoutBw {
+  0%,100% { filter: grayscale(1) brightness(0.88) contrast(1.08); }
+  50%     { filter: grayscale(1) brightness(1.02) contrast(1.04); }
+}
+/* Alumni year-group entrance */
+@keyframes alumniReveal {
+  from { opacity:0; transform:translateY(20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+/* Occasional diagonal shine sweep on the PastMembersBtn pill */
+@keyframes btnShine {
+  0%, 72%  { transform: translateX(-130%) skewX(-18deg); }
+  88%      { transform: translateX(260%)  skewX(-18deg); }
+  100%     { transform: translateX(260%)  skewX(-18deg); }
+}
+/* Alumni hero — thin light travels along golden bottom border */
+@keyframes shrineTravel {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(1100%); }
+}
+@keyframes borderFlicker {
+  0%,100% { box-shadow: 0 0 0px rgba(220,38,38,0);    opacity:1; }
+  18%     { box-shadow: 0 0 5px rgba(220,38,38,0.18);  opacity:0.95; }
+  22%     { box-shadow: 0 0 2px rgba(220,38,38,0.06);  opacity:1; }
+  45%     { box-shadow: 0 0 7px rgba(220,38,38,0.22);  opacity:0.96; }
+  50%     { box-shadow: 0 0 3px rgba(220,38,38,0.08);  opacity:1; }
+  72%     { box-shadow: 0 0 6px rgba(220,38,38,0.16);  opacity:0.97; }
+  76%     { box-shadow: 0 0 1px rgba(220,38,38,0.04);  opacity:1; }
+}
+
+.glitch-text:hover { animation: glitch .3s cubic-bezier(.25,.46,.45,.94) both infinite; }
+
+/* ── Lens rings ──────────────────────────────────────────── */
+.lens-container { perspective: 1000px; transform-style: preserve-3d; }
+.lens-ring {
+  position: absolute; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.1);
+  box-shadow: 0 0 15px rgba(255,255,255,.05);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* ── Film grain overlay ──────────────────────────────────── */
+.bg-grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  opacity: .4; position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%; pointer-events: none; z-index: 1;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+::-webkit-scrollbar       { width: 6px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* ── Clip-corner shape ───────────────────────────────────── */
+.clip-corner {
+  clip-path: polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 17.5px; /* mobile base */
+}
+/* PC: slightly larger base so nav labels, gallery text, dashboard UI feel more substantial */
+@media (min-width: 1024px) {
+  html { font-size: 19px; }
+}
+body { overflow-x: hidden; }
+select option { background-color: #111; color: white; }
+
+/* iOS safe area for bottom nav */
+.safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* Toggle switch — clean implementation */
+.toggle-track {
+  position: relative; display: inline-flex; align-items: center;
+  width: 44px; height: 24px; border-radius: 999px; cursor: pointer;
+  transition: background-color 0.25s ease;
+}
+.toggle-track.on  { background: #dc2626; }
+.toggle-track.off { background: rgba(255,255,255,0.15); }
+.toggle-thumb {
+  position: absolute; top: 2px; width: 20px; height: 20px;
+  border-radius: 50%; background: white; box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  transition: left 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+.toggle-track.on  .toggle-thumb { left: 22px; }
+.toggle-track.off .toggle-thumb { left: 2px;  }
+
+/* ── Dashboard text size improvements — simple and safe ─────────────────────── */
+/* The html { font-size: 17.5px } already scales rem values.
+   These only target pixel-locked sizes that don't scale with rem. */
+.dashboard-label { font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; }
+.dashboard-meta  { font-size: 0.72rem; }
+
+/* ── Neomorphic dashboard card ─────────────────────────────────────────────── */
+.neo-card {
+  border-radius: 18px;
+  background: #0f0f14;
+  box-shadow:
+    -4px -4px 10px rgba(255,255,255,0.025),
+    6px  6px  18px rgba(0,0,0,0.9),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: box-shadow 300ms ease;
+}
+html.light .neo-card {
+  background: #eef1f7;
+  box-shadow:
+    8px 8px 20px rgba(163,177,200,0.50),
+    -6px -6px 14px rgba(255,255,255,0.90),
+    inset 0 1px 0 rgba(255,255,255,0.85);
+  border: 1px solid rgba(255,255,255,0.80);
+}
+
+/* ── Hover border travel animation ──────────────────────────────────────────── */
+/* A red "sweep" highlight rotates around the button border on hover */
+@property --neo-border-pos {
+  syntax: '<percentage>';
+  initial-value: 0%;
+  inherits: false;
+}
+
+@keyframes neo-border-travel {
+  0%   { --neo-border-pos: 0%;   }
+  100% { --neo-border-pos: 100%; }
+}
+
+/* Applied to nav buttons in dashboards */
+.neo-interactive {
+  position: relative;
+  border: 1px solid transparent;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+.neo-interactive::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 200ms ease;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg,
+      transparent 0%,
+      rgba(220,38,38,0.55) 40%,
+      rgba(220,38,38,0.9)  50%,
+      rgba(220,38,38,0.55) 60%,
+      transparent 100%) border-box;
+  background-size: 200% 100%;
+  border: 1.5px solid transparent;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+  animation: none;
+}
+.neo-interactive:hover::after {
+  opacity: 1;
+  animation: neo-sweep-border 1.8s linear infinite;
+}
+.neo-interactive:hover {
+  border-color: rgba(220,38,38,0.28);
+  box-shadow: 0 0 0 1px rgba(220,38,38,0.15), 0 0 14px rgba(220,38,38,0.12);
+}
+.neo-interactive:active {
+  transform: scale(0.96);
+  transition: transform 100ms ease;
+}
+
+@keyframes neo-sweep-border {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Simpler fallback for auth-glass buttons — sweeping red outline */
+.glass-btn.neo-interactive:hover,
+button.neo-interactive:hover {
+  outline: 1.5px solid rgba(220,38,38,0.35);
+  outline-offset: 1px;
+  box-shadow:
+    0 0 0 1px rgba(220,38,38,0.2),
+    0 0 12px rgba(220,38,38,0.12);
+}
+
+/* ── Compact dashboard drop-shadow cards ──────────────────────────────────── */
+.dash-section {
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow:
+    0 2px 8px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+}
+html.light .dash-section {
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.90);
+  box-shadow:
+    6px 6px 16px rgba(163,177,200,0.38),
+    -4px -4px 10px rgba(255,255,255,0.88),
+    inset 0 1px 0 rgba(255,255,255,0.96);
+}
+
+/* ── Postcard card image — shorter on desktop, very slightly shorter mobile ── */
+.pc-postcard-img { padding-bottom: 115%; }
+@media (min-width: 640px) {
+  .pc-postcard-img { padding-bottom: 100%; }
+}
+
+/* ── Section toggle — responsive sizing ─────────────────────────────────── */
+.sec-toggle-track  { width: 36px; height: 20px; }
+.sec-toggle-thumb  { width: 15px; height: 15px; }
+.sec-toggle-thumb-on  { left: 19px; }
+.sec-toggle-thumb-off { left: 2px;  }
+.sec-toggle-label  { display: none; }
+
+@media (min-width: 640px) {
+  .sec-toggle-track  { width: 48px; height: 26px; }
+  .sec-toggle-thumb  { width: 20px; height: 20px; }
+  .sec-toggle-thumb-on  { left: 25px; }
+  .sec-toggle-thumb-off { left: 3px;  }
+  .sec-toggle-label  { display: inline; }
+}
+
+/* ── Activity card — 3-column responsive layout ──────────────────────────── */
+.act-card-body { overflow: hidden; }
+@media (min-width: 640px) {
+  .act-card-body {
+    flex-direction: row;
+    height: clamp(260px, 28vw, 360px);
+    overflow: hidden;
+  }
+}
+
+/* info scroll: no scroll on mobile (clipped), scrollable on desktop */
+.act-info-scroll { overflow: hidden; }
+@media (min-width: 640px) {
+  .act-info-scroll {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.12) transparent;
+  }
+  .act-info-scroll::-webkit-scrollbar { width: 3px; }
+  .act-info-scroll::-webkit-scrollbar-track { background: transparent; }
+  .act-info-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+  .act-info-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+}
+
+/* description: 2-line clamp on mobile, full text on desktop */
+.act-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+@media (min-width: 640px) {
+  .act-desc {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: unset;
+  }
+}
+
+/* photo division */
+.act-photo-div {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 110px;
+  flex-shrink: 0;
+}
+@media (min-width: 640px) {
+  .act-photo-div {
+    width: 28%;
+    height: 100%;
+  }
+}
+
+/* right-edge gradient: desktop only */
+.act-photo-fade-r { display: none; }
+/* bottom-edge gradient: mobile only */
+.act-photo-fade-b { display: block; }
+@media (min-width: 640px) {
+  .act-photo-fade-r { display: block; }
+  .act-photo-fade-b { display: none; }
+}
+
+/* mobile gallery: 2×2 grid (mobile only) */
+.act-gallery-mobile {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  padding: 0 10px 10px;
+  height: 110px;
+  flex-shrink: 0;
+}
+@media (min-width: 640px) {
+  .act-gallery-mobile { display: none; }
+}
+
+/* gallery division: 2×2 grid, desktop only */
+.act-gallery-div {
+  display: none;
+}
+@media (min-width: 640px) {
+  .act-gallery-div {
+    display: block;
+    width: 30%;
+    flex-shrink: 0;
+    position: relative;
+  }
+}
+
+/* ── Activities — neomorphic button classes ──────────────────────────────── */
+.act-neo-violet {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+  box-shadow:
+    3px 3px 10px rgba(0,0,0,0.55),
+    -1px -1px 4px rgba(255,255,255,0.05),
+    inset 0 1px 0 rgba(255,255,255,0.20),
+    0 0 18px rgba(139,92,246,0.28);
+  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s ease;
+  will-change: transform;
+}
+.act-neo-violet:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    4px 4px 14px rgba(0,0,0,0.60),
+    -1px -1px 5px rgba(255,255,255,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    0 0 26px rgba(139,92,246,0.44);
+}
+.act-neo-violet:active {
+  transform: translateY(1px) scale(0.955);
+  box-shadow:
+    inset 2px 2px 8px rgba(0,0,0,0.55),
+    inset -1px -1px 4px rgba(255,255,255,0.06),
+    0 0 10px rgba(139,92,246,0.18);
+  transition-duration: 0.08s;
+}
+.act-neo-violet::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: rgba(255,255,255,0.22);
+  opacity: 0;
+  z-index: 1;
+}
+.act-neo-violet:active::before { animation: iosTapGlow 0.32s ease-out forwards; }
+
+.act-neo-ghost {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    2px 2px 7px rgba(0,0,0,0.70),
+    -1px -1px 3px rgba(255,255,255,0.035),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s ease;
+  will-change: transform;
+}
+.act-neo-ghost:hover {
+  transform: translateY(-1px);
+  background: rgba(255,255,255,0.07);
+  box-shadow:
+    3px 3px 10px rgba(0,0,0,0.75),
+    -1px -1px 4px rgba(255,255,255,0.05),
+    inset 0 1px 0 rgba(255,255,255,0.09);
+}
+.act-neo-ghost:active {
+  transform: translateY(1px) scale(0.96);
+  box-shadow:
+    inset 2px 2px 7px rgba(0,0,0,0.72),
+    inset -1px -1px 3px rgba(255,255,255,0.04);
+  transition-duration: 0.08s;
+}
+.act-neo-ghost::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: rgba(255,255,255,0.14);
+  opacity: 0;
+  z-index: 1;
+}
+.act-neo-ghost:active::before { animation: iosTapGlow 0.32s ease-out forwards; }
+
+/* Light mode overrides for act-neo buttons */
+html.light .act-neo-violet {
+  box-shadow:
+    4px 4px 10px rgba(139,92,246,0.22),
+    -3px -3px 8px rgba(255,255,255,0.90),
+    inset 0 1px 0 rgba(255,255,255,0.80),
+    0 0 16px rgba(139,92,246,0.16);
+}
+html.light .act-neo-violet:hover {
+  box-shadow:
+    6px 6px 14px rgba(139,92,246,0.30),
+    -4px -4px 10px rgba(255,255,255,0.92),
+    inset 0 1px 0 rgba(255,255,255,0.85),
+    0 0 24px rgba(139,92,246,0.24);
+}
+html.light .act-neo-ghost {
+  background: rgba(242,245,250,0.88);
+  border: 1px solid rgba(255,255,255,0.88);
+  border-bottom-color: rgba(163,177,200,0.30);
+  box-shadow:
+    4px 4px 10px rgba(163,177,200,0.42),
+    -3px -3px 8px rgba(255,255,255,0.88),
+    inset 0 1px 0 rgba(255,255,255,0.90);
+}
+html.light .act-neo-ghost:hover {
+  background: rgba(252,254,255,0.95);
+  box-shadow:
+    6px 6px 14px rgba(163,177,200,0.50),
+    -4px -4px 10px rgba(255,255,255,0.92),
+    inset 0 1px 0 rgba(255,255,255,0.96);
+}
+html.light .act-neo-ghost:active {
+  box-shadow:
+    inset 3px 3px 8px rgba(163,177,200,0.40),
+    inset -2px -2px 6px rgba(255,255,255,0.75);
+}
+
+/* ── Mail send / sent overlay — soft, minimal, professional ─────────── */
+@keyframes mailOverlayIn {
+  0%   { opacity: 0; backdrop-filter: blur(0px); }
+  100% { opacity: 1; backdrop-filter: blur(6px); }
+}
+@keyframes mailOverlayOut {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes mailPlaneFloat {
+  0%, 100% { transform: translateY(0) rotate(-8deg); }
+  50%      { transform: translateY(-7px) rotate(-4deg); }
+}
+@keyframes mailPlaneTrail {
+  0%   { stroke-dashoffset: 48; opacity: .25; }
+  60%  { opacity: .7; }
+  100% { stroke-dashoffset: 0; opacity: .25; }
+}
+@keyframes mailRingPulse {
+  0%   { transform: scale(0.85); opacity: .55; }
+  100% { transform: scale(1.55); opacity: 0;   }
+}
+@keyframes mailDotBounce {
+  0%, 80%, 100% { transform: translateY(0);    opacity: .35; }
+  40%           { transform: translateY(-4px); opacity: 1;   }
+}
+@keyframes mailCheckPop {
+  0%   { transform: scale(0.4) rotate(-12deg); opacity: 0; }
+  55%  { transform: scale(1.12) rotate(3deg);  opacity: 1; }
+  100% { transform: scale(1) rotate(0deg);     opacity: 1; }
+}
+@keyframes mailCheckDraw {
+  from { stroke-dashoffset: 28; }
+  to   { stroke-dashoffset: 0;  }
+}
+@keyframes mailSentTextIn {
+  0%   { opacity: 0; transform: translateY(6px); filter: blur(3px); }
+  100% { opacity: 1; transform: translateY(0);   filter: blur(0);   }
+}
+.mail-overlay {
+  animation: mailOverlayIn .38s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+.mail-overlay.is-leaving {
+  animation: mailOverlayOut .32s ease-out forwards;
+}
+.mail-plane-icon {
+  animation: mailPlaneFloat 1.7s ease-in-out infinite;
+}
+.mail-plane-trail {
+  stroke-dasharray: 48;
+  animation: mailPlaneTrail 1.7s ease-in-out infinite;
+}
+.mail-ring {
+  animation: mailRingPulse 1.7s cubic-bezier(0.22,0.61,0.36,1) infinite;
+}
+.mail-dot { animation: mailDotBounce 1.1s ease-in-out infinite; }
+.mail-dot:nth-child(2) { animation-delay: .14s; }
+.mail-dot:nth-child(3) { animation-delay: .28s; }
+.mail-check-pop {
+  animation: mailCheckPop .56s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+.mail-check-draw {
+  stroke-dasharray: 28;
+  stroke-dashoffset: 28;
+  animation: mailCheckDraw .42s .22s ease-out forwards;
+}
+.mail-sent-text {
+  animation: mailSentTextIn .4s .12s cubic-bezier(0.22,1,0.36,1) backwards;
+}
+
+/* ── Connect section social card entrance ─── */
+@keyframes socialCardIn {
+  from { opacity: 0; transform: translateY(18px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+/* Continuous float for social icons */
+@keyframes socialFloat {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-9px); }
+}
+/* Pulsing glow ring behind icons */
+@keyframes socialGlowPulse {
+  0%, 100% { opacity: 0.12; transform: scale(0.82); }
+  50%       { opacity: 0.32; transform: scale(1.18); }
+}
+/* Per-platform icon micro-animations */
+@keyframes iconBounce {
+  0%,100% { transform: translateY(0);    }
+  35%      { transform: translateY(-9px); }
+  65%      { transform: translateY(-5px); }
+}
+@keyframes iconWiggle {
+  0%,100% { transform: rotate(0deg);   }
+  20%      { transform: rotate(-14deg); }
+  50%      { transform: rotate(12deg);  }
+  75%      { transform: rotate(-7deg);  }
+}
+@keyframes iconSpin {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+@keyframes iconPulse {
+  0%,100% { transform: scale(1);    }
+  40%      { transform: scale(1.22); }
+  70%      { transform: scale(0.92); }
+}
+@keyframes iconShake {
+  0%,100% { transform: translateX(0);  }
+  20%      { transform: translateX(-5px); }
+  45%      { transform: translateX(5px);  }
+  65%      { transform: translateX(-4px); }
+  85%      { transform: translateX(3px);  }
+}
+@keyframes iconFly {
+  0%,100% { transform: translate(0, 0);     }
+  40%      { transform: translate(6px,-6px); }
+  70%      { transform: translate(2px,-2px); }
+}
+/* Continuous glass shine sweep on the button */
+@keyframes socialGlassShine {
+  0%,100% { transform: translateX(-150%) skewX(-18deg); opacity: 0; }
+  8%       { opacity: 1; }
+  38%      { transform: translateX(260%) skewX(-18deg); opacity: 0; }
+}
+
+/* ── Accessibility: honour OS reduced-motion preference ─────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   LIGHT MODE GLASS + NEUMORPHIC DESIGN SYSTEM
+   Global overrides — covers every page, section, and element.
+   All selectors start with html.light so dark mode is untouched.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── 1. Page-level backgrounds ───────────────────────────── */
+html.light body,
+html.light #root {
+  background-color: #e8ecf3;
+}
+
+/* ── 2. Tailwind bg overrides — shift to neumorphic palette ─ */
+html.light .bg-white         { background-color: #f2f5fa !important; }
+html.light .bg-gray-50       { background-color: #eaecf3 !important; }
+html.light .bg-gray-100      { background-color: #e4e8f0 !important; }
+html.light .bg-gray-200      { background-color: #dce1ec !important; }
+
+/* Semi-transparent whites — keep the glass feel */
+html.light .bg-white\/90     { background-color: rgba(242,245,250,0.92) !important; }
+html.light .bg-white\/85     { background-color: rgba(242,245,250,0.88) !important; }
+html.light .bg-white\/80     { background-color: rgba(242,245,250,0.84) !important; }
+html.light .bg-white\/70     { background-color: rgba(242,245,250,0.76) !important; }
+html.light .bg-white\/60     { background-color: rgba(242,245,250,0.68) !important; }
+html.light .bg-white\/50     { background-color: rgba(242,245,250,0.60) !important; }
+html.light .bg-white\/40     { background-color: rgba(242,245,250,0.52) !important; }
+html.light .bg-white\/30     { background-color: rgba(242,245,250,0.40) !important; }
+html.light .bg-white\/20     { background-color: rgba(242,245,250,0.28) !important; }
+html.light .bg-white\/10     { background-color: rgba(242,245,250,0.16) !important; }
+html.light .bg-white\/8      { background-color: rgba(242,245,250,0.12) !important; }
+
+/* Black/dark surfaces in light mode — replace with light neumorphic tones */
+html.light .bg-black\/5      { background-color: rgba(163,177,200,0.12) !important; }
+html.light .bg-black\/4      { background-color: rgba(163,177,200,0.10) !important; }
+html.light .bg-black\/7      { background-color: rgba(163,177,200,0.14) !important; }
+
+/* ── 3. Text color improvements — richer contrast on light bg ─ */
+html.light .text-gray-900    { color: #0f172a !important; }
+html.light .text-gray-800    { color: #1e293b !important; }
+html.light .text-gray-700    { color: #334155 !important; }
+html.light .text-gray-600    { color: #475569 !important; }
+html.light .text-gray-500    { color: #64748b !important; }
+html.light .text-gray-400    { color: #94a3b8 !important; }
+html.light .text-gray-300    { color: #b0bccf !important; }
+
+/* Accent colors — enrich for better light-mode contrast */
+html.light .text-red-600     { color: #b91c1c !important; }
+html.light .text-red-400     { color: #ef4444 !important; }
+html.light .text-emerald-400 { color: #059669 !important; }
+html.light .text-green-400   { color: #16a34a !important; }
+
+/* ── 4. Border color improvements ───────────────────────────── */
+html.light .border-white\/4  { border-color: rgba(174,185,210,0.18) !important; }
+html.light .border-white\/5  { border-color: rgba(174,185,210,0.20) !important; }
+html.light .border-white\/6  { border-color: rgba(174,185,210,0.22) !important; }
+html.light .border-white\/7  { border-color: rgba(174,185,210,0.23) !important; }
+html.light .border-white\/8  { border-color: rgba(174,185,210,0.25) !important; }
+html.light .border-white\/10 { border-color: rgba(174,185,210,0.28) !important; }
+html.light .border-white\/15 { border-color: rgba(174,185,210,0.35) !important; }
+html.light .border-white\/20 { border-color: rgba(174,185,210,0.42) !important; }
+html.light .border-white\/25 { border-color: rgba(174,185,210,0.50) !important; }
+html.light .border-black\/4  { border-color: rgba(174,185,210,0.18) !important; }
+html.light .border-black\/5  { border-color: rgba(174,185,210,0.22) !important; }
+html.light .border-black\/6  { border-color: rgba(174,185,210,0.25) !important; }
+html.light .border-black\/7  { border-color: rgba(174,185,210,0.26) !important; }
+html.light .border-black\/8  { border-color: rgba(174,185,210,0.28) !important; }
+html.light .border-black\/10 { border-color: rgba(174,185,210,0.32) !important; }
+html.light .border-black\/12 { border-color: rgba(174,185,210,0.36) !important; }
+html.light .border-black\/15 { border-color: rgba(174,185,210,0.42) !important; }
+html.light .border-black\/20 { border-color: rgba(174,185,210,0.50) !important; }
+html.light .border-black\/25 { border-color: rgba(174,185,210,0.58) !important; }
+html.light .border-gray-200  { border-color: rgba(174,185,210,0.55) !important; }
+html.light .border-gray-300  { border-color: rgba(174,185,210,0.68) !important; }
+html.light .border-gray-600  { border-color: rgba(174,185,210,0.55) !important; }
+html.light .border-gray-700  { border-color: rgba(174,185,210,0.45) !important; }
+
+/* ── 5. Navigation bar — glass with neumorphic depth ─────────── */
+/* Scrolled nav (bg-white/85) + backdrop-blur */
+html.light nav {
+  border-bottom: 1px solid rgba(255,255,255,0.70);
+}
+
+/* The specific nav bg when scrolled */
+html.light .bg-white\/85.backdrop-blur-md {
+  background-color: rgba(236,240,248,0.92) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.72) !important;
+  box-shadow: 0 4px 24px rgba(163,177,200,0.22), inset 0 -1px 0 rgba(163,177,200,0.14) !important;
+}
+
+/* ── 6. Glass card hover in light mode ─────────────────────── */
+html.light .glass-card-hover:hover {
+  background: rgba(255,255,255,0.90) !important;
+  box-shadow:
+    10px 10px 24px rgba(163,177,200,0.50),
+    -7px -7px 16px rgba(255,255,255,0.90),
+    inset 0 1px 0 rgba(255,255,255,0.96) !important;
+  transform: translateY(-4px);
+}
+
+/* ── 7. Postcard neumorphic shadows ────────────────────────── */
+.postcard-neo-light {
+  box-shadow:
+    8px 8px 20px rgba(163,177,200,0.50),
+    -5px -5px 14px rgba(255,255,255,0.90),
+    inset 0 1px 0 rgba(255,255,255,0.80);
+}
+
+/* ── 8. Section dividers / hr ──────────────────────────────── */
+html.light hr,
+html.light .divide-white\/8  > * + * { border-color: rgba(174,185,210,0.28) !important; }
+html.light .divide-white\/5  > * + * { border-color: rgba(174,185,210,0.20) !important; }
+html.light .divide-black\/8  > * + * { border-color: rgba(174,185,210,0.28) !important; }
+html.light .divide-black\/10 > * + * { border-color: rgba(174,185,210,0.32) !important; }
+
+/* ── 9. Scrollbar — neumorphic inset track ─────────────────── */
+html.light ::-webkit-scrollbar       { width: 8px; height: 8px; }
+html.light ::-webkit-scrollbar-track {
+  background: #dce1ec;
+  border-radius: 99px;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: rgba(163,177,200,0.65);
+  border-radius: 99px;
+  border: 2px solid #dce1ec;
+}
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(163,177,200,0.88);
+}
+
+/* ── 10. Glass-icon hover in light mode ────────────────────── */
+html.light .glass-icon:hover {
+  background: rgba(255,255,255,0.75);
+  box-shadow:
+    4px 4px 10px rgba(163,177,200,0.42),
+    -3px -3px 8px rgba(255,255,255,0.85);
+}
+
+/* ── 11. Neo-interactive borders in light mode ─────────────── */
+html.light .neo-interactive:hover {
+  border-color: rgba(220,38,38,0.25);
+  box-shadow:
+    0 0 0 1px rgba(220,38,38,0.12),
+    0 0 16px rgba(220,38,38,0.10),
+    4px 4px 10px rgba(163,177,200,0.35),
+    -3px -3px 8px rgba(255,255,255,0.80);
+}
+html.light .glass-btn.neo-interactive:hover,
+html.light button.neo-interactive:hover {
+  outline: 1.5px solid rgba(220,38,38,0.30);
+  outline-offset: 1px;
+  box-shadow:
+    0 0 0 1px rgba(220,38,38,0.18),
+    0 0 14px rgba(220,38,38,0.10),
+    4px 4px 10px rgba(163,177,200,0.35),
+    -3px -3px 8px rgba(255,255,255,0.80);
+}
+
+/* ── 12. Tables / data grids in light mode ──────────────────── */
+html.light table thead tr {
+  background: rgba(232,236,243,0.85) !important;
+}
+html.light table tbody tr:nth-child(even) {
+  background: rgba(242,245,250,0.60) !important;
+}
+html.light table tbody tr:hover {
+  background: rgba(255,255,255,0.85) !important;
+}
+html.light table th {
+  color: #334155 !important;
+  border-bottom: 1px solid rgba(174,185,210,0.40) !important;
+  font-weight: 600 !important;
+}
+html.light table td {
+  border-bottom: 1px solid rgba(174,185,210,0.22) !important;
+  color: #475569 !important;
+}
+
+/* ── 13. Tags / badges / pills ─────────────────────────────── */
+html.light .bg-red-500\/10, html.light .bg-red-500\/15,
+html.light .bg-red-600\/10, html.light .bg-red-600\/12 {
+  background: rgba(220,38,38,0.08) !important;
+  border: 1px solid rgba(220,38,38,0.18) !important;
+}
+html.light .bg-emerald-500\/10, html.light .bg-green-500\/10 {
+  background: rgba(5,150,105,0.08) !important;
+  border: 1px solid rgba(5,150,105,0.18) !important;
+}
+html.light .bg-blue-500\/10, html.light .bg-blue-600\/10 {
+  background: rgba(37,99,235,0.08) !important;
+  border: 1px solid rgba(37,99,235,0.18) !important;
+}
+html.light .bg-violet-500\/10, html.light .bg-purple-500\/10 {
+  background: rgba(139,92,246,0.08) !important;
+  border: 1px solid rgba(139,92,246,0.18) !important;
+}
+html.light .bg-amber-500\/10, html.light .bg-yellow-500\/10 {
+  background: rgba(245,158,11,0.08) !important;
+  border: 1px solid rgba(245,158,11,0.18) !important;
+}
+
+/* ── 14. Inline-style boxes / section cards ──────────────────── */
+
+/* Footer specific */
+html.light footer,
+html.light .bg-white.border-black\/8 {
+  background-color: #eef1f7 !important;
+  border-top-color: rgba(174,185,210,0.30) !important;
+}
+
+/* ── 15. Input select / dropdown ────────────────────────────── */
+html.light select.glass-input,
+html.light select {
+  background-color: rgba(232,236,243,0.90);
+  border: 1px solid rgba(255,255,255,0.75);
+  color: #0f172a;
+  box-shadow:
+    inset 2px 2px 6px rgba(163,177,200,0.35),
+    inset -2px -2px 5px rgba(255,255,255,0.75);
+}
+html.light select option {
+  background: #f2f5fa;
+  color: #0f172a;
+}
+
+/* ── 16. Textarea ────────────────────────────────────────────── */
+html.light textarea.glass-input {
+  background: rgba(232,236,243,0.90);
+  box-shadow:
+    inset 3px 3px 8px rgba(163,177,200,0.38),
+    inset -2px -2px 6px rgba(255,255,255,0.80);
+}
+
+/* ── 17. Profile / avatar rings ─────────────────────────────── */
+html.light .ring-white\/10 { --tw-ring-color: rgba(174,185,210,0.28) !important; }
+html.light .ring-white\/20 { --tw-ring-color: rgba(174,185,210,0.40) !important; }
+
+/* ── 18. Tooltip / popover-style small panels ──────────────── */
+html.light [role="tooltip"],
+html.light .tooltip {
+  background: rgba(242,245,250,0.96);
+  border: 1px solid rgba(255,255,255,0.90);
+  box-shadow:
+    4px 4px 12px rgba(163,177,200,0.40),
+    -3px -3px 8px rgba(255,255,255,0.82);
+  color: #0f172a;
+}
+
+/* ── 19. Toggle track in light mode ─────────────────────────── */
+html.light .toggle-track.off {
+  background: rgba(163,177,200,0.28);
+  box-shadow:
+    inset 2px 2px 5px rgba(163,177,200,0.40),
+    inset -2px -2px 4px rgba(255,255,255,0.75);
+}
+html.light .toggle-thumb {
+  background: #f2f5fa;
+  box-shadow:
+    2px 2px 5px rgba(163,177,200,0.42),
+    -1px -1px 3px rgba(255,255,255,0.80);
+}
+
+/* ── 20. Section headers & editorial text ────────────────────── */
+html.light .font-clash { letter-spacing: 0.01em; }
+html.light .uppercase.tracking-widest,
+html.light .uppercase.tracking-wider {
+  color: #64748b;
+}
+
+/* ── 21. Gradient text — keep visible in light mode ─────────── */
+html.light .bg-gradient-to-r.from-white,
+html.light .bg-gradient-to-br.from-white {
+  --tw-gradient-from: #0f172a;
+  --tw-gradient-to: #334155;
+}
+
+/* ── 23. Specific nav scrolled container ───────────────────── */
+/* The nav wrapper when scrolled gets bg-white/85 + backdrop-blur-md.
+   We target this Tailwind combination precisely. */
+html.light [class*="bg-white"][class*="backdrop-blur"] {
+  background-color: rgba(234,237,245,0.92) !important;
+  box-shadow: 0 4px 24px rgba(163,177,200,0.20), 0 1px 0 rgba(255,255,255,0.60) inset !important;
+}
+
+/* ── 24. Active page link / tab highlights ──────────────────── */
+html.light .bg-red-50 {
+  background-color: rgba(255,242,242,0.90) !important;
+  box-shadow:
+    inset 2px 2px 6px rgba(220,38,38,0.10),
+    inset -2px -2px 5px rgba(255,255,255,0.70) !important;
+}
+html.light .bg-emerald-50 {
+  background-color: rgba(236,253,245,0.90) !important;
+}
+
+/* ── 26. Progress bars ─────────────────────────────────────── */
+html.light .bg-white\/6,
+html.light .bg-white\/\[0\.06\] { background-color: rgba(163,177,200,0.20) !important; }
+html.light .bg-white\/\[0\.04\] { background-color: rgba(163,177,200,0.15) !important; }
+
+/* ── 27. Drop-shadow filter — darken for light mode ──────────── */
+html.light .drop-shadow-lg    { filter: drop-shadow(0 4px 12px rgba(163,177,200,0.45)) !important; }
+html.light .drop-shadow-xl    { filter: drop-shadow(0 6px 20px rgba(163,177,200,0.50)) !important; }
+html.light .shadow-xl         {
+  box-shadow: 0 10px 28px rgba(163,177,200,0.45), 0 4px 10px rgba(163,177,200,0.25) !important;
+}
+html.light .shadow-lg         {
+  box-shadow: 0 6px 18px rgba(163,177,200,0.40), 0 2px 6px rgba(163,177,200,0.22) !important;
+}
+html.light .shadow-md         {
+  box-shadow: 0 4px 12px rgba(163,177,200,0.35), 0 1px 4px rgba(163,177,200,0.18) !important;
+}
+html.light .shadow-sm         {
+  box-shadow: 2px 2px 6px rgba(163,177,200,0.30), -1px -1px 4px rgba(255,255,255,0.70) !important;
+}
+
+/* ── 28. Dark avatar / card containers → neumorphic in light mode ── */
+html.light .bg-gray-800       { background-color: #dce1ec !important; }
+html.light .bg-gray-800\/30   { background-color: rgba(220,226,236,0.30) !important; }
+html.light .bg-gray-800\/40   { background-color: rgba(220,226,236,0.40) !important; }
+html.light .bg-gray-800\/50   { background-color: rgba(220,226,236,0.50) !important; }
+html.light .bg-gray-800\/60   { background-color: rgba(220,226,236,0.60) !important; }
+html.light .bg-gray-800\/80   { background-color: rgba(220,226,236,0.80) !important; }
+html.light .bg-gray-900       { background-color: #d4d9e4 !important; }
+html.light .bg-gray-900\/20   { background-color: rgba(212,217,228,0.20) !important; }
+html.light .bg-gray-900\/30   { background-color: rgba(212,217,228,0.30) !important; }
+html.light .bg-gray-600       { background-color: #b0bccf !important; }
+
+/* ── 29. Text inside dark containers → dark in light mode ─────── */
+html.light .bg-gray-800 .text-white  { color: #334155 !important; }
+html.light .auth-glass .text-white   { color: #0f172a !important; }
+
+/* ── 30. Hover-to-white text → dark on hover in light mode ────── */
+html.light .hover\:text-white:hover  { color: #334155 !important; }
+
+/* ── 31. Dark-tinted badge bg variants → light tints ──────────── */
+html.light .bg-amber-900\/30  { background-color: rgba(245,158,11,0.12) !important; }
+html.light .bg-amber-900\/40  { background-color: rgba(245,158,11,0.14) !important; }
+html.light .bg-green-900\/25  { background-color: rgba(16,185,129,0.10) !important; }
+html.light .bg-green-900\/30  { background-color: rgba(16,185,129,0.12) !important; }
+html.light .bg-yellow-900\/25 { background-color: rgba(234,179,8,0.10) !important; }
+html.light .bg-yellow-900\/30 { background-color: rgba(234,179,8,0.12) !important; }
+html.light .bg-blue-900\/30   { background-color: rgba(37,99,235,0.08) !important; }
+html.light .bg-blue-900\/40   { background-color: rgba(37,99,235,0.10) !important; }
+html.light .bg-emerald-900\/20 { background-color: rgba(5,150,105,0.08) !important; }
+html.light .bg-emerald-900\/25 { background-color: rgba(5,150,105,0.10) !important; }
+html.light .bg-violet-900\/20  { background-color: rgba(139,92,246,0.08) !important; }
+
+/* ── 32. Dark border variants → neumorphic blue-grey ──────────── */
+html.light .border-gray-700\/30 { border-color: rgba(174,185,210,0.28) !important; }
+html.light .border-gray-700\/40 { border-color: rgba(174,185,210,0.32) !important; }
+html.light .border-gray-700\/50 { border-color: rgba(174,185,210,0.38) !important; }
+html.light .border-amber-800\/40 { border-color: rgba(245,158,11,0.25) !important; }
+html.light .border-green-800\/40 { border-color: rgba(16,185,129,0.25) !important; }
+html.light .border-yellow-700\/40 { border-color: rgba(234,179,8,0.25) !important; }
+html.light .border-emerald-700\/40 { border-color: rgba(5,150,105,0.25) !important; }
+html.light .border-violet-800\/30 { border-color: rgba(139,92,246,0.22) !important; }
+html.light .border-amber-500\/30  { border-color: rgba(245,158,11,0.30) !important; }
+html.light .border-amber-600\/25  { border-color: rgba(245,158,11,0.28) !important; }
+html.light .border-amber-600\/30  { border-color: rgba(245,158,11,0.32) !important; }
+
+/* ── 33. Portrait/activity/competition card backgrounds → neumorphic ── */
+/* These are the full-opacity dark bg variants used on photo cards (no-photo fallback) */
+html.light .bg-\[\#0d0d0d\]   { background-color: #dce1ec !important; }
+html.light .bg-\[\#050505\]   { background-color: #e8ecf3 !important; }
+html.light .bg-\[\#020202\]   { background-color: #f0f2f7 !important; }
+html.light .bg-\[#050505\]    { background-color: #e8ecf3 !important; }
+
+/* ── 34. Dark status/role badge bg → light pastel variants ────── */
+/* Used in competition, activity, events badge chips */
+html.light .bg-green-900\/80  { background-color: rgba(220,252,231,0.95) !important; }
+html.light .text-green-300    { color: #15803d !important; }
+html.light .border-green-700\/50 { border-color: rgba(21,128,61,0.22) !important; }
+
+html.light .bg-amber-900\/80  { background-color: rgba(254,243,199,0.95) !important; }
+html.light .text-amber-300    { color: #92400e !important; }
+html.light .border-amber-700\/50 { border-color: rgba(146,64,14,0.22) !important; }
+
+html.light .bg-emerald-900\/80 { background-color: rgba(209,250,229,0.95) !important; }
+html.light .text-emerald-300   { color: #065f46 !important; }
+html.light .border-emerald-700\/50 { border-color: rgba(6,95,70,0.22) !important; }
+
+html.light .bg-violet-900\/80 { background-color: rgba(237,233,254,0.95) !important; }
+html.light .text-violet-300   { color: #5b21b6 !important; }
+html.light .border-violet-700\/50 { border-color: rgba(91,33,182,0.22) !important; }
+
+html.light .border-gray-600\/50 { border-color: rgba(156,163,175,0.30) !important; }
+
+/* ── 35. Carousel/slider dots & nav arrows ──────────────────── */
+html.light .bg-white\/20  { background-color: rgba(163,177,200,0.30) !important; }
+html.light .bg-white\/25  { background-color: rgba(163,177,200,0.35) !important; }
+html.light .bg-white\/40  { background-color: rgba(163,177,200,0.50) !important; }
+html.light .hover\:bg-white\/40:hover { background-color: rgba(100,120,160,0.30) !important; }
+html.light .text-white\/60 { color: rgba(71,85,105,0.80) !important; }
+html.light .text-white\/50 { color: rgba(71,85,105,0.65) !important; }
+html.light .text-white\/55 { color: rgba(71,85,105,0.70) !important; }
+html.light .text-white\/90 { color: rgba(15,23,42,0.90) !important; }
+
+/* ── 36. Neumorphic "ghost" cards — act-neo-ghost ───────────── */
+html.light .act-neo-ghost {
+  background: rgba(232,236,243,0.8) !important;
+  box-shadow: 3px 3px 7px rgba(163,177,200,0.45), -2px -2px 5px rgba(255,255,255,0.90) !important;
+  color: #475569 !important;
+}
+html.light .act-neo-ghost:hover {
+  box-shadow: 4px 4px 10px rgba(163,177,200,0.55), -3px -3px 7px rgba(255,255,255,0.95) !important;
+}
+
+/* ── 37. Footer dark bg in light mode ──────────────────────── */
+html.light .bg-\[#020202\]   { background-color: #f0f2f7 !important; }
+html.light .bg-\[#06060a\]   { background-color: #eef0f6 !important; }
+html.light .bg-\[#060608\]   { background-color: #eef0f6 !important; }
