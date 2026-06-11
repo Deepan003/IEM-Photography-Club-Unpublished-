@@ -428,29 +428,44 @@ html.light select:-webkit-autofill {
    GPU-only properties (opacity + transform) — zero layout cost.
    All timings tuned for a smooth editorial feel.             */
 
-/* Small tag label slides in from the left */
-@keyframes tagSlideIn {
-  from { opacity: 0; transform: translateX(-22px); }
+/* Heading: rises gently — small travel, eases out with spring */
+@keyframes headRise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* Content: soft scale-up — feels like content "developing" */
+@keyframes contentScale {
+  from { opacity: 0; transform: scale(0.96) translateY(10px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+/* Slide in from left — used for alternate sections */
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
   to   { opacity: 1; transform: translateX(0); }
 }
-/* Section heading rises from below */
-@keyframes headRise {
-  from { opacity: 0; transform: translateY(28px); }
+/* Slide in from right */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+/* Card rise: small, snappy */
+@keyframes itemRise {
+  from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-/* Content block drifts up (slightly more travel than heading) */
-@keyframes contentRise {
-  from { opacity: 0; transform: translateY(42px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-/* Pure opacity — for buttons, badges, subtle elements */
+/* Pure opacity — buttons, subtle badges */
 @keyframes fadePure {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
-/* Card/item individual stagger */
-@keyframes itemRise {
-  from { opacity: 0; transform: translateY(24px); }
+/* Legacy — kept for tagSlideIn consumers */
+@keyframes tagSlideIn {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+/* Legacy alias */
+@keyframes contentRise {
+  from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -470,57 +485,65 @@ body {
 * { box-sizing: border-box; }
 
 /* ── Section visibility ──────────────────────────────────────
-   Section fades in only (NO transform) — removes double-motion
-   glitch where section slides AND children animate simultaneously.
-   Section fade is fast (0.18s) so children are visible early. */
-.sec-hidden {
-  opacity: 0;
-  will-change: opacity;
-}
-.sec-vis {
-  opacity: 1;
-  transition: opacity 0.18s ease-out;
+   Section reveals INSTANTLY (no transition) — this is the key
+   glitch fix. Children use animation-fill-mode:both so they are
+   already at their `from` (invisible) state the same frame sec-vis
+   fires. No double-animation, no "blank section" flash, no GPU
+   will-change pressure building up across many sections.      */
+.sec-hidden { opacity: 0; }
+.sec-vis    { opacity: 1; }
+
+/* ── Default section header cascade ─────────────────────────
+   All sections get this unless overridden by a section ID.  */
+.sec-vis .sh-tag      { animation: tagSlideIn 0.50s cubic-bezier(0.22,1,0.36,1)  40ms both; }
+.sec-vis .sh-heading  { animation: headRise   0.60s cubic-bezier(0.22,1,0.36,1)  40ms both; }
+.sec-vis .sh-actions  { animation: fadePure   0.45s cubic-bezier(0.22,1,0.36,1) 160ms both; }
+.sec-vis .sh-subtitle { animation: headRise   0.50s cubic-bezier(0.22,1,0.36,1) 180ms both; }
+
+/* Default content block */
+.sec-vis .sec-content { animation: contentScale 0.65s cubic-bezier(0.22,1,0.36,1) 220ms both; }
+
+/* ── Per-section content variety ────────────────────────────
+   Headings all use headRise; content blocks vary by section. */
+
+/* Postcards — scale in, like a photo being developed */
+#postcards.sec-vis .sec-content {
+  animation: contentScale 0.70s cubic-bezier(0.22,1,0.36,1) 220ms both;
 }
 
-/* ── Section header — element-level cascade ─────────────────
-   Triggered the moment the parent <section> gains .sec-vis.
-   Each class targets a specific element inside SectionHeader. */
+/* Event Gallery — slides in from right, cinematic pan */
+#event-gallery.sec-vis .sh-heading  { animation: slideInLeft  0.60s cubic-bezier(0.22,1,0.36,1) 40ms both; }
+#event-gallery.sec-vis .sec-content { animation: slideInRight 0.70s cubic-bezier(0.22,1,0.36,1) 220ms both; }
 
-/* Tag label — leads the cascade */
-.sec-vis .sh-tag {
-  animation: tagSlideIn 0.55s cubic-bezier(0.22,1,0.36,1) 80ms both;
-}
-/* Main heading */
-.sec-vis .sh-heading {
-  animation: headRise 0.65s cubic-bezier(0.22,1,0.36,1) 80ms both;
-}
-/* See-more button / toggle */
-.sec-vis .sh-actions {
-  animation: fadePure 0.50s cubic-bezier(0.22,1,0.36,1) 200ms both;
-}
-/* Subtitle text */
-.sec-vis .sh-subtitle {
-  animation: headRise 0.55s cubic-bezier(0.22,1,0.36,1) 240ms both;
-}
+/* Club Gallery — slides in from left */
+#gallery.sec-vis .sh-heading  { animation: slideInRight 0.60s cubic-bezier(0.22,1,0.36,1) 40ms both; }
+#gallery.sec-vis .sec-content { animation: slideInLeft  0.70s cubic-bezier(0.22,1,0.36,1) 220ms both; }
 
-/* ── Section content block ───────────────────────────────────
-   The carousel / grid / card block below the header.        */
-.sec-vis .sec-content {
-  animation: contentRise 0.70s cubic-bezier(0.22,1,0.36,1) 300ms both;
-}
+/* Competitions — heading from right, content scale */
+#competitions.sec-vis .sh-heading  { animation: slideInRight 0.60s cubic-bezier(0.22,1,0.36,1) 40ms both; }
+#competitions.sec-vis .sec-content { animation: contentScale 0.70s cubic-bezier(0.22,1,0.36,1) 220ms both; }
+
+/* Activities — left slide */
+#activities.sec-vis .sh-heading  { animation: slideInLeft 0.60s cubic-bezier(0.22,1,0.36,1) 40ms both; }
+#activities.sec-vis .sec-content { animation: contentRise 0.65s cubic-bezier(0.22,1,0.36,1) 220ms both; }
+
+/* Magazines — scale in */
+#magazines.sec-vis .sec-content { animation: contentScale 0.70s cubic-bezier(0.22,1,0.36,1) 220ms both; }
+
+/* Members — heading from left, cards stagger up */
+#members.sec-vis .sh-heading  { animation: slideInLeft 0.60s cubic-bezier(0.22,1,0.36,1) 40ms both; }
 
 /* ── Card-level stagger inside sec-content ──────────────────
-   Applied to direct children of .sec-content when it is a
-   flat list (member grid, core grid etc.)                   */
-.sec-vis .sec-content > .reveal-card:nth-child(1)  { animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 320ms both; }
-.sec-vis .sec-content > .reveal-card:nth-child(2)  { animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 380ms both; }
-.sec-vis .sec-content > .reveal-card:nth-child(3)  { animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 435ms both; }
-.sec-vis .sec-content > .reveal-card:nth-child(4)  { animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 485ms both; }
-.sec-vis .sec-content > .reveal-card:nth-child(5)  { animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 530ms both; }
-.sec-vis .sec-content > .reveal-card:nth-child(6)  { animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 572ms both; }
-.sec-vis .sec-content > .reveal-card:nth-child(7)  { animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 610ms both; }
-.sec-vis .sec-content > .reveal-card:nth-child(8)  { animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 645ms both; }
-.sec-vis .sec-content > .reveal-card:nth-child(n+9){ animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 678ms both; }
+   Tighter interval — feels snappier without the long tail.  */
+.sec-vis .sec-content > .reveal-card:nth-child(1)  { animation: itemRise 0.50s cubic-bezier(0.22,1,0.36,1) 240ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(2)  { animation: itemRise 0.50s cubic-bezier(0.22,1,0.36,1) 295ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(3)  { animation: itemRise 0.50s cubic-bezier(0.22,1,0.36,1) 345ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(4)  { animation: itemRise 0.50s cubic-bezier(0.22,1,0.36,1) 390ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(5)  { animation: itemRise 0.50s cubic-bezier(0.22,1,0.36,1) 430ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(6)  { animation: itemRise 0.50s cubic-bezier(0.22,1,0.36,1) 466ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(7)  { animation: itemRise 0.50s cubic-bezier(0.22,1,0.36,1) 498ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(8)  { animation: itemRise 0.50s cubic-bezier(0.22,1,0.36,1) 526ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(n+9){ animation: itemRise 0.50s cubic-bezier(0.22,1,0.36,1) 550ms both; }
 
 
 /* ── Join "Be Part of Our Story" section animations ─────────
@@ -530,14 +553,14 @@ body {
   0%,100% { text-shadow: 0 0 0px rgba(220,38,38,0); filter: brightness(1); }
   50%     { text-shadow: 0 0 28px rgba(220,38,38,0.65), 0 0 56px rgba(220,38,38,0.28); filter: brightness(1.22); }
 }
-.sec-vis .join-line1      { animation: headRise 0.65s cubic-bezier(0.22,1,0.36,1) 80ms both; }
+.sec-vis .join-line1      { animation: headRise   0.60s cubic-bezier(0.22,1,0.36,1)  40ms both; }
 .sec-vis .join-story-span {
-  animation: headRise 0.75s cubic-bezier(0.22,1,0.36,1) 200ms both,
-             storyGlow 3.4s ease-in-out 1.2s infinite;
+  animation: slideInLeft 0.65s cubic-bezier(0.22,1,0.36,1) 160ms both,
+             storyGlow   3.4s ease-in-out 1.0s infinite;
 }
-.sec-vis .join-p1  { animation: contentRise 0.60s cubic-bezier(0.22,1,0.36,1) 340ms both; }
-.sec-vis .join-p2  { animation: contentRise 0.55s cubic-bezier(0.22,1,0.36,1) 440ms both; }
-.sec-vis .join-cta { animation: fadePure    0.55s cubic-bezier(0.22,1,0.36,1) 560ms both; }
+.sec-vis .join-p1  { animation: fadePure 0.55s cubic-bezier(0.22,1,0.36,1) 280ms both; }
+.sec-vis .join-p2  { animation: fadePure 0.50s cubic-bezier(0.22,1,0.36,1) 360ms both; }
+.sec-vis .join-cta { animation: contentScale 0.55s cubic-bezier(0.22,1,0.36,1) 460ms both; }
 
 /* ── Professional scroll-reveal animations ───────────────── */
 /* Text wipes up from below — clip-path mask approach        */
