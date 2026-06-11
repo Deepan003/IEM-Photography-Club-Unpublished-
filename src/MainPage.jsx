@@ -1777,31 +1777,34 @@ function HomeSections({ L, onJoin }) {
                 {/* ── ROW 2:
                       Mobile: hidden when collapsed, shown when expanded
                       PC:     always visible (sm:flex overrides hidden) ── */}
+                {/* ── ROW 2: hidden on mobile by default, always visible on PC ── */}
                 {row2Past.length > 0 && (
-                  <div className="flex flex-wrap sm:flex-nowrap items-start gap-x-3 sm:gap-x-8 gap-y-6">
+                  <div className={`flex-wrap sm:flex-nowrap items-start gap-x-3 sm:gap-x-8 gap-y-6 ${coreExpanded ? 'flex' : 'hidden sm:flex'}`}>
                     {row2Past.map((year, i) => PastGroup(year, year, i > 0))}
                   </div>
                 )}
 
-                {/* ── EXTRA ROWS: only when expanded (PC 5+ years OR mobile expanded) ── */}
+                {/* ── EXTRA ROWS: only when expanded ── */}
                 {coreExpanded && extraPast.length > 0 && (
                   <div className="flex flex-wrap sm:flex-nowrap items-start gap-x-5 sm:gap-x-8 gap-y-6">
                     {extraPast.map((year, i) => PastGroup(year, year, i > 0))}
                   </div>
                 )}
 
-                {/* Expand / collapse button: only appears when there are years beyond row2Past (5th year+) */}
-                {extraPast.length > 0 && (
+                {/* Button: mobile shows when row2Past exists, PC shows only for 5+ years */}
+                {row2Past.length > 0 && (
                   <button onClick={() => setCoreExpanded(v => !v)}
                     className={`mt-2 flex items-center gap-1.5 mx-auto font-inter font-semibold uppercase tracking-[0.12em] px-4 py-1.5 rounded-full transition-all active:scale-95 hover:scale-[1.03] ${
                       L ? 'text-gray-600 border border-black/10 hover:border-red-500/40 hover:text-red-600'
                         : 'text-gray-400 border border-white/10 hover:border-red-400/40 hover:text-red-400'
-                    }`}
+                    } ${extraPast.length === 0 ? 'sm:hidden' : ''}`}
                     style={{ fontSize:'clamp(9px,1.1vw,11px)', animation:'borderFlicker 4.5s ease-in-out infinite' }}>
                     <span>
                       {coreExpanded
                         ? 'See Less'
-                        : `Show ${extraPast.length} more past year${extraPast.length > 1 ? 's' : ''}`}
+                        : extraPast.length > 0
+                          ? `Show ${extraPast.length} more past year${extraPast.length > 1 ? 's' : ''}`
+                          : 'Show all past years'}
                     </span>
                     <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
                       className={`transition-transform duration-300 ${coreExpanded ? 'rotate-180' : ''}`}>
