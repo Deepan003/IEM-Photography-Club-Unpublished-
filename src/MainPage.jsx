@@ -26,7 +26,7 @@ function FullSection({ id, children, bg, className = '' }) {
     const obs = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting) { setVis(true); obs.disconnect() } },
       // Fire when section is meaningfully in view so user actually sees the animation
-      { threshold: 0.10, rootMargin: '0px 0px -80px 0px' }
+      { threshold: 0.07, rootMargin: '0px 0px -50px 0px' }
     )
     obs.observe(el)
     return () => obs.disconnect()
