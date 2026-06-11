@@ -34,9 +34,9 @@ app.set('trust proxy', 1)   // read real client IP from X-Forwarded-For (needed 
 const PORT   = process.env.PORT || 3001
 const isProd = process.env.NODE_ENV === 'production'
 
-// Security headers
+// Security headers — CSP disabled because Vite's built SPA uses inline module scripts
 app.use(helmet({
-  contentSecurityPolicy: isProd ? undefined : false, // off in dev (Vite HMR), on in prod
+  contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
 }))
 
