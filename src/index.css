@@ -470,59 +470,57 @@ body {
 * { box-sizing: border-box; }
 
 /* ── Section visibility ──────────────────────────────────────
-   Section itself fades in quickly; the CHILDREN handle the
-   visual cascade so there is no double-animation conflict.   */
+   Section fades in only (NO transform) — removes double-motion
+   glitch where section slides AND children animate simultaneously.
+   Section fade is fast (0.18s) so children are visible early. */
 .sec-hidden {
   opacity: 0;
-  transform: translateY(18px);
-  will-change: opacity, transform;
+  will-change: opacity;
 }
 .sec-vis {
   opacity: 1;
-  transform: translateY(0);
-  transition: opacity 0.45s cubic-bezier(0.22,1,0.36,1),
-              transform 0.45s cubic-bezier(0.22,1,0.36,1);
+  transition: opacity 0.18s ease-out;
 }
 
 /* ── Section header — element-level cascade ─────────────────
    Triggered the moment the parent <section> gains .sec-vis.
    Each class targets a specific element inside SectionHeader. */
 
-/* Tag label (e.g. "Photography", "Compete") — leads the cascade */
+/* Tag label — leads the cascade */
 .sec-vis .sh-tag {
-  animation: tagSlideIn 0.60s cubic-bezier(0.22,1,0.36,1) 60ms both;
+  animation: tagSlideIn 0.55s cubic-bezier(0.22,1,0.36,1) 80ms both;
 }
-/* Main heading — slightly after tag */
+/* Main heading */
 .sec-vis .sh-heading {
-  animation: headRise 0.75s cubic-bezier(0.22,1,0.36,1) 160ms both;
+  animation: headRise 0.65s cubic-bezier(0.22,1,0.36,1) 80ms both;
 }
-/* See-more button / toggle — fades in after heading */
+/* See-more button / toggle */
 .sec-vis .sh-actions {
-  animation: fadePure 0.55s cubic-bezier(0.22,1,0.36,1) 290ms both;
+  animation: fadePure 0.50s cubic-bezier(0.22,1,0.36,1) 200ms both;
 }
-/* Subtitle text — trails heading */
+/* Subtitle text */
 .sec-vis .sh-subtitle {
-  animation: headRise 0.60s cubic-bezier(0.22,1,0.36,1) 330ms both;
+  animation: headRise 0.55s cubic-bezier(0.22,1,0.36,1) 240ms both;
 }
 
 /* ── Section content block ───────────────────────────────────
    The carousel / grid / card block below the header.        */
 .sec-vis .sec-content {
-  animation: contentRise 0.80s cubic-bezier(0.22,1,0.36,1) 420ms both;
+  animation: contentRise 0.70s cubic-bezier(0.22,1,0.36,1) 300ms both;
 }
 
 /* ── Card-level stagger inside sec-content ──────────────────
    Applied to direct children of .sec-content when it is a
    flat list (member grid, core grid etc.)                   */
-.sec-vis .sec-content > .reveal-card:nth-child(1)  { animation: itemRise 0.60s cubic-bezier(0.22,1,0.36,1) 440ms both; }
-.sec-vis .sec-content > .reveal-card:nth-child(2)  { animation: itemRise 0.60s cubic-bezier(0.22,1,0.36,1) 510ms both; }
-.sec-vis .sec-content > .reveal-card:nth-child(3)  { animation: itemRise 0.60s cubic-bezier(0.22,1,0.36,1) 575ms both; }
-.sec-vis .sec-content > .reveal-card:nth-child(4)  { animation: itemRise 0.60s cubic-bezier(0.22,1,0.36,1) 635ms both; }
-.sec-vis .sec-content > .reveal-card:nth-child(5)  { animation: itemRise 0.60s cubic-bezier(0.22,1,0.36,1) 690ms both; }
-.sec-vis .sec-content > .reveal-card:nth-child(6)  { animation: itemRise 0.60s cubic-bezier(0.22,1,0.36,1) 740ms both; }
-.sec-vis .sec-content > .reveal-card:nth-child(7)  { animation: itemRise 0.60s cubic-bezier(0.22,1,0.36,1) 785ms both; }
-.sec-vis .sec-content > .reveal-card:nth-child(8)  { animation: itemRise 0.60s cubic-bezier(0.22,1,0.36,1) 825ms both; }
-.sec-vis .sec-content > .reveal-card:nth-child(n+9){ animation: itemRise 0.60s cubic-bezier(0.22,1,0.36,1) 860ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(1)  { animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 320ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(2)  { animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 380ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(3)  { animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 435ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(4)  { animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 485ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(5)  { animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 530ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(6)  { animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 572ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(7)  { animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 610ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(8)  { animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 645ms both; }
+.sec-vis .sec-content > .reveal-card:nth-child(n+9){ animation: itemRise 0.55s cubic-bezier(0.22,1,0.36,1) 678ms both; }
 
 
 /* ── Join "Be Part of Our Story" section animations ─────────
@@ -532,14 +530,14 @@ body {
   0%,100% { text-shadow: 0 0 0px rgba(220,38,38,0); filter: brightness(1); }
   50%     { text-shadow: 0 0 28px rgba(220,38,38,0.65), 0 0 56px rgba(220,38,38,0.28); filter: brightness(1.22); }
 }
-.sec-vis .join-line1      { animation: headRise 0.75s cubic-bezier(0.22,1,0.36,1) 120ms both; }
+.sec-vis .join-line1      { animation: headRise 0.65s cubic-bezier(0.22,1,0.36,1) 80ms both; }
 .sec-vis .join-story-span {
-  animation: headRise 0.85s cubic-bezier(0.22,1,0.36,1) 290ms both,
-             storyGlow 3.4s ease-in-out 1.5s infinite;
+  animation: headRise 0.75s cubic-bezier(0.22,1,0.36,1) 200ms both,
+             storyGlow 3.4s ease-in-out 1.2s infinite;
 }
-.sec-vis .join-p1  { animation: contentRise 0.70s cubic-bezier(0.22,1,0.36,1) 480ms both; }
-.sec-vis .join-p2  { animation: contentRise 0.65s cubic-bezier(0.22,1,0.36,1) 610ms both; }
-.sec-vis .join-cta { animation: fadePure    0.60s cubic-bezier(0.22,1,0.36,1) 760ms both; }
+.sec-vis .join-p1  { animation: contentRise 0.60s cubic-bezier(0.22,1,0.36,1) 340ms both; }
+.sec-vis .join-p2  { animation: contentRise 0.55s cubic-bezier(0.22,1,0.36,1) 440ms both; }
+.sec-vis .join-cta { animation: fadePure    0.55s cubic-bezier(0.22,1,0.36,1) 560ms both; }
 
 /* ── Professional scroll-reveal animations ───────────────── */
 /* Text wipes up from below — clip-path mask approach        */

@@ -22,21 +22,18 @@ function FullSection({ id, children, bg, className = '' }) {
     const el = ref.current
     if (!el) return
     // Already in viewport on mount — reveal instantly without animation
-    if (el.getBoundingClientRect().top < window.innerHeight * 0.94) { setVis(true); return }
+    if (el.getBoundingClientRect().top < window.innerHeight * 0.82) { setVis(true); return }
     const obs = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting) { setVis(true); obs.disconnect() } },
-      // Higher rootMargin: start reveal earlier so user never sees content pop in
-      { threshold: 0.03, rootMargin: '0px 0px -20px 0px' }
+      // Fire when section is meaningfully in view so user actually sees the animation
+      { threshold: 0.10, rootMargin: '0px 0px -80px 0px' }
     )
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
   return (
     <section id={id} ref={ref}
-      className={`relative min-h-screen flex flex-col justify-center overflow-hidden ${bg} ${className} ${vis ? 'sec-vis' : 'sec-hidden'}`}
-      // contain: layout+style prevents scroll-triggered repaints bleeding into siblings
-      // will-change: opacity promotes section to GPU layer during fade-in
-      style={{ contain: 'layout style', willChange: vis ? 'auto' : 'opacity' }}>
+      className={`relative min-h-screen flex flex-col justify-center overflow-hidden ${bg} ${className} ${vis ? 'sec-vis' : 'sec-hidden'}`}>
       {children}
     </section>
   )
