@@ -1,0 +1,930 @@
+% ============================================================
+%  IEM Photography Club — Complete User Guide
+%  Compile with: pdflatex IEM_Photography_Club_User_Guide.tex
+%  (run twice for TOC and cross-references)
+% ============================================================
+\documentclass[12pt,a4paper]{article}
+
+% ── Packages ────────────────────────────────────────────────
+\usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=2.8cm, right=2.8cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[dvipsnames,svgnames,table]{xcolor}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{titletoc}
+\usepackage{fancyhdr}
+\usepackage{mdframed}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{multicol}
+\usepackage{parskip}
+\usepackage{setspace}
+\usepackage{soul}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable,listingsutf8}
+\usepackage[hidelinks,
+  pdftitle={IEM Photography Club User Guide},
+  pdfauthor={IEM Photography Club},
+  pdfsubject={Complete User Manual}]{hyperref}
+
+% ── Colour palette ──────────────────────────────────────────
+\definecolor{ClubRed}{HTML}{DC2626}
+\definecolor{ClubDark}{HTML}{1A1A2E}
+\definecolor{ClubGold}{HTML}{D97706}
+\definecolor{ClubBlue}{HTML}{2563EB}
+\definecolor{ClubGreen}{HTML}{059669}
+\definecolor{ClubGray}{HTML}{4B5563}
+\definecolor{ClubLight}{HTML}{F3F4F6}
+\definecolor{ClubBorder}{HTML}{E5E7EB}
+\definecolor{AdminColor}{HTML}{DC2626}
+\definecolor{CoreColor}{HTML}{D97706}
+\definecolor{CoordColor}{HTML}{2563EB}
+\definecolor{MemberColor}{HTML}{059669}
+\definecolor{BoxBg}{HTML}{FEF2F2}
+\definecolor{TipBg}{HTML}{EFF6FF}
+\definecolor{NoteBg}{HTML}{F0FDF4}
+\definecolor{WarnBg}{HTML}{FFFBEB}
+
+% ── Page style ──────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{ClubGray}\textit{IEM Photography Club}}
+\fancyhead[R]{\small\color{ClubGray}\textit{User Guide}}
+\fancyfoot[C]{\small\color{ClubGray}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{ClubBorder}\leaders\hrule height \headrulewidth\hfill}}
+
+% ── Section formatting ──────────────────────────────────────
+\titleformat{\section}
+  {\large\bfseries\color{ClubDark}}
+  {\thesection.}{0.6em}{}
+  [\vspace{2pt}\color{ClubRed}\rule{\linewidth}{1.5pt}]
+
+\titleformat{\subsection}
+  {\normalsize\bfseries\color{ClubDark}}
+  {\thesubsection.}{0.5em}{}
+
+\titleformat{\subsubsection}
+  {\small\bfseries\color{ClubGray}}
+  {}{0em}{}
+
+\titlespacing*{\section}{0pt}{18pt}{8pt}
+\titlespacing*{\subsection}{0pt}{12pt}{4pt}
+\titlespacing*{\subsubsection}{0pt}{8pt}{3pt}
+
+% ── TOC styling ─────────────────────────────────────────────
+\titlecontents{section}[1.5em]
+  {\smallskip\bfseries\color{ClubDark}}
+  {\contentslabel{1.5em}}{}
+  {\hfill\color{ClubRed}\contentspage}
+
+\titlecontents{subsection}[3.5em]
+  {\small\color{ClubGray}}
+  {\contentslabel{2em}}{}
+  {\titlerule*[5pt]{.}\contentspage}
+
+% ── Custom tcolorbox environments ───────────────────────────
+\tcbset{
+  base/.style={
+    breakable, enhanced, arc=4pt,
+    left=8pt, right=8pt, top=6pt, bottom=6pt,
+    boxrule=0.6pt, fonttitle=\small\bfseries
+  }
+}
+
+\newtcolorbox{tipbox}[1][]{
+  base, title={#1},
+  colback=TipBg, colframe=ClubBlue, coltitle=ClubBlue
+}
+
+\newtcolorbox{notebox}[1][]{
+  base, title={#1},
+  colback=NoteBg, colframe=ClubGreen, coltitle=ClubGreen
+}
+
+\newtcolorbox{warnbox}[1][]{
+  base, title={#1},
+  colback=WarnBg, colframe=ClubGold, coltitle=ClubGold
+}
+
+\newtcolorbox{rolebox}[2][]{
+  base, title={#2},
+  colback=#1!8!white, colframe=#1, coltitle=#1,
+  fonttitle=\normalsize\bfseries
+}
+
+% ── Step list style ─────────────────────────────────────────
+\newlist{steps}{enumerate}{1}
+\setlist[steps]{
+  label=\textbf{Step \arabic*.},
+  leftmargin=*, labelwidth=!, align=left,
+  itemsep=4pt, parsep=2pt
+}
+
+% ── Bullet list ─────────────────────────────────────────────
+\setlist[itemize]{itemsep=3pt, parsep=1pt, topsep=4pt}
+\setlist[enumerate]{itemsep=3pt, parsep=1pt, topsep=4pt}
+
+% ── Role badge command ──────────────────────────────────────
+\newcommand{\rolebadge}[2]{%
+  \colorbox{#1}{\color{white}\,\textbf{\footnotesize #2}\,}%
+}
+
+% ── Feature row in tables ───────────────────────────────────
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+% ════════════════════════════════════════════════════════════
+\begin{document}
+\setstretch{1.25}
+
+% ── TITLE PAGE ──────────────────────────────────────────────
+\begin{titlepage}
+\pagecolor{ClubDark}
+\color{white}
+\centering
+\vspace*{3cm}
+
+{\color{ClubRed}\rule{0.4\linewidth}{2pt}}
+\vspace{0.4cm}
+
+{\Huge\bfseries IEM Photography Club}
+
+\vspace{0.3cm}
+{\large\color{ClubGold}\textit{Where Light Becomes Legacy}}
+\vspace{0.5cm}
+
+{\color{ClubRed}\rule{0.4\linewidth}{2pt}}
+
+\vspace{2.5cm}
+
+{\LARGE\bfseries Complete User Guide}
+
+\vspace{0.4cm}
+{\large\color{white!70!ClubDark} Platform Manual for All Roles}
+
+\vspace{3cm}
+
+\begin{tabular}{ccc}
+  \rolebadge{AdminColor}{Admin} &
+  \rolebadge{CoreColor}{Core} &
+  \rolebadge{CoordColor}{Coordinator} \\[10pt]
+  \multicolumn{3}{c}{\rolebadge{MemberColor}{Member / Photographer}}
+\end{tabular}
+
+\vfill
+
+{\small\color{white!60!ClubDark}
+Institute of Engineering \& Management\\
+Photography Club --- Digital Platform\\[4pt]
+\textit{Version 1.0 \quad|\quad June 2026}
+}
+\end{titlepage}
+
+\nopagecolor
+\color{black}
+
+% ── TABLE OF CONTENTS ───────────────────────────────────────
+\newpage
+\tableofcontents
+\newpage
+
+% ════════════════════════════════════════════════════════════
+\section{Welcome to IEM Photography Club}
+% ════════════════════════════════════════════════════════════
+
+\subsection{About the Club}
+
+The IEM Photography Club is the creative heartbeat of the Institute of Engineering \& Management. Founded by students for students, the club is a space where technical precision and artistic vision meet. Whether you are drawn to portraits, street photography, macro, astrophotography, or abstract work, there is a place for you here.
+
+The club organises regular workshops, photo walks, inter-college competitions, and exhibitions. Every semester, members contribute to a curated digital magazine that showcases the finest work from the community. The platform you are reading this guide for is the club's dedicated digital home --- a full-featured web application built to manage every aspect of club life, from joining to publishing.
+
+\subsection{Why Photography Matters}
+
+\begin{mdframed}[linecolor=ClubRed,linewidth=1.5pt,leftmargin=0pt,rightmargin=0pt,
+  innerleftmargin=14pt,innerrightmargin=14pt,innertopmargin=12pt,innerbottommargin=12pt,
+  backgroundcolor=BoxBg]
+\itshape
+``Photography is the art of frozen time --- the ability to store emotion and feelings within a frame.''
+
+\smallskip
+A photograph does not merely record a moment. It argues for it. Every image you make is a statement: \textit{this mattered, this was beautiful, this was real}. In a world that moves faster than we can process, photography teaches you to slow down, to look more carefully, and to find extraordinary things in ordinary places.
+
+\smallskip
+As engineering students, you are trained to solve problems. Photography trains you to see them differently. Composition teaches proportion. Light teaches physics. Storytelling teaches empathy. The camera is not a distraction from your degree --- it is an extension of the same curious mind that makes a great engineer.
+
+\smallskip
+\textbf{Shoot boldly. Edit honestly. Share generously.}
+\end{mdframed}
+
+\subsection{What This Platform Does}
+
+The IEM Photography Club platform is a full-stack web application that brings every club activity into one place.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\linewidth}{L{3.8cm} X}
+\toprule
+\textbf{Feature Area} & \textbf{What It Covers} \\
+\midrule
+Membership & Join requests, approval workflow, profile management \\
+Events & Creation, announcements, member registration, photo gallery \\
+Competitions & Entry management, judging, winner declaration, leaderboards \\
+Activities & Workshops, photo walks, volunteer sign-ups \\
+Club Gallery & Curated photographs from all members, drag-to-reorder \\
+Postcards & Digital postcard submissions displayed publicly \\
+Magazine & Full digital magazine editor, PDF export, email distribution \\
+Announcements & Targeted messages to members and coordinators \\
+Socials & Public social media link management \\
+Permissions & Fine-grained control over coordinator capabilities \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ════════════════════════════════════════════════════════════
+\section{Getting Started (All Users)}
+% ════════════════════════════════════════════════════════════
+
+\subsection{Accessing the Website}
+
+Open any modern web browser and navigate to the club's website. The home page loads with a full-screen hero video, the club's navigation bar at the top, and a series of sections below covering competitions, postcards, gallery highlights, activities, and the magazine.
+
+\begin{tipbox}[Tip: Best Experience]
+Use Google Chrome or Mozilla Firefox on a desktop or laptop for the best experience. The site is fully responsive on mobile but the Admin and Member dashboards are easier to use on larger screens.
+\end{tipbox}
+
+\subsection{Joining the Club}
+
+\begin{steps}
+\item Click the \textbf{JOIN} button in the top-right corner of the navigation bar. The join/login panel slides open.
+\item Fill in your full name, department, enrollment number, roll number, start year, end year, email address, and choose a password.
+\item Submit the form. Your application enters a pending state.
+\item An \textbf{Admin or Core member} reviews your application and approves it.
+\item Once approved, you receive a confirmation email and can log in immediately.
+\end{steps}
+
+\begin{warnbox}[Important: Approval Required]
+Your account is not active until an admin approves it. You cannot log in before approval. If your request is taking too long, contact the core committee directly.
+\end{warnbox}
+
+\subsection{Logging In}
+
+\begin{steps}
+\item Click the \textbf{JOIN} button (same button as registration --- it toggles between join and login).
+\item Switch to the \textbf{Login} tab.
+\item Enter your registered email and password. Click \textbf{Sign In}.
+\item You are redirected to your personal dashboard at \texttt{/dashboard}.
+\end{steps}
+
+\subsection{Navigating the Public Site}
+
+The top navigation bar is always visible. The following pages are accessible to everyone, including visitors who have not logged in.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\linewidth}{L{3.2cm} X}
+\toprule
+\textbf{Nav Link} & \textbf{What You Will Find} \\
+\midrule
+Postcards & Community digital postcards submitted by members \\
+Event Gallery & Photo galleries from all past and ongoing events \\
+Club Gallery & Curated showcase of the best club photography \\
+Members & Full list of approved photographers with their profiles \\
+Core & The core committee members and their roles \\
+Competitions & Active and past competitions with results \\
+Activities & Workshops, photo walks, and other club activities \\
+Magazines & Publicly published digital magazines \\
+Join Us & About the club, how to join, and what to expect \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Light and Dark Mode}
+
+The site supports both dark and light themes. Click the \textbf{sun/moon icon} in the top-right area of the navigation bar to toggle. Your preference is saved and persists across sessions.
+
+\subsection{Logging Out}
+
+From your dashboard, click your profile area in the sidebar and select \textbf{Sign Out}.
+
+% ════════════════════════════════════════════════════════════
+\section{Member / Photographer Guide}
+\label{sec:member}
+% ════════════════════════════════════════════════════════════
+
+\begin{rolebox}[MemberColor]{Role: Photographer \rolebadge{MemberColor}{Member}}
+Members are the foundation of the club. After your application is approved, you gain access to a personal dashboard where you can manage your profile, submit postcards, follow events and competitions, read club magazines, and track your activities.
+\end{rolebox}
+
+\subsection{My Dashboard Overview}
+
+After logging in you land on your dashboard. The left sidebar (or bottom navigation on mobile) shows your available tabs. As a Photographer, you will see:
+
+\begin{itemize}
+  \item \textbf{My Profile} --- personal information and activity calendar
+  \item \textbf{Magazine} --- read published club magazines
+  \item \textbf{Postcards} --- submit your postcard photos
+  \item \textbf{Events} --- events you are registered for
+  \item \textbf{Competitions} --- competitions you have entered
+  \item \textbf{Activities} --- workshops and photo walks you have joined
+\end{itemize}
+
+\subsection{My Profile Tab}
+
+Your profile tab is your personal hub. Here you can:
+
+\subsubsection{View Your Information}
+Your name, department, enrollment number, roll number, academic year, and your role badge (Photographer in green) are displayed at the top.
+
+\subsubsection{Edit Profile Details}
+Click \textbf{Edit Profile} to update your display name, profile picture, or other personal details. Click \textbf{Save} when done. A confirmation toast will appear at the centre of the screen.
+
+\subsubsection{Activity Calendar}
+A month-by-month calendar below your profile shows colour-coded dots for:
+\begin{itemize}
+  \item \textbf{Yellow} --- upcoming events or competitions
+  \item \textbf{Green} --- active/ongoing events
+  \item \textbf{Grey} --- past events you participated in
+\end{itemize}
+Click any date to see the specific event or competition on that day.
+
+\subsubsection{Change Password}
+Go to \textbf{Settings} (accessible from the top-right of the navigation bar, or via \texttt{/settings}) and enter your current password and new password. Click Save.
+
+\subsection{Postcards Tab}
+
+Postcards are creative single-image submissions displayed publicly on the Postcards page.
+
+\begin{steps}
+\item Click the \textbf{Postcards} tab in your dashboard.
+\item You will see existing postcard sections created by coordinators or admins.
+\item Click \textbf{Upload Postcard} under the section you want to submit to.
+\item Select your image file. Supported formats: JPG, PNG, WEBP.
+\item Your postcard appears on the public Postcards page after upload.
+\end{steps}
+
+\begin{tipbox}[Tip: Postcard Quality]
+Use high-resolution images with strong composition. Postcards are displayed in a grid format visible to everyone, including visitors.
+\end{tipbox}
+
+\subsection{Events Tab}
+
+This tab shows events you are registered for or events available for registration.
+
+\begin{itemize}
+  \item Browse events with their status badges: \textbf{Upcoming}, \textbf{Ongoing}, or \textbf{Past}.
+  \item Click an event to see its full description, announcements from coordinators, and the event photo gallery.
+  \item If registration is open, a \textbf{Register} button will appear. Click it to join.
+  \item Once registered, you can view event-specific announcements.
+\end{itemize}
+
+\subsection{Competitions Tab}
+
+The competitions tab shows all club competitions, including those that require Google Form submissions.
+
+\begin{itemize}
+  \item View competition details: title, description, deadline, and current status.
+  \item If a Google Form submission link is provided, click the \textbf{Submit Entry} button --- it opens the form in a new tab.
+  \item Check the \textbf{Winners} section once a competition concludes to see declared results.
+  \item Competitions may show a \textbf{slot count} (available / total spots) when limited entries are accepted.
+\end{itemize}
+
+\subsection{Activities Tab}
+
+Activities include workshops, photo walks, guest lectures, and any other club events that are not formal competitions.
+
+\begin{itemize}
+  \item Browse listed activities with their descriptions and dates.
+  \item Click \textbf{Join Activity} to register as a volunteer or participant.
+  \item After joining, you can view the activity gallery and read announcements from the coordinator running it.
+\end{itemize}
+
+\subsection{Magazine Tab}
+
+The Magazine tab lets you read all published editions of the club magazine directly in the browser.
+
+\begin{itemize}
+  \item Select an edition from the list.
+  \item The magazine opens in a full-page viewer.
+  \item Scroll through pages just like a digital book.
+  \item Published magazines are also visible to the public at the \textbf{Magazines} page.
+\end{itemize}
+
+% ════════════════════════════════════════════════════════════
+\section{Coordinator Guide}
+\label{sec:coord}
+% ════════════════════════════════════════════════════════════
+
+\begin{rolebox}[CoordColor]{Role: Coordinator \rolebadge{CoordColor}{Coordinator}}
+Coordinators are trusted members assigned by the core team to help manage specific areas of club activity. There is one type of coordinator role in the system --- permissions are customised individually by the admin, so two coordinators may have different capabilities.
+\end{rolebox}
+
+\subsection{What Coordinators Can Do}
+
+Coordinators use the same \textbf{Member Dashboard} as photographers, but with additional tabs depending on what permissions the admin has granted. The following capabilities can be enabled or disabled per coordinator by the admin:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\linewidth}{L{5.2cm} X}
+\toprule
+\textbf{Permission} & \textbf{What It Allows} \\
+\midrule
+Upload to Club Gallery & Add photos to the main club gallery (Club Gallery tab appears) \\
+Create Postcard Sections & Create new named sections on the Postcards page \\
+Send Announcements & Access the Announcements tab to message members \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{notebox}[Note]
+If you are a coordinator and do not see a tab you expect, contact your admin to check your permission settings.
+\end{notebox}
+
+\subsection{Club Gallery Tab (if permitted)}
+
+\begin{steps}
+\item Click \textbf{Club Gallery} in your sidebar.
+\item Click \textbf{Upload Photo} and select an image from your device.
+\item The image is uploaded to the club's cloud storage and appears in the public Club Gallery.
+\item You can only upload photos. Reordering and deleting photos is reserved for admin and core members.
+\end{steps}
+
+\subsection{Postcards Tab (with section creation)}
+
+If your admin has enabled \textbf{Create Postcard Sections}, you will see a \textbf{New Section} button at the top of the Postcards tab.
+
+\begin{steps}
+\item Click \textbf{New Section} and give it a descriptive name (e.g. ``Monsoon Walk 2026'').
+\item Save the section. It immediately appears on the public Postcards page.
+\item Members can now submit postcards under that section.
+\end{steps}
+
+\subsection{Announcements Tab (if permitted)}
+
+\begin{steps}
+\item Click the \textbf{Announcements} tab.
+\item Type your announcement in the text editor.
+\item Choose your audience: \textbf{All Members} or a specific event/activity group.
+\item Click \textbf{Send}. The announcement is delivered to the targeted members' dashboards.
+\end{steps}
+
+\subsection{Managing Events as a Coordinator}
+
+When an admin or core member adds you as a \textbf{coordinator} or \textbf{lead} for a specific event, competition, or activity, you will see that item appear in your Events, Competitions, or Activities tab with expanded management options:
+
+\begin{itemize}
+  \item \textbf{Edit details} --- update title, description, dates, and settings.
+  \item \textbf{Gallery} --- upload photos taken at the event.
+  \item \textbf{Volunteers} --- view the list of members who signed up to help.
+  \item \textbf{Announcements} --- send targeted messages to event participants.
+  \item \textbf{Winners} (competitions only) --- declare winners after judging is complete.
+\end{itemize}
+
+% ════════════════════════════════════════════════════════════
+\section{Core Member Guide}
+\label{sec:core}
+% ════════════════════════════════════════════════════════════
+
+\begin{rolebox}[CoreColor]{Role: Core Member \rolebadge{CoreColor}{Core}}
+Core members are senior, trusted members of the club who hold organisational responsibility. They have access to the full Admin Dashboard and can manage every part of the platform, with the exception of a few actions reserved exclusively for the system admin.
+\end{rolebox}
+
+\subsection{Accessing the Admin Dashboard}
+
+After logging in, click the \textbf{Admin Panel} link that appears in your navigation bar (visible only to admin and core members). The Admin Dashboard opens with a sidebar showing all management tabs.
+
+\begin{tipbox}[Note on Access]
+Core members have the same dashboard tabs as the admin. However, certain destructive actions (such as permanently deleting a member account) may be restricted to admin only, depending on your deployment configuration.
+\end{tipbox}
+
+\subsection{Admin Dashboard Tabs Available to Core}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\linewidth}{L{3.2cm} X}
+\toprule
+\textbf{Tab} & \textbf{Purpose} \\
+\midrule
+Club Gallery & Upload, reorder, and delete gallery photos \\
+Events & Create and manage all events \\
+Competitions & Create and manage all competitions \\
+Activities & Create and manage all activities \\
+Magazine & Build and publish the club magazine \\
+Profile & Manage your own admin/core profile \\
+Socials & Update the club's social media links \\
+Permissions & Assign and revoke coordinator permissions \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Core members follow the same workflows as described in Section~\ref{sec:admin} (Admin Guide) for all these tabs.
+
+\subsection{Core as Event/Activity Coordinator}
+
+When a core member is assigned to a specific event or activity (either as coordinator or lead), they can manage that item from both the Admin Dashboard and the Member Dashboard. Their role shows as \textbf{Coordinator} within that item's volunteer/team list.
+
+% ════════════════════════════════════════════════════════════
+\section{Admin Guide}
+\label{sec:admin}
+% ════════════════════════════════════════════════════════════
+
+\begin{rolebox}[AdminColor]{Role: Admin \rolebadge{AdminColor}{Admin}}
+The Admin holds full control over the entire platform. Every feature, every piece of content, and every user account is ultimately managed through the admin account. There is typically one system admin account, created via the setup script. The admin is responsible for approving new members, granting roles, and maintaining the integrity of the club's digital presence.
+\end{rolebox}
+
+\subsection{Reaching the Admin Dashboard}
+
+After logging in as admin, a dedicated \textbf{Admin Panel} link appears in your navigation bar. Click it to open the Admin Dashboard. You will see a full sidebar with all management tabs.
+
+\subsection{Managing Member Applications}
+
+New members who register on the site appear in a pending state. To approve or reject them:
+
+\begin{steps}
+\item In the Admin Dashboard sidebar, click \textbf{Members} (or check the Users section, depending on your sidebar layout).
+\item You will see a list of \textbf{Pending} applications with each applicant's name, department, enrollment number, and email.
+\item Click \textbf{Approve} to activate the account. The member receives an email notification and can now log in.
+\item Click \textbf{Reject} if the application does not meet the club's criteria.
+\end{steps}
+
+\begin{warnbox}[Warning]
+Rejected applications are permanently removed. Only approve members you have verified are genuine students of IEM.
+\end{warnbox}
+
+\subsection{Club Gallery Tab}
+
+The Club Gallery is the public-facing showcase of the club's finest photography.
+
+\subsubsection{Uploading Photos}
+\begin{steps}
+\item Click \textbf{Club Gallery} in the sidebar.
+\item Click \textbf{Upload Photo}. Select one or more image files.
+\item Photos are uploaded to cloud storage and appear in the gallery immediately.
+\end{steps}
+
+\subsubsection{Reordering Photos}
+\begin{steps}
+\item In the gallery grid, \textbf{drag and drop} any photo to a new position.
+\item Once you are satisfied with the order, click \textbf{Save Order}.
+\item A success toast confirms the new order has been saved.
+\end{steps}
+
+\subsubsection{Deleting Photos}
+Hover over a photo and click the \textbf{Delete} (bin) icon that appears. Confirm the deletion in the dialog that pops up.
+
+\subsection{Events Tab}
+
+\subsubsection{Creating a New Event}
+\begin{steps}
+\item Click \textbf{Events} in the sidebar, then click \textbf{New Event}.
+\item Fill in the event title, description, start date, end date, and optionally upload a banner image.
+\item Set the event status: \textbf{Upcoming}, \textbf{Ongoing}, or \textbf{Past}.
+\item Click \textbf{Create Event}.
+\end{steps}
+
+\subsubsection{Managing an Event}
+Click on any event in the list to open its management panel. It has five sub-tabs:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\linewidth}{L{3.2cm} X}
+\toprule
+\textbf{Sub-tab} & \textbf{What You Can Do} \\
+\midrule
+Details & Edit name, description, dates, banner image, and status \\
+Members & View the list of registered members for this event \\
+Gallery & Upload event photos that appear on the public Event Gallery page \\
+Announcements & Send messages visible only to registered members of this event \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{tipbox}[Unsaved Changes Warning]
+If you edit event details and try to navigate away without saving, the platform will show a confirmation dialog asking if you want to discard your changes. Always click \textbf{Save} before switching tabs.
+\end{tipbox}
+
+\subsubsection{Assigning Coordinators to Events}
+On the Members sub-tab, find any registered member and change their role from \textbf{Member} to \textbf{Coordinator} or \textbf{Lead} using the dropdown next to their name. They will then see expanded management options for that event in their own dashboard.
+
+\subsubsection{Deleting an Event}
+On the Details sub-tab, scroll to the bottom and click \textbf{Delete Event}. A confirmation dialog will appear before any deletion takes place.
+
+\subsection{Competitions Tab}
+
+\subsubsection{Creating a New Competition}
+\begin{steps}
+\item Click \textbf{Competitions} in the sidebar, then \textbf{New Competition}.
+\item Enter the competition name, description, and optionally a banner image.
+\item Set the status (\textbf{Upcoming / Ongoing / Past}) and whether to use manual status control.
+\item If you are using a Google Form for submissions, paste the form URL into the \textbf{Google Form URL} field and toggle \textbf{Form Published} to make it visible to members.
+\item Click \textbf{Create Competition}.
+\end{steps}
+
+\subsubsection{Managing a Competition}
+Click on a competition to open its five sub-tabs:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\linewidth}{L{3.2cm} X}
+\toprule
+\textbf{Sub-tab} & \textbf{What You Can Do} \\
+\midrule
+Details & Edit all competition details, form URL, and status \\
+Gallery & Upload photos from or related to the competition \\
+Winners & Declare winners by entering their names, categories, and positions \\
+Volunteers & View members who signed up to help run the competition \\
+Announcements & Send updates to all participants \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsubsection{Declaring Winners}
+\begin{steps}
+\item Navigate to the \textbf{Winners} sub-tab.
+\item Click \textbf{Add Winner}. Enter the member's name, award category (e.g. Best Portrait), and position (1st, 2nd, etc.).
+\item Add as many winner entries as needed.
+\item Click \textbf{Save Winners}. The results are published on the public Competitions page.
+\end{steps}
+
+\subsection{Activities Tab}
+
+Activities are similar to events but cover informal club sessions such as photo walks, workshops, and hands-on learning sessions.
+
+\subsubsection{Creating a New Activity}
+\begin{steps}
+\item Click \textbf{Activities} in the sidebar, then \textbf{New Activity}.
+\item Fill in the activity name, description, and date. Optionally add a banner.
+\item Set the status and click \textbf{Create Activity}.
+\end{steps}
+
+\subsubsection{Managing an Activity}
+Each activity has four sub-tabs:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\linewidth}{L{3.2cm} X}
+\toprule
+\textbf{Sub-tab} & \textbf{What You Can Do} \\
+\midrule
+Details & Edit name, description, date, and status \\
+Gallery & Upload activity photos \\
+Volunteers & View who signed up to participate \\
+Announcements & Send messages to activity participants \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Magazine Tab}
+
+The magazine editor is the most powerful feature on the platform. It lets you build a full multi-page digital magazine from a web interface and distribute it as a PDF by email.
+
+\subsubsection{Creating a New Magazine Edition}
+\begin{steps}
+\item Click the \textbf{Magazine} tab. If this is a new edition, click \textbf{New Edition}.
+\item Give the edition a name (e.g. \textit{Aperture --- Vol. 3}).
+\item Choose a \textbf{template} from the template library. Templates provide pre-designed page layouts.
+\item Use the visual editor to place photos, titles, captions, and body text on each page.
+\item Click \textbf{Save Draft} frequently while editing to avoid losing work.
+\end{steps}
+
+\subsubsection{Publishing a Magazine}
+\begin{steps}
+\item When the magazine is complete, click \textbf{Publish}.
+\item The magazine immediately appears on the public Magazines page and in the Magazine tab of all member dashboards.
+\item To update a published magazine, make changes and click \textbf{Republish}.
+\end{steps}
+
+\subsubsection{Exporting as PDF}
+Click \textbf{Download PDF} to generate a PDF version of the magazine. The file downloads to your computer. This PDF is suitable for printing or sharing externally.
+
+\subsubsection{Distributing by Email}
+\begin{steps}
+\item Click \textbf{Send by Email}.
+\item The platform generates the magazine PDF and sends it to all approved club members automatically.
+\item A success toast confirms the email has been dispatched.
+\end{steps}
+
+\subsection{Socials Tab}
+
+Manage the social media links displayed on the club's public home page.
+
+\subsubsection{Adding a New Link}
+\begin{steps}
+\item Click \textbf{Socials} in the sidebar.
+\item Click \textbf{Add Link}.
+\item Enter the platform name (e.g. Instagram) and the full URL.
+\item Click \textbf{Save}. The link appears on the public homepage immediately.
+\end{steps}
+
+\subsubsection{Editing a Link}
+Click the \textbf{pencil (edit) icon} next to any link to modify its name or URL inline. Click \textbf{Save} to confirm.
+
+\subsubsection{Deleting a Link}
+Click the \textbf{bin (delete) icon} next to the link. A confirmation dialog appears. Confirm to delete permanently.
+
+\subsection{Permissions Tab}
+
+The Permissions tab controls what coordinators are allowed to do on the platform. This is where you fine-tune each coordinator's access without changing their role.
+
+\begin{steps}
+\item Click \textbf{Permissions} in the sidebar.
+\item Find the coordinator whose permissions you want to change.
+\item Toggle the switches for:
+  \begin{itemize}
+    \item \textbf{Upload to Club Gallery} --- allow/deny gallery uploads
+    \item \textbf{Create Postcard Sections} --- allow/deny creation of new postcard sections
+    \item \textbf{Send Announcements} --- allow/deny the Announcements tab
+  \end{itemize}
+\item Changes are saved automatically on toggle.
+\end{steps}
+
+\begin{tipbox}[Best Practice]
+Grant coordinators only the permissions they need for their current assignment. You can always expand permissions later.
+\end{tipbox}
+
+\subsection{Controlling Section Visibility}
+
+The admin can show or hide entire sections of the public site (Competitions, Activities, Postcards) using section visibility toggles. These appear as \textbf{green live / grey hidden} toggle switches on the relevant admin tabs. When a section is hidden, it disappears from the public navigation and from member dashboards.
+
+\subsection{Hero Video Mode (Desktop)}
+
+On the homepage, the desktop hero section can be displayed in two modes:
+\begin{itemize}
+  \item \textbf{Classic Mode} --- ambient gradient with animated lens rings (default).
+  \item \textbf{Video Mode} --- full-screen cinematic video background.
+\end{itemize}
+
+As an admin or core member, a small toggle icon appears in the top navigation bar on the home page. Clicking it switches the mode for all users instantly. The setting is stored in the database.
+
+\subsection{User Settings Page}
+
+Navigate to \textbf{/settings} (accessible from the top-right of the navigation bar) to:
+\begin{itemize}
+  \item Update your display name and profile picture.
+  \item Change your password.
+\end{itemize}
+
+% ════════════════════════════════════════════════════════════
+\section{Public Pages Reference}
+% ════════════════════════════════════════════════════════════
+
+This section briefly explains each page accessible to all visitors, including non-members.
+
+\subsection{Home Page}
+
+The home page is the club's digital front door. It features:
+\begin{itemize}
+  \item A full-screen hero section with the club name and entry animation.
+  \item A \textbf{Latest Competitions} section showing active competitions with entry counts.
+  \item A \textbf{Postcards} section with the most recent community postcard submissions.
+  \item A rotating \textbf{Activities} carousel with upcoming and recent events.
+  \item A \textbf{Magazine} section highlighting the latest published edition.
+  \item \textbf{Social media links} and footer information.
+\end{itemize}
+
+\subsection{Postcards Page}
+
+Displays all postcard submissions organised by section. Each postcard shows the photographer's name and image. Visitors can browse without logging in.
+
+\subsection{Event Gallery Page}
+
+Lists all events that have public galleries. Click any event to browse the full photo collection from that event. Galleries are uploaded by admins, core members, and coordinators.
+
+\subsection{Club Gallery Page}
+
+The curated showcase of the club's best photography. Photos are displayed in the order set by the admin using the drag-to-reorder tool in the Admin Dashboard.
+
+\subsection{Members Page}
+
+A searchable directory of all approved club members, showing their name, department, year, and any public photos they are associated with.
+
+\subsection{Core Committee Page}
+
+Lists the current core committee members with their names, roles, and photos. Membership is automatically updated based on each member's academic year and role assignment.
+
+\subsection{Competitions Page}
+
+All competitions are listed here with their current status, description, entry counts, and winner declarations. Members can click the Google Form link to submit entries directly.
+
+\subsection{Activities Page}
+
+Lists all club activities. Visitors can see what workshops and events the club runs. Members who are logged in can join an activity from this page.
+
+\subsection{Magazines Page}
+
+All published editions of the club magazine are accessible here. Each edition opens in a full-screen browser viewer. No login required to read.
+
+\subsection{Join Us Page}
+
+Explains the club's mission, what members do, and how to join. Includes a link to the registration form.
+
+% ════════════════════════════════════════════════════════════
+\section{Troubleshooting and FAQs}
+% ════════════════════════════════════════════════════════════
+
+\renewcommand{\arraystretch}{1.5}
+\begin{tabularx}{\linewidth}{L{5.8cm} X}
+\toprule
+\textbf{Issue} & \textbf{Solution} \\
+\midrule
+I cannot log in after registering & Your account is pending approval. Contact an admin or core member. \\
+I forgot my password & Contact the admin --- there is currently no self-serve password reset. The admin can reset it from the database. \\
+I do not see the Admin Panel link & You are not logged in as admin or core. Check your role with the admin. \\
+A tab is missing from my dashboard & Either your role does not have access, or the section has been hidden by admin. Contact your coordinator or admin. \\
+My photo upload failed & Check your internet connection and try again. Files must be standard image formats (JPG, PNG, WEBP). Very large files may time out --- compress before uploading. \\
+The magazine page is blank & The page requires a published edition. If no magazine has been published, the page will be empty. \\
+The video on the home page is not playing & Some browsers block autoplay video. Ensure your browser is up to date. The video is muted by default so autoplay should work on all modern browsers. \\
+I submitted a competition entry but it is not visible & Competition entries go through the Google Form linked by the admin. They are managed externally and winners are manually declared. \\
+\bottomrule
+\end{tabularx}
+
+% ════════════════════════════════════════════════════════════
+\section{Quick Role Reference}
+% ════════════════════════════════════════════════════════════
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabularx}{\linewidth}{L{4.0cm} C{1.8cm} C{1.8cm} C{1.8cm} C{1.8cm}}
+\toprule
+\textbf{Feature} &
+\rolebadge{MemberColor}{Member} &
+\rolebadge{CoordColor}{Coord} &
+\rolebadge{CoreColor}{Core} &
+\rolebadge{AdminColor}{Admin} \\
+\midrule
+View public pages & \checkmark & \checkmark & \checkmark & \checkmark \\
+Profile \& settings & \checkmark & \checkmark & \checkmark & \checkmark \\
+Read magazines & \checkmark & \checkmark & \checkmark & \checkmark \\
+Upload postcards & \checkmark & \checkmark & \checkmark & \checkmark \\
+Join events \& activities & \checkmark & \checkmark & \checkmark & \checkmark \\
+Create postcard sections & & (if set) & \checkmark & \checkmark \\
+Upload to club gallery & & (if set) & \checkmark & \checkmark \\
+Send announcements & & (if set) & \checkmark & \checkmark \\
+Manage events/comps/acts & & & \checkmark & \checkmark \\
+Approve members & & & \checkmark & \checkmark \\
+Manage permissions & & & \checkmark & \checkmark \\
+Manage socials & & & \checkmark & \checkmark \\
+Edit \& publish magazine & & & \checkmark & \checkmark \\
+Full system control & & & & \checkmark \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\vspace{6pt}
+\small\textit{(if set) = capability enabled or disabled individually per coordinator by the admin}
+
+% ════════════════════════════════════════════════════════════
+\section{A Note on Photography and You}
+% ════════════════════════════════════════════════════════════
+
+\begin{mdframed}[linecolor=ClubRed,linewidth=1.5pt,leftmargin=0pt,rightmargin=0pt,
+  innerleftmargin=14pt,innerrightmargin=14pt,innertopmargin=14pt,innerbottommargin=14pt,
+  backgroundcolor=BoxBg]
+
+You joined the IEM Photography Club because something inside you wanted to make images. Maybe you already knew why. Maybe you are still figuring it out. Either way, you made the right decision.
+
+\medskip
+Photography is a discipline that rewards patience above talent and consistency above inspiration. The photographer who shows up on a grey Tuesday morning with no grand plan, who shoots anyway, who looks closely at the unremarkable and finds something true in it --- that photographer grows faster than the one who waits for the perfect light.
+
+\medskip
+The camera you carry does not define the photographs you make. A phone, a decade-old DSLR, a disposable film camera --- the frame is the frame. What matters is that you keep looking, keep questioning, and keep sharing your perspective with the people around you.
+
+\medskip
+This platform exists to make the practical side of being a photographer at IEM as seamless as possible. Use it. Submit your work. Enter competitions without fear of failure --- failure teaches more than watching from the sidelines ever will. Read the magazine. Leave feedback. Help the next batch of first-years feel welcome.
+
+\medskip
+\textbf{The best photograph you have ever taken is the next one you are about to make.}
+
+\medskip
+\textit{--- IEM Photography Club}
+
+\end{mdframed}
+
+% ════════════════════════════════════════════════════════════
+\section*{Contact and Support}
+\addcontentsline{toc}{section}{Contact and Support}
+% ════════════════════════════════════════════════════════════
+
+For technical issues with the platform, contact the club's admin team at:
+
+\begin{center}
+\textbf{iem.photography.team@gmail.com}
+\end{center}
+
+For membership queries, event information, or general club matters, reach the core committee through the \textbf{Core Committee} page on the website or through the club's official social media channels listed on the home page.
+
+\vspace{1cm}
+\begin{center}
+\color{ClubGray}
+\rule{0.5\linewidth}{0.4pt}\\[6pt]
+\textit{\small IEM Photography Club Digital Platform --- User Guide v1.0}\\
+\textit{\small Institute of Engineering \& Management, Kolkata}\\[4pt]
+\rule{0.5\linewidth}{0.4pt}
+\end{center}
+
+\end{document}

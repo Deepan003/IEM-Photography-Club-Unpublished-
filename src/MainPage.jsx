@@ -122,10 +122,10 @@ function SectionToggle({ visible, onToggle, L }) {
 function SectionHeader({ tag, title, subtitle, href, L, center = false, sectionVisible, onToggleSection, settingKey, isEditable, onSave }) {
   const len = title?.length || 0
   const fontSize = len >= 12
-    ? 'clamp(1.5rem, 5.5vw, 3.2rem)'
+    ? 'clamp(1.85rem, 5.5vw, 3.2rem)'
     : len >= 9
-    ? 'clamp(2rem, 6.5vw, 3.6rem)'
-    : 'clamp(2.5rem, 8vw, 4.2rem)'
+    ? 'clamp(2.4rem, 6.5vw, 3.6rem)'
+    : 'clamp(2.9rem, 8vw, 4.2rem)'
 
   const [editing, setEditing] = useState(false)
   const [draft,   setDraft]   = useState('')
@@ -146,11 +146,11 @@ function SectionHeader({ tag, title, subtitle, href, L, center = false, sectionV
   return (
     <div className={`mb-8 sm:mb-7 ${center ? 'text-center' : ''}`}>
       <div className={`flex items-start ${center?'justify-center flex-col items-center gap-4':'justify-between gap-6'}`}>
-        <h2 className={`font-breathing leading-[1.0] ${L?'text-gray-900':'text-white'} font-semibold italic`}
+        <h2 className={`sh-heading font-breathing leading-[1.0] ${L?'text-gray-900':'text-white'} font-semibold italic`}
           style={{ fontSize, paddingBottom: '2.2rem' }}>
           {title}
         </h2>
-        <div className="flex items-center gap-2 shrink-0 mt-1">
+        <div className="sh-actions flex items-center gap-2 shrink-0 mt-1">
           {onToggleSection && (
             <SectionToggle visible={sectionVisible} onToggle={onToggleSection} L={L} />
           )}
@@ -163,7 +163,7 @@ function SectionHeader({ tag, title, subtitle, href, L, center = false, sectionV
         </div>
       </div>
       {!editing && subtitle && (
-        <div className={`flex items-start gap-1.5 ${center ? 'justify-center' : ''}`}>
+        <div className={`sh-subtitle flex items-start gap-1.5 ${center ? 'justify-center' : ''}`}>
           <p className={`font-inter text-sm leading-relaxed break-words ${L?'text-gray-500':'text-gray-400'} max-w-lg ${center?'mx-auto':''}`}>
             {subtitle}
           </p>
@@ -1459,7 +1459,7 @@ function HomeSections({ L, onJoin }) {
             href="/postcards" L={L}
             sectionVisible={isOn('postcards')} onToggleSection={isAdminOrCore ? () => toggleSec('postcards') : undefined}
             settingKey="subtitle-postcards" isEditable={isAdminOrCore} onSave={saveSub('subtitle-postcards')} />
-          <PostcardCarousel postcards={postcards} L={L} />
+          <div className="sec-content"><PostcardCarousel postcards={postcards} L={L} /></div>
         </div>
       </FullSection>
       )}
@@ -1475,7 +1475,7 @@ function HomeSections({ L, onJoin }) {
             href="/events-gallery" L={L}
             sectionVisible={isOn('event-gallery')} onToggleSection={isAdminOrCore ? () => toggleSec('event-gallery') : undefined}
             settingKey="subtitle-event-gallery" isEditable={isAdminOrCore} onSave={saveSub('subtitle-event-gallery')} />
-          <EventCinemaGallery L={L} showPast={showPastEvents} />
+          <div className="sec-content"><EventCinemaGallery L={L} showPast={showPastEvents} /></div>
         </div>
       </FullSection>
       )}
@@ -1495,14 +1495,16 @@ function HomeSections({ L, onJoin }) {
             sectionVisible={isOn('gallery')} onToggleSection={isAdminOrCore ? () => toggleSec('gallery') : undefined}
             settingKey="subtitle-gallery" isEditable={isAdminOrCore} onSave={saveSub('subtitle-gallery')} />
 
-          {photos.length === 0 ? (
-            <div className={`rounded-3xl p-16 text-center auth-glass border ${L?'border-black/7':'border-white/7'}`}>
-              <p className="text-5xl mb-3">🖼</p>
-              <p className={`font-inter text-sm ${L?'text-gray-600':'text-gray-400'}`}>Gallery coming soon</p>
-            </div>
-          ) : (
-            <ClubGalleryCells photos={photos} />
-          )}
+          <div className="sec-content">
+            {photos.length === 0 ? (
+              <div className={`rounded-3xl p-16 text-center auth-glass border ${L?'border-black/7':'border-white/7'}`}>
+                <p className="text-5xl mb-3">🖼</p>
+                <p className={`font-inter text-sm ${L?'text-gray-600':'text-gray-400'}`}>Gallery coming soon</p>
+              </div>
+            ) : (
+              <ClubGalleryCells photos={photos} />
+            )}
+          </div>
         </div>
       </FullSection>
       )}
@@ -1520,7 +1522,7 @@ function HomeSections({ L, onJoin }) {
             {/* Heading + Explore */}
             <div className="flex items-start justify-between gap-4 sm:gap-6 mb-2 sm:mb-3">
               <div>
-                <h2 className={`font-breathing italic font-semibold leading-none ${L?'text-gray-900':'text-white'}`}
+                <h2 className={`sh-heading font-breathing italic font-semibold leading-none ${L?'text-gray-900':'text-white'}`}
                   style={{ fontSize:'clamp(1.5rem, 5.5vw, 3.2rem)' }}>
                   Club Members
                 </h2>
@@ -1528,7 +1530,7 @@ function HomeSections({ L, onJoin }) {
                   {memberSessionFilter === currentSession() ? `${currentSession()} · Current` : memberSessionFilter}
                 </span>
               </div>
-              <div className="flex items-center gap-2 sm:gap-3 shrink-0 mt-1">
+              <div className="sh-actions flex items-center gap-2 sm:gap-3 shrink-0 mt-1">
                 {members.length > 0 && (
                   <span className={`font-clash text-3xl sm:text-5xl font-black leading-none ${L?'text-black/8':'text-white/8'} hidden sm:block`}>
                     {String(members.filter(m=>m.role!=='admin').length).padStart(2,'0')}
@@ -1604,7 +1606,7 @@ function HomeSections({ L, onJoin }) {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 gap-3 sm:gap-4">
+                  <div className="sec-content grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 gap-3 sm:gap-4">
                     {shown.map((m, i) => {
                       // Items 16-17: desktop only when collapsed (mobile shows 16, desktop shows 18)
                       const desktopOnly = !membersExpanded && i >= 16
@@ -1612,7 +1614,7 @@ function HomeSections({ L, onJoin }) {
                                  : m.role === 'coordinator' ? <MemberRoleCard   m={m} accent="blue" index={i} L={L} />
                                  : <MemberCompactCard m={m} index={i} L={L} />
                       return (
-                        <div key={m._id} className={desktopOnly ? 'hidden lg:block' : ''}>
+                        <div key={m._id} className={`reveal-card ${desktopOnly ? 'hidden lg:block' : ''}`}>
                           {isMemPast ? (
                             <div>
                               <div style={{ filter:'grayscale(0.82) brightness(0.72)', transition:'filter 300ms ease' }}
@@ -1673,11 +1675,11 @@ function HomeSections({ L, onJoin }) {
         <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 w-full pt-10 pb-10 sm:pt-14 sm:pb-16 flex flex-col justify-start min-h-screen">
           {/* Heading + Explore button */}
           <div className="flex items-start justify-between gap-6 mb-3 sm:mb-4">
-            <h2 className={`font-breathing italic font-semibold leading-[1.0] ${L?'text-gray-900':'text-white'}`}
+            <h2 className={`sh-heading font-breathing italic font-semibold leading-[1.0] ${L?'text-gray-900':'text-white'}`}
               style={{ fontSize:'clamp(1.5rem, 5.5vw, 3.2rem)' }}>
               Core Committee
             </h2>
-            <div className="flex items-center gap-2 shrink-0 mt-1">
+            <div className="sh-actions flex items-center gap-2 shrink-0 mt-1">
               {isAdminOrCore && (
                 <SectionToggle visible={isOn('core')} onToggle={() => toggleSec('core')} L={L} />
               )}
@@ -1762,8 +1764,10 @@ function HomeSections({ L, onJoin }) {
                         <span className={`font-inter text-[11px] sm:text-xs font-bold uppercase tracking-wider ${L?'text-red-600':'text-red-400'}`}>{currentYear}</span>
                         <span className={`font-inter text-[9px] px-1.5 py-0.5 rounded-full ${L?'bg-red-50 text-red-600':'bg-red-900/30 text-red-400'}`}>Current</span>
                       </div>
-                      <div className="flex flex-wrap gap-2 sm:gap-2.5">
-                        {sortCore(byYear[currentYear]).map((m, i) => <CoreCard key={m._id} m={m} isCurr={true} index={i} L={L} />)}
+                      <div className="sec-content flex flex-wrap gap-2 sm:gap-2.5">
+                        {sortCore(byYear[currentYear]).map((m, i) => (
+                          <div key={m._id} className="reveal-card"><CoreCard m={m} isCurr={true} index={i} L={L} /></div>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -1801,7 +1805,7 @@ function HomeSections({ L, onJoin }) {
                     style={{ fontSize:'clamp(9px,1.1vw,11px)', animation:'borderFlicker 4.5s ease-in-out infinite' }}>
                     <span>
                       {coreExpanded
-                        ? 'Collapse'
+                        ? 'See Less'
                         : extraPast.length > 0
                           ? `Show ${extraPast.length} more past year${extraPast.length > 1 ? 's' : ''}`
                           : 'Show all past years'}
@@ -1829,7 +1833,7 @@ function HomeSections({ L, onJoin }) {
             href="/competitions" L={L}
             sectionVisible={isOn('competitions')} onToggleSection={isAdminOrCore ? () => toggleSec('competitions') : undefined}
             settingKey="subtitle-competitions" isEditable={isAdminOrCore} onSave={saveSub('subtitle-competitions')} />
-          <CompetitionSlots competitions={carouselComps} L={L} />
+          <div className="sec-content"><CompetitionSlots competitions={carouselComps} L={L} /></div>
         </div>
       </FullSection>
       )}
@@ -1844,7 +1848,7 @@ function HomeSections({ L, onJoin }) {
             href="/activities" L={L}
             sectionVisible={isOn('activities')} onToggleSection={isAdminOrCore ? () => toggleSec('activities') : undefined}
             settingKey="subtitle-activities" isEditable={isAdminOrCore} onSave={saveSub('subtitle-activities')} />
-          <ActivityCarousel activities={carouselActs} L={L} />
+          <div className="sec-content"><ActivityCarousel activities={carouselActs} L={L} /></div>
         </div>
       </FullSection>
       )}
@@ -1859,6 +1863,7 @@ function HomeSections({ L, onJoin }) {
             href="/magazines" L={L}
             sectionVisible={isOn('magazines')} onToggleSection={isAdminOrCore ? () => toggleSec('magazines') : undefined}
             settingKey="subtitle-magazines" isEditable={isAdminOrCore} onSave={saveSub('subtitle-magazines')} />
+          <div className="sec-content">
           {magazines.length > 0
             ? <MagazineCovers magazines={magazines} L={L} />
             : <div className="flex flex-col items-center justify-center py-20 gap-3 opacity-40">
@@ -1868,6 +1873,7 @@ function HomeSections({ L, onJoin }) {
                 <p className={`font-inter text-sm ${L?'text-gray-500':'text-gray-600'}`}>No magazines published yet</p>
               </div>
           }
+          </div>{/* /sec-content */}
         </div>
       </FullSection>
       )}
@@ -1883,14 +1889,14 @@ function HomeSections({ L, onJoin }) {
           {/* About the club */}
           <h2 className="font-breathing italic font-semibold text-white mb-6"
             style={{ fontSize:'clamp(2rem, 7vw, 4rem)', lineHeight:1.18 }}>
-            Be Part of Our<br />
-            <span style={{ color:'#dc2626', display:'inline-block', marginTop:'0.18em' }}>Story</span>
+            <span className="join-line1 block">Be Part of Our</span>
+            <span className="join-story-span block" style={{ color:'#dc2626', marginTop:'0.18em' }}>Story</span>
           </h2>
 
-          <p className="font-inter text-base sm:text-lg text-gray-300 leading-relaxed max-w-2xl mb-4">
+          <p className="join-p1 font-inter text-base sm:text-lg text-gray-300 leading-relaxed max-w-2xl mb-4">
             {joinText.sub1}
           </p>
-          <p className="font-inter text-sm text-gray-500 leading-relaxed max-w-xl mb-8">
+          <p className="join-p2 font-inter text-sm text-gray-500 leading-relaxed max-w-xl mb-8">
             {joinText.sub2}
           </p>
 
@@ -1951,12 +1957,14 @@ function HomeSections({ L, onJoin }) {
           )}
 
           {/* CTA */}
-          <GlassButton variant="red" onClick={onJoin}
-            className="glass-pill px-12 font-inter text-base font-semibold tracking-[0.06em]"
-            style={{ minHeight:'58px' }}>
-            Become a Member →
-          </GlassButton>
-          <p className="font-inter text-xs text-gray-600 mt-4">Free to join · Open to all IEM students</p>
+          <div className="join-cta flex flex-col items-center">
+            <GlassButton variant="red" onClick={onJoin}
+              className="glass-pill px-12 font-inter text-base font-semibold tracking-[0.06em]"
+              style={{ minHeight:'58px' }}>
+              Become a Member →
+            </GlassButton>
+            <p className="font-inter text-xs text-gray-600 mt-4">Free to join · Open to all IEM students</p>
+          </div>
         </div>
       </FullSection>
     </>
@@ -2186,7 +2194,7 @@ export default function MainPage({ onLoginSuccess }) {
                     textAlign: 'center',
                     letterSpacing: i === 1 ? '0.16em' : '-0.01em',
                     marginTop: i === 1 ? '0.06em' : '0',
-                    backgroundImage: 'linear-gradient(90deg,#c0c0c0 0%,#787878 12%,#b8b8b8 26%,#909090 40%,#d0d0d0 54%,#787878 68%,#bebebe 82%,#909090 96%,#c0c0c0 100%)',
+                    backgroundImage: 'linear-gradient(90deg,#d0d0d0 0%,#a0a0a0 12%,#cccccc 26%,#aeaeae 40%,#e0e0e0 54%,#a0a0a0 68%,#cecece 82%,#aeaeae 96%,#d0d0d0 100%)',
                     backgroundSize: '300% 100%',
                     WebkitBackgroundClip: 'text',
                     backgroundClip: 'text',
@@ -2290,7 +2298,7 @@ export default function MainPage({ onLoginSuccess }) {
                     textAlign: 'center',
                     letterSpacing: i === 1 ? '0.14em' : '-0.01em',
                     marginTop: i === 1 ? '0.08em' : '0',
-                    backgroundImage: 'linear-gradient(90deg,#c0c0c0 0%,#787878 12%,#b8b8b8 26%,#909090 40%,#d0d0d0 54%,#787878 68%,#bebebe 82%,#909090 96%,#c0c0c0 100%)',
+                    backgroundImage: 'linear-gradient(90deg,#dcdcdc 0%,#b8b8b8 12%,#d8d8d8 26%,#c0c0c0 40%,#ebebeb 54%,#b8b8b8 68%,#e0e0e0 82%,#c0c0c0 96%,#dcdcdc 100%)',
                     backgroundSize: '300% 100%',
                     WebkitBackgroundClip: 'text',
                     backgroundClip: 'text',
@@ -2343,10 +2351,11 @@ export default function MainPage({ onLoginSuccess }) {
             <h1 className="font-clash uppercase tracking-tighter glitch-text text-white mb-1 leading-[1.0] text-center w-full">
               <span className={`block text-3xl md:text-5xl lg:text-6xl mb-2 tracking-[0.1em] ${L ? 'text-gray-600' : 'text-gray-300/80'}`}>Welcome to</span>
               <span
-                className="block text-transparent bg-clip-text animate-text-pan sm:text-6xl md:text-8xl lg:text-[7rem] drop-shadow-[0_0_20px_rgba(255,255,255,0.12)]"
+                className="block text-transparent bg-clip-text animate-text-pan sm:text-6xl md:text-8xl lg:text-[7rem] drop-shadow-[0_0_28px_rgba(255,255,255,0.28)]"
                 style={{
                   backgroundImage: "url('https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80')",
                   backgroundSize: '150%',
+                  filter: 'brightness(1.55) contrast(0.92)',
                 }}
               >
                 IEM PHOTOGRAPHY CLUB
