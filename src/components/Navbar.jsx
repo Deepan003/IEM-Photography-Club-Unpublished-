@@ -80,7 +80,7 @@ function NavLink({ link, active, isLight, onNav }) {
   )
 }
 
-export default function Navbar({ onJoinClick, heroMode = null, onToggleHeroMode = null }) {
+export default function Navbar({ onJoinClick, heroMode = null, onToggleHeroMode = null, themeNavbarBg = null, introReveal = null }) {
   const [scrolled,  setScrolled]  = useState(false)
   const [menuOpen,  setMenuOpen]  = useState(false)
   const [iconSpin,  setIconSpin]  = useState(false)
@@ -116,12 +116,24 @@ export default function Navbar({ onJoinClick, heroMode = null, onToggleHeroMode 
     toggleTheme()
   }
 
+  // Synced hero fade-in: when introReveal is provided (home hero), the whole navbar
+  // fades/slides in together with the hero text. On other pages it stays visible.
+  const revealControlled = introReveal !== null && introReveal !== undefined
+  const revealStyle = revealControlled
+    ? { opacity: introReveal ? 1 : 0, transform: introReveal ? 'translateY(0)' : 'translateY(-12px)',
+        transition: 'opacity 0.9s ease, transform 0.9s cubic-bezier(0.16,1,0.3,1), background 0.5s ease, padding 0.5s ease',
+        pointerEvents: introReveal ? 'auto' : 'none' }
+    : null
+
   return (
-    <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-500 ${
-      scrolled
-        ? `${isLight ? 'bg-white/85' : 'bg-black/85'} backdrop-blur-md py-3 shadow-xl`
-        : 'bg-transparent py-4 sm:py-6'
-    }`}>
+    <nav
+      className={`fixed top-0 left-0 w-full z-[100] transition-all duration-500 ${
+        scrolled
+          ? `${isLight ? 'bg-white/85' : 'bg-black/85'} backdrop-blur-md py-3 shadow-xl`
+          : 'bg-transparent py-4 sm:py-6'
+      }`}
+      style={{ ...(!scrolled && themeNavbarBg ? { background: themeNavbarBg } : null), ...revealStyle }}
+    >
       {/* ── Top vignette (mobile only) — dark gradient behind nav buttons ── */}
       <div className="sm:hidden absolute inset-x-0 top-0 pointer-events-none"
         style={{ height: '130px', background: 'linear-gradient(to bottom, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)', zIndex: 0 }} />
@@ -131,9 +143,12 @@ export default function Navbar({ onJoinClick, heroMode = null, onToggleHeroMode 
         {/* Left: logo + theme toggle */}
         <div className="flex items-center gap-2.5">
           <Link to="/">
-            <div className="w-11 h-11 rounded-full overflow-hidden border border-gray-600/40 bg-black flex-shrink-0"
+            <div className="relative w-11 h-11 rounded-full overflow-hidden border border-gray-600/40 bg-black flex-shrink-0"
               style={{ boxShadow: '0 0 20px rgba(0,0,0,0.8)' }}>
               <img src="/IEM_20260416_215615_0000.png" alt="IEM Photography Club" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 pointer-events-none" style={{ animation: 'logoSweep 11s linear 2s infinite' }}>
+                <div style={{ position:'absolute', inset:0, background:'linear-gradient(108deg,transparent 25%,rgba(255,255,255,0.55) 50%,transparent 75%)' }}/>
+              </div>
             </div>
           </Link>
           <GlassButton
@@ -184,6 +199,17 @@ export default function Navbar({ onJoinClick, heroMode = null, onToggleHeroMode 
       {/* ── DESKTOP NAV layout (sm+) ── */}
       <div className="hidden sm:flex container mx-auto px-4 sm:px-8 justify-center items-center">
         <div className="flex items-center gap-2 sm:gap-6">
+
+          {/* Logo — left anchor, shifts nav links right-of-center */}
+          <Link to="/" className="flex-shrink-0 mr-1">
+            <div className="relative w-10 h-10 rounded-full overflow-hidden border border-gray-600/35 bg-black"
+              style={{ boxShadow: '0 0 18px rgba(0,0,0,0.75)' }}>
+              <img src="/IEM_20260416_215615_0000.png" alt="IEM Photography Club" className="w-full h-full object-cover"/>
+              <div className="absolute inset-0 pointer-events-none" style={{ animation: 'logoSweep 11s linear 5s infinite' }}>
+                <div style={{ position:'absolute', inset:0, background:'linear-gradient(108deg,transparent 25%,rgba(255,255,255,0.55) 50%,transparent 75%)' }}/>
+              </div>
+            </div>
+          </Link>
 
           {/* Desktop nav — larger text and spacing */}
           <div className="hidden lg:flex items-center gap-1">
@@ -238,33 +264,6 @@ export default function Navbar({ onJoinClick, heroMode = null, onToggleHeroMode 
                   ⚙ {user.role === 'admin' ? 'Admin' : 'Core'}
                 </GlassButton>
               </Link>
-              {onToggleHeroMode && (
-                <button
-                  onClick={onToggleHeroMode}
-                  title={heroMode === 'video' ? 'Switch to Classic view' : 'Switch to Video view'}
-                  style={{
-                    position: 'absolute', top: 'calc(100% + 4px)',
-                    left: '50%', transform: 'translateX(-50%)',
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    padding: '3px 10px', borderRadius: 99,
-                    background: heroMode === 'video' ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.40)',
-                    backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-                    border: '1px solid rgba(255,255,255,0.13)',
-                    color: 'rgba(255,255,255,0.65)',
-                    fontSize: 9, fontFamily: "'Inter', system-ui, sans-serif",
-                    fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase',
-                    cursor: 'pointer', whiteSpace: 'nowrap',
-                    transition: 'background 0.2s ease',
-                    zIndex: 101,
-                  }}>
-                  <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
-                    {heroMode === 'video'
-                      ? <><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/></>
-                      : <><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></>}
-                  </svg>
-                  {heroMode === 'video' ? 'Classic' : 'Video'}
-                </button>
-              )}
             </div>
           )}
 

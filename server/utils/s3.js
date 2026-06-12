@@ -67,10 +67,13 @@ export function getPublicUrl(key) {
 export async function putBuffer(key, buffer, contentType) {
   const { PutObjectCommand } = await import('@aws-sdk/client-s3')
   await getClient().send(new PutObjectCommand({
-    Bucket:      BUCKET(),
-    Key:         key,
-    Body:        buffer,
-    ContentType: contentType || 'image/jpeg',
+    Bucket:       BUCKET(),
+    Key:          key,
+    Body:         buffer,
+    ContentType:  contentType || 'image/jpeg',
+    // Immutable, random-UUID keys → cache hard so browsers reuse them across refreshes
+    // (the browser's native HTTP cache handles video Range requests correctly).
+    CacheControl: 'public, max-age=31536000, immutable',
   }))
   return { key, publicUrl: getPublicUrl(key) }
 }

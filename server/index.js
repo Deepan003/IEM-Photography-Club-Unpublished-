@@ -27,6 +27,8 @@ import competitionsRoutes from './routes/competitions.js'
 import activitiesRoutes   from './routes/activities.js'
 import magazineRoutes    from './routes/magazines.js'
 import imageProxyRoutes  from './routes/imageProxy.js'
+import heroThemesRoutes  from './routes/heroThemes.js'
+import { ensureDefaultTheme } from './models/HeroTheme.js'
 import { checkAndFlagPassouts, syncCurrentCoreMembers } from './utils/passout.js'
 
 const app    = express()
@@ -71,6 +73,7 @@ app.use('/api/competitions', competitionsRoutes)
 app.use('/api/activities',   activitiesRoutes)
 app.use('/api/magazines',   magazineRoutes)
 app.use('/api/proxy/image', imageProxyRoutes)
+app.use('/api/hero-themes', heroThemesRoutes)
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }))
 
 if (isProd) {
@@ -116,6 +119,7 @@ mongoose
   .then(async () => {
     console.log('✅  MongoDB connected')
     // Run immediately on startup
+    await ensureDefaultTheme().catch(e => console.error('⚠️  Hero theme init failed:', e.message))
     await checkAndFlagPassouts().catch(e => console.error('⚠️  Passout check failed:', e.message))
     await syncCurrentCoreMembers().catch(e => console.error('⚠️  Core sync failed:', e.message))
     // Then schedule daily at 00:05 so June 1 transition fires automatically

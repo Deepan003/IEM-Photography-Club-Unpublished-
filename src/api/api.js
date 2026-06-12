@@ -244,6 +244,27 @@ export const competitionsApi = {
   submit:                (id, b)       => post(`/api/competitions/${id}/submit`, b),
 }
 
+export const heroThemesApi = {
+  getActive: ()       => get('/api/hero-themes/active'),
+  list:      ()       => authGet('/api/hero-themes'),
+  create:    (body)   => post('/api/hero-themes', body),
+  update:    (id, b)  => put(`/api/hero-themes/${id}`, b),
+  delete:    (id)     => del(`/api/hero-themes/${id}`),
+  activate:  (id)     => post(`/api/hero-themes/${id}/activate`, {}),
+  async uploadVideo(file) {
+    const form = new FormData()
+    form.append('video', file)
+    const res = await fetch('/api/hero-themes/upload-video', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${getToken()}` },
+      body: form,
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Video upload failed')
+    return data
+  },
+}
+
 export const activitiesApi = {
   list:             (params = {}) => get(`/api/activities?${new URLSearchParams(params)}`),
   get:              (id)          => get(`/api/activities/${id}`),

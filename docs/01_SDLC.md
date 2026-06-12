@@ -145,6 +145,29 @@ The IEM Photography Club platform was developed using an **iterative Agile appro
 
 ---
 
+### Phase 9 — Hero Theme Studio & Cinematic Intro (Sprint 14)
+
+**Duration:** ~1.5 weeks  
+**Features Delivered:**
+- **Hero Theme Studio** — an admin "Studio Mode" to author seasonal hero presets (e.g. *Durga Puja*) stored in MongoDB (`HeroTheme` model) and served to all visitors via `/api/hero-themes/active`
+  - Per-theme PC (16:9) + mobile (9:16) video uploads (single-video toggle), with server-side S3 upload (50 MB cap)
+  - Visual controls with Auto/manual override: **blur, darkness, saturation (B&W↔colour), brightness, warmth** (amber `sepia()+hue-rotate()`), navbar background, hero title colour, tagline
+  - **Intro modes** — Immediate / Timed (delay) / After-First-Play; plus after-play loop/blur behaviour
+  - **Save / Save Draft / Save & Activate** separation — saving never activates; explicit activate route (defence-in-depth: server strips `isActive`/`isDefault` from update payloads)
+  - **Inline editable preset title** (pencil → save → "Saved") in the Studio top bar
+  - Live **Studio preview** (16:9 / 9:16), height-fitted on desktop, with a mobile fullscreen mode that CSS-rotates the 16:9 stage to landscape + floating back/aspect controls
+- **Cinematic hero intro experience** (public site, desktop + mobile, all modes):
+  - **Pre-video neomorphic liquid-glass loader** — replaces the black screen while the hero video buffers; lifts on first decoded frame (`onLoadedData`)
+  - **Navbar fade-in synced** with the hero text reveal (shared `introReveal` signal)
+  - **Timed / After-First-Play**: scroll + interaction locked until the text + scrollbar arrive, forcing the viewer to watch the video; a **bottom glass progress loader** advances with the video and vanishes as the text appears
+  - 9-second safety net so a stalled video never traps the visitor
+- **Media performance**:
+  - Viewport-gated hero video — desktop never downloads the 9:16 video and vice-versa (≈50% hero bandwidth saved)
+  - `Cache-Control: public, max-age=31536000, immutable` on S3 uploads + a one-time `server/scripts/backfillCacheControl.js` to backfill existing objects, so browsers stop re-downloading videos on refresh
+- **Mobile Studio UX** — 2-column theme cards, pinned preview with independently scrolling options, expandable "Create Theme" FAB (bottom-left on mobile, bottom-right on desktop)
+
+---
+
 ## 3. Release History
 
 | Version | Date | Highlights |
@@ -155,6 +178,7 @@ The IEM Photography Club platform was developed using an **iterative Agile appro
 | 0.4.0 | Apr 2026 | Magazine editor v2 (28 layouts, crop editor) |
 | 0.5.0 | May 2026 | Video hero, light mode revamp, FAB redesign |
 | 1.0.0 | Jun 2026 | Production hardening, backend hero sync, docs |
+| 1.1.0 | Jun 2026 | Hero Theme Studio, cinematic intro loaders, scroll-lock intro, media caching |
 
 ---
 
@@ -182,3 +206,5 @@ A feature is considered **Done** when:
 | JWT secret rotation | Low | High | `JWT_SECRET` in `.env`, never committed |
 | Video file too large for git | High | Medium | `.gitignore` excludes `*.mp4`; host on S3/CDN |
 | Font blocking render | Medium | Medium | `font-display: swap/optional`, non-blocking preload pattern |
+| Hero video re-download on every load | High | Medium | `Cache-Control: immutable` on S3 + viewport-gated single-video load; `onLoadedData` gate prevents black flash |
+| Visitor trapped behind stalled intro video | Low | High | 9s safety timeout force-reveals text + unlocks scroll if `onLoadedData` never fires |

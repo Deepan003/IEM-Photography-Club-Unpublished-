@@ -5,7 +5,7 @@ import RevealOnScroll    from './components/RevealOnScroll'
 // AuthModal is global in App.jsx — trigger via: document.dispatchEvent(new CustomEvent('open-auth'))
 import { useTheme, useAuth } from './App.jsx'
 import { useData }       from './hooks/useData.js'
-import { postcardsApi, galleryApi, membersApi, coreApi, socialApi, competitionsApi, magazineApi, activitiesApi, settingsApi } from './api/api.js'
+import { postcardsApi, galleryApi, membersApi, coreApi, socialApi, competitionsApi, magazineApi, activitiesApi, settingsApi, heroThemesApi } from './api/api.js'
 import { computeAcademicYear, isCurrentSession, currentSession } from './utils/yearCalc.js'
 import GlassButton from './components/GlassButton.jsx'
 import { Crosshair, ArrowRight, ChevronLeft, ChevronRight, Instagram, Facebook, Mail } from './components/Icons'
@@ -1973,6 +1973,9 @@ export default function MainPage({ onLoginSuccess }) {
   const [titleRevealed, setTitleRevealed] = useState(false)
   const [mobileGlitch,  setMobileGlitch]  = useState(false)
   const [deskVideoReady, setDeskVideoReady] = useState(false)
+  const [mobVideoReady,  setMobVideoReady]  = useState(false)
+  const [heroReveal,     setHeroReveal]     = useState(false)   // drives navbar + content fade-in (synced)
+  const [videoProgress,  setVideoProgress]  = useState(0)       // 0–1, for the bottom intro loader
   const glitchTimer  = useRef(null)
   const mouseMoveRaf = useRef(null)
   const openAuth = () => document.dispatchEvent(new CustomEvent('open-auth'))
@@ -1980,7 +1983,96 @@ export default function MainPage({ onLoginSuccess }) {
   const { user }          = useAuth()
   const L = theme === 'light'
   const isAdminOrCore = user && ['admin', 'core'].includes(user.role)
-  const { data: heroSettingData } = useData(() => settingsApi.getContent(), 5000)
+  const { data: heroSettingData }  = useData(() => settingsApi.getContent(), 5000)
+  const { data: activeThemeData }  = useData(() => heroThemesApi.getActive(), 20000)
+  const activeTheme    = activeThemeData?.theme
+  const isCustomTheme  = !!(activeTheme && !activeTheme.isDefault)
+
+  // Cache last-seen custom state so first render starts in the right mode — prevents classic→video flash
+  const [cachedHeroIsCustom] = useState(() => {
+    try { return localStorage.getItem('_heroIsCustom') === '1' } catch { return false }
+  })
+  useEffect(() => {
+    if (activeTheme !== undefined) {
+      try { localStorage.setItem('_heroIsCustom', isCustomTheme ? '1' : '0') } catch {}
+    }
+  }, [isCustomTheme]) // eslint-disable-line
+
+  // Derived theme settings — fall back to defaults when not set / auto
+  const themePcVideoUrl     = isCustomTheme && activeTheme.pcVideoUrl
+    ? activeTheme.pcVideoUrl
+    : 'https://college-photography-competition-iem.s3.ap-south-1.amazonaws.com/videos/hero-desktop.mp4'
+  const themeMobileVideoUrl = isCustomTheme
+    ? (activeTheme.useSingleVideo ? activeTheme.pcVideoUrl : (activeTheme.mobileVideoUrl || activeTheme.pcVideoUrl)) ||
+      'https://college-photography-competition-iem.s3.ap-south-1.amazonaws.com/videos/hero-mobile.mp4'
+    : 'https://college-photography-competition-iem.s3.ap-south-1.amazonaws.com/videos/hero-mobile.mp4'
+  const themeBlur         = isCustomTheme && !activeTheme.blurAuto     ? activeTheme.blur     : 2.5
+  const themeBlurMobile   = isCustomTheme && !activeTheme.blurAuto     ? activeTheme.blur     : 3
+  const themeDarkness     = isCustomTheme && !activeTheme.darknessAuto ? activeTheme.darkness : 0.46
+  const themeDarknessMob  = isCustomTheme && !activeTheme.darknessAuto ? activeTheme.darkness : 0.50
+  const themeNavbarBg     = isCustomTheme && !activeTheme.navbarBgAuto ? activeTheme.navbarBg : null
+  const themeHeroColor    = isCustomTheme && !activeTheme.heroTextColorAuto ? activeTheme.heroTextColor : null
+  const themeTagline      = isCustomTheme ? (activeTheme.tagline || '') : ''
+  const themeIntroMode    = isCustomTheme ? (activeTheme.introMode    || 'immediate') : 'immediate'
+  const themeIntroDelay   = isCustomTheme ? (activeTheme.introDelay   ?? 3)           : 3
+  const themeAfterPlayMode= isCustomTheme ? (activeTheme.afterPlayMode|| 'loop')      : 'loop'
+  const themeAfterPlayBlur= isCustomTheme ? (activeTheme.afterPlayBlur ?? 8)          : 8
+  // Saturation: auto (or default) → full grayscale; slider value → partial grayscale
+  const themeSatAuto      = isCustomTheme ? (activeTheme.saturationAuto ?? true)      : true
+  const themeGrayscale    = themeSatAuto  ? '1.00' : ((100 - (activeTheme?.saturation ?? 0)) / 100).toFixed(2)
+  // Brightness: auto → hardcoded defaults (0.44 desktop / 0.48 mobile); slider value / 100
+  const themeBrightAuto   = isCustomTheme ? (activeTheme.brightnessAuto ?? true)      : true
+  const themeBrightVal    = isCustomTheme ? (activeTheme.brightness ?? 44)            : 44
+  const themeBrightDesk   = themeBrightAuto ? '0.44' : (themeBrightVal / 100).toFixed(2)
+  const themeBrightMob    = themeBrightAuto ? '0.48' : (themeBrightVal / 100).toFixed(2)
+  // Warmth: auto → no filter; slider value → sepia+hue-rotate for amber warmth (not flat tint)
+  const themeWarmthAuto   = isCustomTheme ? (activeTheme.warmthAuto ?? true)          : true
+  const _W                = themeWarmthAuto ? 0 : ((activeTheme?.warmth ?? 0) / 100)
+  const themeWarmth       = _W <= 0 ? '' : `sepia(${(_W*0.65).toFixed(2)}) hue-rotate(${(-_W*18).toFixed(1)}deg) `
+
+  // Intro mode state — controls hero text visibility for timed / after-first-play
+  const [heroTextRevealed, setHeroTextRevealed] = useState(true)
+  const [afterPlayBlurOn,  setAfterPlayBlurOn]  = useState(false)
+  const heroIntroTimer = useRef(null)
+  const deskVideoRef   = useRef(null)
+  const mobileVideoRef = useRef(null)
+
+  // Only load the hero video that's actually visible at this viewport (sm breakpoint = 640px),
+  // so a desktop never downloads the 9:16 video and a phone never downloads the 16:9 one.
+  const [heroIsMobile, setHeroIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640)
+  useEffect(() => {
+    const onR = () => setHeroIsMobile(window.innerWidth < 640)
+    window.addEventListener('resize', onR)
+    return () => window.removeEventListener('resize', onR)
+  }, [])
+
+  // Reset intro state whenever the active theme changes
+  useEffect(() => {
+    clearTimeout(heroIntroTimer.current)
+    setAfterPlayBlurOn(false)
+    setVideoProgress(0)
+    setHeroTextRevealed(themeIntroMode === 'immediate')
+  }, [activeTheme?._id, themeIntroMode])
+
+  // Track video playback progress (0–1) for the bottom intro loader
+  const handleVideoTimeUpdate = (e) => {
+    const v = e.currentTarget
+    if (v.duration) setVideoProgress(Math.min(1, v.currentTime / v.duration))
+  }
+
+  // (Timed-intro timer now lives below — it starts once the video is actually ready to play,
+  //  so the countdown to the text reveal tracks the video the visitor is watching.)
+
+  const handleDeskVideoEnded = () => {
+    if (themeIntroMode === 'after-first-play' && !heroTextRevealed) setHeroTextRevealed(true)
+    if (themeAfterPlayMode === 'blur-loop') setAfterPlayBlurOn(true)
+    deskVideoRef.current?.play()
+  }
+  const handleMobileVideoEnded = () => {
+    if (themeIntroMode === 'after-first-play' && !heroTextRevealed) setHeroTextRevealed(true)
+    if (themeAfterPlayMode === 'blur-loop') setAfterPlayBlurOn(true)
+    mobileVideoRef.current?.play()
+  }
 
   // Desktop hero: 'classic' or 'video'. Admin sets via backend (all users see the change).
   // localStorage is only an instant-render cache — backend is authoritative.
@@ -1994,7 +2086,7 @@ export default function MainPage({ onLoginSuccess }) {
     if (saved) {
       try { localStorage.setItem('desktopHeroMode', saved) } catch {}
       setDesktopHeroMode(prev => {
-        if (prev !== saved) setDeskVideoReady(false)
+        if (prev !== saved) { setDeskVideoReady(false); setMobVideoReady(false) }
         return saved
       })
     }
@@ -2009,7 +2101,81 @@ export default function MainPage({ onLoginSuccess }) {
       return next
     })
   }
-  const isVideoMode = desktopHeroMode === 'video'
+  // Custom theme always forces video mode on desktop.
+  // Use cached flag while API is still loading so we start in the right mode immediately.
+  const isVideoMode        = desktopHeroMode === 'video'
+  const effectiveIsCustom  = activeTheme !== undefined ? isCustomTheme : cachedHeroIsCustom
+  const effectiveVideoMode = effectiveIsCustom ? true : isVideoMode
+
+  // When the active theme changes, React only updates <source src> — the browser must be told to reload.
+  // We call .load() + .play() so the new video actually starts playing.
+  useEffect(() => {
+    if (!deskVideoRef.current || !effectiveVideoMode) return
+    deskVideoRef.current.load()
+    deskVideoRef.current.play().catch(() => {})
+  }, [themePcVideoUrl]) // eslint-disable-line
+
+  useEffect(() => {
+    if (!mobileVideoRef.current) return
+    mobileVideoRef.current.load()
+    mobileVideoRef.current.play().catch(() => {})
+  }, [themeMobileVideoUrl]) // eslint-disable-line
+
+  // ── Intro / reveal orchestration ────────────────────────────────────────────
+  // The mobile hero is always video-based, so it counts as a "video hero" even when
+  // the desktop mode is classic.
+  const heroHasVideo = effectiveVideoMode || heroIsMobile
+  // "Ready to show" = the visible hero video can play (or there's no video to wait for).
+  const videoReady = !heroHasVideo ? true
+    : heroIsMobile ? (mobVideoReady || !themeMobileVideoUrl)
+    : (deskVideoReady || !themePcVideoUrl)
+
+  // Timed intro: once the video is ready, count down, then reveal the text.
+  useEffect(() => {
+    if (themeIntroMode !== 'timed' || !videoReady || heroTextRevealed) return
+    heroIntroTimer.current = setTimeout(() => setHeroTextRevealed(true), themeIntroDelay * 1000)
+    return () => clearTimeout(heroIntroTimer.current)
+  }, [themeIntroMode, themeIntroDelay, videoReady]) // eslint-disable-line
+
+  // Navbar + content fade-in, synced with the text reveal.
+  useEffect(() => {
+    if (!heroHasVideo) { const t = setTimeout(() => setHeroReveal(true), 120); return () => clearTimeout(t) }
+    setHeroReveal(videoReady && heroTextRevealed)
+  }, [heroHasVideo, videoReady, heroTextRevealed])
+
+  // Safety net: never trap the visitor behind a loader if the video stalls/fails to load.
+  useEffect(() => {
+    if (!heroHasVideo || videoReady) return
+    const t = setTimeout(() => { setDeskVideoReady(true); setMobVideoReady(true) }, 9000)
+    return () => clearTimeout(t)
+  }, [heroHasVideo, videoReady])
+
+  // Lock scroll/interaction until the intro completes (pre-video load for any mode;
+  // and through the full timed / after-first-play sequence until the text arrives).
+  const introLocked = heroHasVideo && (
+    !videoReady ||
+    ((themeIntroMode === 'timed' || themeIntroMode === 'after-first-play') && !heroTextRevealed)
+  )
+  useEffect(() => {
+    if (!introLocked) return
+    try { window.scrollTo(0, 0) } catch {}
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const block    = e => e.preventDefault()
+    const blockKey = e => { if (['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' ','Spacebar'].includes(e.key)) e.preventDefault() }
+    window.addEventListener('wheel', block, { passive: false })
+    window.addEventListener('touchmove', block, { passive: false })
+    window.addEventListener('keydown', blockKey, { passive: false })
+    return () => {
+      document.body.style.overflow = prev
+      window.removeEventListener('wheel', block)
+      window.removeEventListener('touchmove', block)
+      window.removeEventListener('keydown', blockKey)
+    }
+  }, [introLocked])
+
+  const showBottomLoader = heroHasVideo && videoReady && !heroTextRevealed &&
+    (themeIntroMode === 'timed' || themeIntroMode === 'after-first-play')
 
   const onMouseMove = e => {
     if (mouseMoveRaf.current) return          // skip if a frame is already queued
@@ -2050,16 +2216,61 @@ export default function MainPage({ onLoginSuccess }) {
       <Navbar
         onJoinClick={() => document.dispatchEvent(new CustomEvent('open-auth'))}
         heroMode={isAdminOrCore ? desktopHeroMode : null}
-        onToggleHeroMode={isAdminOrCore ? toggleDesktopHero : null}
+        onToggleHeroMode={isAdminOrCore && !isCustomTheme ? toggleDesktopHero : null}
+        themeNavbarBg={themeNavbarBg}
+        introReveal={heroReveal}
       />
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <header id="home"
         className="relative min-h-screen flex flex-col items-center justify-center px-4 text-center overflow-hidden transition-colors duration-300"
-        style={{ background: isVideoMode ? '#000' : (L ? '#f9fafb' : '#050505') }}>
+        style={{ background: effectiveVideoMode ? '#000' : (L ? '#f9fafb' : '#050505') }}>
+
+        {/* ── Pre-video loader — neomorphic liquid-glass, shown while the hero video buffers ── */}
+        {heroHasVideo && (
+          <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center pointer-events-none"
+            style={{ background:'#000', opacity: videoReady ? 0 : 1, transition:'opacity 0.7s ease', visibility: videoReady ? 'hidden' : 'visible', transitionProperty:'opacity, visibility', transitionDuration:'0.7s' }}>
+            <div style={{
+              position:'relative', width:118, height:118, borderRadius:'50%', overflow:'hidden',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              background:'rgba(255,255,255,0.035)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)',
+              boxShadow:'-5px -5px 14px rgba(255,255,255,0.045), 7px 7px 22px rgba(0,0,0,0.75), inset 0 0 0 1px rgba(255,255,255,0.07)',
+            }}>
+              {/* sweeping conic ring */}
+              <div className="animate-spin" style={{ position:'absolute', inset:7, borderRadius:'50%',
+                background:'conic-gradient(from 0deg, transparent 0deg, rgba(255,255,255,0.55) 300deg, transparent 360deg)',
+                WebkitMask:'radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px))',
+                mask:'radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px))', animationDuration:'1.15s' }}/>
+              <img src="/IEM_20260416_215615_0000.png" alt="" style={{ width:52, height:52, borderRadius:'50%', objectFit:'cover', opacity:0.92 }}/>
+              {/* liquid sheen */}
+              <div style={{ position:'absolute', inset:0, background:'linear-gradient(110deg, transparent 32%, rgba(255,255,255,0.16) 50%, transparent 68%)', animation:'liquidSheen 1.9s ease-in-out infinite' }}/>
+            </div>
+            <p className="font-inter" style={{ marginTop:18, fontSize:10.5, letterSpacing:'0.36em', textTransform:'uppercase', color:'rgba(255,255,255,0.5)', animation:'loaderPulse 1.6s ease-in-out infinite' }}>Loading</p>
+          </div>
+        )}
+
+        {/* ── Bottom intro loader — advances with the video, vanishes as the text arrives ── */}
+        {showBottomLoader && (
+          <div className="absolute left-1/2 z-50 pointer-events-none" style={{ bottom:30, transform:'translateX(-50%)', width:148 }}>
+            <div style={{
+              position:'relative', height:7, borderRadius:999, overflow:'hidden',
+              background:'rgba(255,255,255,0.06)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)',
+              boxShadow:'inset 1px 1px 3px rgba(0,0,0,0.6), inset -1px -1px 2px rgba(255,255,255,0.05), 0 0 0 1px rgba(255,255,255,0.06)',
+            }}>
+              <div style={{
+                position:'absolute', left:0, top:0, bottom:0, borderRadius:999,
+                background:'linear-gradient(90deg, rgba(255,255,255,0.35), rgba(255,255,255,0.8))',
+                boxShadow:'0 0 8px rgba(255,255,255,0.35)',
+                ...(themeIntroMode === 'timed'
+                  ? { width:'100%', animation:`loaderBarFill ${themeIntroDelay}s linear forwards` }
+                  : { width:`${Math.round(videoProgress * 100)}%`, transition:'width 0.25s linear' }),
+              }}/>
+            </div>
+          </div>
+        )}
 
         {/* Ambient blobs — classic mode only */}
-        {!isVideoMode && (
+        {!effectiveVideoMode && (
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-blue-900/10 rounded-full blur-[120px]" />
             <div className="absolute -bottom-[20%] -right-[10%] w-[50%] h-[50%] bg-red-900/10 rounded-full blur-[120px]" />
@@ -2067,7 +2278,7 @@ export default function MainPage({ onLoginSuccess }) {
         )}
 
         {/* Parallax lens rings — classic mode only */}
-        {!isVideoMode && (
+        {!effectiveVideoMode && (
           <div
             className="absolute inset-0 flex items-center justify-center pointer-events-none lens-container sm:translate-y-[10%]"
             style={{ transform: `rotateX(${-mousePos.y * 0.5}deg) rotateY(${mousePos.x * 0.5}deg)` }}
@@ -2079,15 +2290,15 @@ export default function MainPage({ onLoginSuccess }) {
         )}
 
         {/* Viewfinder corners — desktop classic mode only */}
-        {!isVideoMode && (
-          <div className="hidden sm:flex absolute inset-0 pointer-events-none z-20 p-6 md:p-10 flex-col justify-between">
+        {!effectiveVideoMode && (
+          <div className="hidden sm:flex absolute inset-0 pointer-events-none z-20 p-6 md:p-8 flex-col justify-between">
             <div className="flex justify-between">
-              <div className="w-6 h-6 md:w-9 md:h-9 border-t-2 border-l-2 border-white/25 rounded-tl-lg" />
-              <div className="w-6 h-6 md:w-9 md:h-9 border-t-2 border-r-2 border-white/25 rounded-tr-lg" />
+              <div className="w-4 h-4 md:w-5 md:h-5 border-t border-l border-white/20 rounded-tl" />
+              <div className="w-4 h-4 md:w-5 md:h-5 border-t border-r border-white/20 rounded-tr" />
             </div>
             <div className="flex justify-between">
-              <div className="w-6 h-6 md:w-9 md:h-9 border-b-2 border-l-2 border-white/25 rounded-bl-lg" />
-              <div className="w-6 h-6 md:w-9 md:h-9 border-b-2 border-r-2 border-white/25 rounded-br-lg" />
+              <div className="w-4 h-4 md:w-5 md:h-5 border-b border-l border-white/20 rounded-bl" />
+              <div className="w-4 h-4 md:w-5 md:h-5 border-b border-r border-white/20 rounded-br" />
             </div>
           </div>
         )}
@@ -2098,7 +2309,7 @@ export default function MainPage({ onLoginSuccess }) {
             ══════════════════════════════════════════════════════════════════ */}
 
         {/* Desktop landscape video background */}
-        {isVideoMode && (
+        {effectiveVideoMode && (
           /* Entire background layer fades in as one unit — video + all overlays together.
              This prevents the backdrop-filter "snap" that happens when blur has
              nothing to blur until the first video frame arrives. */
@@ -2109,14 +2320,21 @@ export default function MainPage({ onLoginSuccess }) {
               transition: 'opacity 1.1s cubic-bezier(0.4,0,0.2,1)',
               willChange: 'opacity',
             }}>
-            <video
-              autoPlay muted loop playsInline preload="auto"
-              onCanPlay={() => setDeskVideoReady(true)}
-              className="absolute inset-0 w-full h-full object-cover"
-              style={{ filter: 'grayscale(100%) brightness(0.44) contrast(1.18)' }}
-            >
-              <source src="https://college-photography-competition-iem.s3.ap-south-1.amazonaws.com/videos/hero-desktop.mp4" type="video/mp4" />
-            </video>
+            {!heroIsMobile && (
+              <video
+                ref={deskVideoRef}
+                autoPlay muted playsInline preload="auto"
+                loop={themeIntroMode !== 'after-first-play'}
+                onLoadedData={() => setDeskVideoReady(true)}
+                onCanPlay={() => setDeskVideoReady(true)}
+                onTimeUpdate={handleVideoTimeUpdate}
+                onEnded={handleDeskVideoEnded}
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ filter: `grayscale(${themeGrayscale}) ${themeWarmth}brightness(${themeBrightDesk}) contrast(1.18)` }}
+              >
+                <source src={themePcVideoUrl} type="video/mp4" />
+              </video>
+            )}
             {/* Top vignette — helps navbar white text stand out */}
             <div className="absolute top-0 left-0 right-0 pointer-events-none" style={{
               height: '130px',
@@ -2125,10 +2343,18 @@ export default function MainPage({ onLoginSuccess }) {
             }} />
             {/* Frosted glass layer */}
             <div className="absolute inset-0" style={{
-              background: 'rgba(3,3,10,0.46)',
-              backdropFilter: 'blur(2.5px)',
-              WebkitBackdropFilter: 'blur(2.5px)',
+              background: `rgba(3,3,10,${themeDarkness})`,
+              backdropFilter: `blur(${themeBlur}px)`,
+              WebkitBackdropFilter: `blur(${themeBlur}px)`,
             }} />
+            {/* After-play blur overlay (blur-loop mode) */}
+            {afterPlayBlurOn && (
+              <div className="absolute inset-0 pointer-events-none" style={{
+                backdropFilter: `blur(${themeAfterPlayBlur}px)`,
+                WebkitBackdropFilter: `blur(${themeAfterPlayBlur}px)`,
+                animation: 'mobileTaglineReveal 0.8s ease both',
+              }} />
+            )}
             {/* Diagonal glass shine */}
             <div className="absolute inset-0 pointer-events-none" style={{
               background: 'linear-gradient(128deg, rgba(255,255,255,0.07) 0%, transparent 38%, transparent 62%, rgba(255,255,255,0.035) 100%)',
@@ -2148,8 +2374,9 @@ export default function MainPage({ onLoginSuccess }) {
 
         {/* Desktop video hero content — rendered only after video is ready,
             so text entrance always plays over a visible background, never over black */}
-        {isVideoMode && deskVideoReady && (
+        {effectiveVideoMode && deskVideoReady && heroTextRevealed && (
           <div className="hidden sm:flex absolute inset-0 z-30 flex-col items-center justify-center px-8"
+            key={`desk-text-${heroTextRevealed}`}
             style={{ paddingTop: '7vh' }}>
             <div className="relative z-10 flex flex-col items-center text-center">
 
@@ -2190,13 +2417,18 @@ export default function MainPage({ onLoginSuccess }) {
                     textAlign: 'center',
                     letterSpacing: i === 1 ? '0.16em' : '-0.01em',
                     marginTop: i === 1 ? '0.06em' : '0',
-                    backgroundImage: 'linear-gradient(90deg,#d0d0d0 0%,#a0a0a0 12%,#cccccc 26%,#aeaeae 40%,#e0e0e0 54%,#a0a0a0 68%,#cecece 82%,#aeaeae 96%,#d0d0d0 100%)',
-                    backgroundSize: '300% 100%',
-                    WebkitBackgroundClip: 'text',
-                    backgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    color: 'transparent',
-                    animation: 'textPan 10s ease infinite',
+                    ...(themeHeroColor ? {
+                      color: themeHeroColor,
+                      WebkitTextFillColor: themeHeroColor,
+                    } : {
+                      backgroundImage: 'linear-gradient(90deg,#d0d0d0 0%,#a0a0a0 12%,#cccccc 26%,#aeaeae 40%,#e0e0e0 54%,#a0a0a0 68%,#cecece 82%,#aeaeae 96%,#d0d0d0 100%)',
+                      backgroundSize: '300% 100%',
+                      WebkitBackgroundClip: 'text',
+                      backgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      color: 'transparent',
+                      animation: 'textPan 10s ease infinite',
+                    }),
                   }}>
                     {word}
                   </span>
@@ -2211,7 +2443,7 @@ export default function MainPage({ onLoginSuccess }) {
                 animation: 'mobileTaglineReveal 0.5s ease 2.1s both',
               }} />
 
-              {/* Tagline */}
+              {/* Permanent subtitle */}
               <p className="font-inter text-gray-300/65 uppercase"
                 style={{
                   fontSize: '0.62rem', letterSpacing: '0.24em',
@@ -2219,6 +2451,17 @@ export default function MainPage({ onLoginSuccess }) {
                 }}>
                 The Official Page of IEM Photography Club
               </p>
+
+              {/* Custom tagline from active theme */}
+              {themeTagline && (
+                <p className="font-inter text-white/85 uppercase font-bold mt-4"
+                  style={{
+                    fontSize: '0.92rem', letterSpacing: '0.20em',
+                    animation: 'mobileTaglineReveal 1.0s cubic-bezier(0.16,1,0.3,1) 2.15s both, taglineBreath 4.5s ease-in-out 3.4s infinite',
+                  }}>
+                  {themeTagline}
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -2233,19 +2476,35 @@ export default function MainPage({ onLoginSuccess }) {
 
         {/* ── Mobile video background with glass effect ── */}
         <div className="sm:hidden absolute inset-0 z-10 overflow-hidden">
-          <video
-            autoPlay muted loop playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: 'grayscale(100%) brightness(0.48) contrast(1.2)' }}
-          >
-            <source src="https://college-photography-competition-iem.s3.ap-south-1.amazonaws.com/videos/hero-mobile.mp4" type="video/mp4" />
-          </video>
+          {heroIsMobile && (
+            <video
+              ref={mobileVideoRef}
+              autoPlay muted playsInline preload="auto"
+              loop={themeIntroMode !== 'after-first-play'}
+              onLoadedData={() => setMobVideoReady(true)}
+              onCanPlay={() => setMobVideoReady(true)}
+              onTimeUpdate={handleVideoTimeUpdate}
+              onEnded={handleMobileVideoEnded}
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ filter: `grayscale(${themeGrayscale}) ${themeWarmth}brightness(${themeBrightMob}) contrast(1.2)` }}
+            >
+              <source src={themeMobileVideoUrl} type="video/mp4" />
+            </video>
+          )}
           {/* Frosted glass layer */}
           <div className="absolute inset-0" style={{
-            background: 'rgba(3,3,10,0.50)',
-            backdropFilter: 'blur(3px)',
-            WebkitBackdropFilter: 'blur(3px)',
+            background: `rgba(3,3,10,${themeDarknessMob})`,
+            backdropFilter: `blur(${themeBlurMobile}px)`,
+            WebkitBackdropFilter: `blur(${themeBlurMobile}px)`,
           }} />
+          {/* After-play blur overlay */}
+          {afterPlayBlurOn && (
+            <div className="absolute inset-0 pointer-events-none" style={{
+              backdropFilter: `blur(${themeAfterPlayBlur}px)`,
+              WebkitBackdropFilter: `blur(${themeAfterPlayBlur}px)`,
+              animation: 'mobileTaglineReveal 0.8s ease both',
+            }} />
+          )}
           {/* Diagonal glass shine */}
           <div className="absolute inset-0 pointer-events-none" style={{
             background: 'linear-gradient(128deg, rgba(255,255,255,0.08) 0%, transparent 38%, transparent 62%, rgba(255,255,255,0.04) 100%)',
@@ -2263,7 +2522,10 @@ export default function MainPage({ onLoginSuccess }) {
         </div>
 
         {/* ── Mobile hero content ── */}
-        <div className="sm:hidden absolute inset-0 z-30 flex flex-col items-center justify-center px-7">
+        {videoReady && heroTextRevealed && (
+        <div className="sm:hidden absolute inset-0 z-30 flex flex-col items-center justify-center px-7"
+          key={`mob-text-${heroTextRevealed}`}
+          style={{ paddingTop: '3.75rem' }}>
           <div className="relative z-10 w-full flex flex-col items-center text-center">
 
             {/* Club name — cinematic entrance + click-glitch */}
@@ -2294,13 +2556,18 @@ export default function MainPage({ onLoginSuccess }) {
                     textAlign: 'center',
                     letterSpacing: i === 1 ? '0.14em' : '-0.01em',
                     marginTop: i === 1 ? '0.08em' : '0',
-                    backgroundImage: 'linear-gradient(90deg,#dcdcdc 0%,#b8b8b8 12%,#d8d8d8 26%,#c0c0c0 40%,#ebebeb 54%,#b8b8b8 68%,#e0e0e0 82%,#c0c0c0 96%,#dcdcdc 100%)',
-                    backgroundSize: '300% 100%',
-                    WebkitBackgroundClip: 'text',
-                    backgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    color: 'transparent',
-                    animation: 'textPan 10s ease infinite',
+                    ...(themeHeroColor ? {
+                      color: themeHeroColor,
+                      WebkitTextFillColor: themeHeroColor,
+                    } : {
+                      backgroundImage: 'linear-gradient(90deg,#dcdcdc 0%,#b8b8b8 12%,#d8d8d8 26%,#c0c0c0 40%,#ebebeb 54%,#b8b8b8 68%,#e0e0e0 82%,#c0c0c0 96%,#dcdcdc 100%)',
+                      backgroundSize: '300% 100%',
+                      WebkitBackgroundClip: 'text',
+                      backgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      color: 'transparent',
+                      animation: 'textPan 10s ease infinite',
+                    }),
                   }}
                 >
                   {word}
@@ -2308,7 +2575,7 @@ export default function MainPage({ onLoginSuccess }) {
               ))}
             </h1>
 
-            {/* Tagline — fades in after heading settles */}
+            {/* Permanent subtitle */}
             <p
               className="font-inter text-gray-300/75 uppercase mt-3"
               style={{
@@ -2320,32 +2587,31 @@ export default function MainPage({ onLoginSuccess }) {
               The Official Page of IEM Photography Club
             </p>
 
+            {/* Custom tagline from active theme */}
+            {themeTagline && (
+              <p className="font-inter text-white/85 uppercase font-bold mt-5"
+                style={{
+                  fontSize: '0.72rem', letterSpacing: '0.20em',
+                  animation: 'mobileTaglineReveal 1.0s cubic-bezier(0.16,1,0.3,1) 1.75s both, taglineBreath 4.5s ease-in-out 2.9s infinite',
+                }}>
+                {themeTagline}
+              </p>
+            )}
+
           </div>
         </div>
+        )}
 
         {/* ══════════════════════════════════════════════════════════════════
             DESKTOP HERO  (hidden sm:flex) — original centred layout, unchanged
             ══════════════════════════════════════════════════════════════════ */}
-        <div className={`${isVideoMode ? 'hidden' : 'hidden sm:flex'} relative z-30 flex-col items-center w-full max-w-7xl mx-auto pt-20 md:pt-24`}>
-
-          {/* Logo circle */}
-          <RevealOnScroll className="flex flex-col items-center mb-3 sm:mb-4">
-            <div
-              className="relative rounded-full border border-gray-700/60 bg-black overflow-hidden animate-float shadow-[0_0_20px_rgba(0,0,0,0.8)]"
-              style={{ width: 'clamp(3.2rem, 9vw, 5.5rem)', height: 'clamp(3.2rem, 9vw, 5.5rem)' }}
-            >
-              <img src="/IEM_20260416_215615_0000.png" alt="IEM Photography Club Logo" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 pointer-events-none" style={{ animation: 'logoSweep 6s linear 1.5s infinite' }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(108deg, transparent 25%, rgba(255,255,255,0.65) 50%, transparent 75%)' }} />
-              </div>
-            </div>
-          </RevealOnScroll>
+        <div className={`${effectiveVideoMode ? 'hidden' : 'hidden sm:flex'} relative z-30 flex-col items-center w-full max-w-7xl mx-auto pt-10 md:pt-14`}>
 
           {/* Main heading */}
           {/* Desktop heading — ORIGINAL font (Clash Display) + photo texture animation */}
           <div className="animate-focus group cursor-default relative w-full px-4 sm:px-8 md:px-12 py-1 sm:py-3 flex flex-col items-center">
             <h1 className="font-clash uppercase tracking-tighter glitch-text text-white mb-1 leading-[1.0] text-center w-full">
-              <span className={`block text-3xl md:text-5xl lg:text-6xl mb-2 tracking-[0.1em] ${L ? 'text-gray-600' : 'text-gray-300/80'}`}>Welcome to</span>
+              <span className={`block text-xl md:text-3xl lg:text-4xl mb-2 tracking-[0.1em] ${L ? 'text-gray-600' : 'text-gray-300/80'}`}>Welcome to</span>
               <span
                 className="block text-transparent bg-clip-text animate-text-pan sm:text-6xl md:text-8xl lg:text-[7rem] drop-shadow-[0_0_28px_rgba(255,255,255,0.28)]"
                 style={{

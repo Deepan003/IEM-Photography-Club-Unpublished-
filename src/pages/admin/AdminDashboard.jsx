@@ -4,6 +4,7 @@ import { useData } from '../../hooks/useData.js'
 import { Link, useSearchParams } from 'react-router-dom'
 import { adminApi }            from '../../api/admin.js'
 import { postcardsApi, galleryApi, eventsApi, membersApi, coreApi, competitionsApi, activitiesApi, socialApi, announceApi, settingsApi, magazineApi, uploadFileToS3 } from '../../api/api.js'
+import HeroThemesTab                 from '../../components/admin/HeroThemesTab.jsx'
 import AnnouncementStudio            from '../../components/AnnouncementStudio.jsx'
 import ContextAnnouncementStudio    from '../../components/announcement/ContextAnnouncementStudio.jsx'
 import MagazineTabForCore from '../../components/magazine/MagazineTab.jsx'
@@ -4943,6 +4944,7 @@ const TAB_ICONS = {
   core:         <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
   announce:     <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg>,
   socials:      <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>,
+  themes:       <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>,
   permissions:  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
   profile:      <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
 }
@@ -5948,6 +5950,7 @@ function ActivityAdminDetail({ act: initialAct, onBack, currentUser, L }) {
 
 const TABS = [
   { id:'users',         label:'Users'        },
+  { id:'themes',        label:'Themes'       },
   { id:'postcards',     label:'Postcards'    },
   { id:'gallery',       label:'Club Gallery' },
   { id:'events',        label:'Events'       },
@@ -6289,7 +6292,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Main content ── */}
-      <div className="flex-1 min-w-0 lg:ml-64">
+      <div id="admin-main" className="flex-1 min-w-0 lg:ml-64">
 
         {/* Mobile floating header */}
         <header className="lg:hidden sticky top-0 z-50 px-3 pt-3">
@@ -6330,7 +6333,7 @@ export default function AdminDashboard() {
         </header>
 
         {/* Desktop page title */}
-        <div className="hidden lg:flex items-center gap-4 px-8 pt-7 pb-3">
+        <div id="admin-tab-title" className="hidden lg:flex items-center gap-4 px-8 pt-7 pb-3">
           <div className="w-1 h-7 rounded-full" style={{background:'#dc2626'}} />
           <p className={`font-inter text-4xl font-bold ${L?'text-gray-900':'text-white'}`}>{activeLabel}</p>
         </div>
@@ -6348,6 +6351,7 @@ export default function AdminDashboard() {
             {activeTab === 'core'         && <CoreTab              L={L} />}
             {activeTab === 'announce'     && <AnnouncementStudio    L={L} isAdmin={true} />}
             {activeTab === 'socials'      && <SocialsTab           L={L} />}
+            {activeTab === 'themes'       && <HeroThemesTab        L={L} />}
             {activeTab === 'permissions'  && <PermissionsTab       L={L} />}
             {activeTab === 'profile'      && (isCore ? <MemberProfileTab user={user} L={L} /> : <AdminProfileTab L={L} />)}
           </div>

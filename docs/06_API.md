@@ -488,6 +488,40 @@ Returns announcements for the current user (based on role/event membership).
 
 ---
 
+## 11. Hero Themes Routes — `/api/hero-themes`
+
+Seasonal hero presets (video background + visual treatment + intro behaviour). One theme may be `isActive` at a time; one is the protected `isDefault`.
+
+### GET `/api/hero-themes/active`
+**Public.** Returns the currently active theme (or `null`) — consumed by the public homepage hero.
+```json
+{ "theme": { "_id": "...", "name": "Durga Puja", "pcVideoUrl": "...", "mobileVideoUrl": "...",
+  "blur": 5.5, "blurAuto": false, "darkness": 0.10, "saturation": 100, "brightness": 44,
+  "warmth": 0, "navbarBg": null, "heroTextColor": null, "tagline": "Wishing you all a very happy Durga Puja",
+  "introMode": "timed", "introDelay": 3, "afterPlayMode": "loop", "afterPlayBlur": 8,
+  "isActive": true, "isDefault": false } }
+```
+
+### GET `/api/hero-themes`
+`🔒 Admin/Core` — list all presets (default first, then by creation order).
+
+### POST `/api/hero-themes`
+`🔒 Admin/Core` — create a preset. **`isActive`/`isDefault` are stripped from the body** and forced to `false` (saving never activates).
+
+### PUT `/api/hero-themes/:id`
+`🔒 Admin/Core` — update preset fields. **`isActive`/`isDefault` are stripped** — activation is a separate, explicit action.
+
+### POST `/api/hero-themes/:id/activate`
+`🔒 Admin/Core` — deactivate all others and set this one active.
+
+### DELETE `/api/hero-themes/:id`
+`🔒 Admin/Core` — delete a preset (the default and the active theme are protected from deletion).
+
+### POST `/api/hero-themes/upload-video`
+`🔒 Admin/Core` — `multipart/form-data` field `video` (≤ 50 MB, `video/*`). Uploads to S3 with a long-lived `Cache-Control` and returns `{ key, publicUrl }`.
+
+---
+
 ## Error Response Format
 
 All errors follow a consistent envelope:

@@ -1180,6 +1180,23 @@ html.light .auth-glass {
   0%   { opacity:0; transform:translateY(6px); }
   100% { opacity:1; transform:translateY(0); }
 }
+@keyframes taglineBreath {
+  0%,100% { opacity:0.70; }
+  50%     { opacity:0.96; filter:brightness(1.18) drop-shadow(0 0 8px rgba(255,210,120,0.18)); }
+}
+/* Hero loaders — liquid-glass sheen, pulse, and bottom progress fill */
+@keyframes liquidSheen {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+@keyframes loaderPulse {
+  0%,100% { opacity: 0.45; }
+  50%     { opacity: 0.95; }
+}
+@keyframes loaderBarFill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
 /* Mobile hero — click-triggered glitch burst */
 @keyframes mobileGlitchBurst {
   0%,80%,100% { filter:drop-shadow( 3px  2px 0 rgba(255,0,0,.72)) drop-shadow(-3px -2px 0 rgba(0,120,255,.72)) drop-shadow(0 3px 20px rgba(0,0,0,1)); }

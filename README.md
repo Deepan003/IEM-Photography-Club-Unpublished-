@@ -72,6 +72,7 @@
 
 ### 🏠 &nbsp; Public Website
 - **Animated hero** — video/classic mode toggle (admin-set, DB-persisted, all users see same view)
+- **Cinematic intro** — liquid-glass pre-video loader, navbar fade-in synced to the text, optional scroll-lock + bottom progress loader for timed reveals
 - **Event Cinema Gallery** — cinematic photo reel per event
 - **Club Gallery** — masonry grid with lightbox
 - **Core Committee** — year-wise member grid
@@ -93,6 +94,7 @@
 - **Postcard studio** — upload and curate
 - **Announcement system** — targeted broadcasts
 - **Core committee** — year-wise management
+- **Hero Theme Studio** — seasonal video presets, per-theme blur/darkness/saturation/brightness/warmth, intro modes, live 16:9 / 9:16 preview, save vs. activate
 - **Settings** — section visibility, subtitle editing, hero mode
 
 </td>
@@ -223,6 +225,7 @@ IEM-PHOTOGRAPHY-CLUB/
 │   │   ├── Magazine.js
 │   │   ├── Postcard.js
 │   │   ├── AppSettings.js
+│   │   ├── HeroTheme.js          # Seasonal hero presets (video + visual + intro)
 │   │   └── ...
 │   ├── 📁 routes/                # Express route handlers
 │   │   ├── auth.js
@@ -231,9 +234,12 @@ IEM-PHOTOGRAPHY-CLUB/
 │   │   ├── gallery.js
 │   │   ├── magazines.js
 │   │   ├── settings.js
+│   │   ├── heroThemes.js         # Hero theme CRUD + activate + video upload
 │   │   └── ...
-│   └── 📁 middleware/
-│       └── auth.js               # JWT verify, requireRole
+│   ├── 📁 middleware/
+│   │   └── auth.js               # JWT verify, requireRole
+│   └── 📁 scripts/
+│       └── backfillCacheControl.js  # One-time S3 Cache-Control backfill
 │
 └── 📁 docs/                      # Full project documentation
     ├── 01_SDLC.md
@@ -391,6 +397,9 @@ See [`docs/09_DEVOPS.md`](docs/09_DEVOPS.md) for full deployment guide.
 - **Admin FAB portal** — `createPortal(fab, document.body)` escapes parent `transform: scale()` stacking context
 - **Per-user theme** — toggle available in Navbar, Admin Panel, and Member Dashboard; `localStorage` persisted
 - **Global hero mode** — admin sets `desktopHeroMode` to MongoDB via `settingsApi.patch()`, all users read it via 5s polling; `useEffect` applies it immediately on `heroSettingData` change
+- **Hero Theme Studio** — DB-backed `HeroTheme` presets served via `/api/hero-themes/active`; save/activate are decoupled and the server strips `isActive`/`isDefault` from update payloads (defence-in-depth); warmth = `sepia() + hue-rotate()` for true amber, not a flat tint
+- **Cinematic intro** — pre-video liquid-glass loader lifts on `onLoadedData` (first frame, no black flash); navbar fade-in shares the hero `introReveal` signal; timed/after-first-play modes lock scroll + show a video-synced bottom loader, with a 9s safety unlock
+- **Media caching** — viewport-gated single hero video (no double-download of 16:9 + 9:16); `Cache-Control: immutable` on S3 uploads + `backfillCacheControl.js` for existing objects, so videos load from cache on refresh (HTTP-layer cache handles Range requests; a blob cache cannot)
 
 ---
 

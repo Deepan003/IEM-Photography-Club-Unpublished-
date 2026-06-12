@@ -158,6 +158,25 @@ Create a dedicated IAM user with this policy (least-privilege):
 
 Generate Access Key ID and Secret — use these in `.env`.
 
+### 4.4 Media Caching (videos & images)
+
+Hero/theme videos are large and must not be re-downloaded on every page load. Caching is handled at the HTTP layer (correct for video **Range** requests — a JS/blob cache is not):
+
+- **New uploads** automatically get `Cache-Control: public, max-age=31536000, immutable` (set in `server/utils/s3.js → putBuffer`). Object keys are random UUIDs, so caching them forever is safe.
+- **Existing objects** (default hero videos + pre-existing theme videos) lack the header. Backfill them once:
+
+  ```bash
+  node server/scripts/backfillCacheControl.js
+  ```
+
+  The script lists every media object and rewrites its headers in place (`CopyObject` with `MetadataDirective=REPLACE`), preserving key, body, and content-type.
+
+- **Frontend** loads only the viewport-appropriate hero video (16:9 on desktop, 9:16 on mobile) and reveals it on `onLoadedData` (first decoded frame) to avoid a black flash.
+
+> ⚠️ **Dev tip:** Chrome DevTools → Network → **"Disable cache"** bypasses the HTTP cache (and service-worker caches) while DevTools is open, making media appear to re-download every refresh. Uncheck it when verifying cache behaviour.
+
+**CDN (optional, recommended at scale):** Front the bucket with CloudFront for edge caching + faster global delivery; the `immutable` headers above carry through.
+
 ---
 
 ## 5. MongoDB Atlas Setup
