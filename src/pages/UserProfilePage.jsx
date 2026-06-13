@@ -112,6 +112,8 @@ export default function UserProfilePage() {
   const [deletingPhoto, setDeletingPhoto] = useState(null)
   const [deletingCover, setDeletingCover] = useState(false)
 
+  useEffect(() => { window.scrollTo(0, 0) }, [])
+
   // Cover drag-to-reposition
   const coverRef      = useRef(null)
   const isDraggingRef = useRef(false)

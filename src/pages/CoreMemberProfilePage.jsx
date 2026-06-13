@@ -91,6 +91,8 @@ export default function CoreMemberProfilePage() {
   const [error,         setError]         = useState(null)
   const [lightboxIndex, setLightboxIndex] = useState(null)
   const [deletingPhoto, setDeletingPhoto] = useState(null)
+
+  useEffect(() => { window.scrollTo(0, 0) }, [])
   const [deletingCover, setDeletingCover] = useState(false)
   const [galleryUploading, setGalleryUploading] = useState(false)
   const [coverUploading,   setCoverUploading]   = useState(false)
