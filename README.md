@@ -116,6 +116,7 @@
 
 ### 👤 &nbsp; Member Dashboard
 - **Profile** — bio, photo, Instagram, activity calendar
+- **My Gallery** — personal gallery (photographers and core members; swipeable lightbox)
 - **My Events** — events joined, photos uploaded
 - **My Competitions** — entries submitted, results
 - **Postcards** — personal upload section

@@ -168,6 +168,25 @@ The IEM Photography Club platform was developed using an **iterative Agile appro
 
 ---
 
+### Phase 10 — UX Polish, Real-time & Security Hardening (Sprint 15–16)
+
+**Duration:** ~1 week  
+**Features & Fixes:**
+
+- **Admin visibility toggles** — new `AdminVisibilityToggle` component (blue/amber, VISIBLE/HIDDEN badges) replaces misused CoordToggle for winners tab / main-page winners visibility settings
+- **Core My Gallery tab** — promoted members now have a My Gallery tab inside the member dashboard (same `MyGalleryTab` component as regular members); admin excluded
+- **Winners PDF** — `generateWinnersPDF` utility; per-competition PDF download with busy spinner
+- **Swipe everywhere** — unified touch+mouse drag handler (`touchAction: pan-y`) across postcards lightbox, events gallery carousel, and mobile postcard feed; dots-only navigation (no arrows) on mobile postcard feed
+- **Events gallery carousel** — paginated grid (8 per page) with pill/circle dot pagination and swipe support
+- **Mobile card heights** — competition cards `clamp(540px,116vw,640px)`, club gallery 2-column masonry on mobile, events gallery `aspect-[4/3]` on mobile
+- **Stream placeholder** — fixed to academic examples ("B.Tech CSE, BBA, BCA…") instead of photography text
+- **Real-time on remaining pages** — JoinUsPage (social links, 30s poll via `useData`), CoreMemberProfilePage (30s background refresh), UserProfilePage (30s background refresh)
+- **Console cleanup** — replaced all user-facing `.catch(console.error)` with silent fails in ActivitiesPage, CompetitionsPage, FeedPage
+- **Dependency fix** — `sharp` added to root `package.json` to resolve Render deploy failure
+- **`.gitignore` hardening** — `.history/` added to prevent VS Code Local History from committing `.env` snapshots
+
+---
+
 ## 3. Release History
 
 | Version | Date | Highlights |
@@ -179,6 +198,7 @@ The IEM Photography Club platform was developed using an **iterative Agile appro
 | 0.5.0 | May 2026 | Video hero, light mode revamp, FAB redesign |
 | 1.0.0 | Jun 2026 | Production hardening, backend hero sync, docs |
 | 1.1.0 | Jun 2026 | Hero Theme Studio, cinematic intro loaders, scroll-lock intro, media caching |
+| 1.2.0 | Jun 2026 | Swipe gestures, winners PDF, Core My Gallery, admin visibility toggles, mobile UX, real-time polish |
 
 ---
 

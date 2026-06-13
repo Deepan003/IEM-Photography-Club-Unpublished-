@@ -77,3 +77,6 @@ made-voyager-personal-use/
 # ── Vercel ────────────────────────────────────────────────────────────────────
 .vercel/
 .history/
+
+# Claude Code
+.claude/
