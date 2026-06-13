@@ -36,6 +36,9 @@ router.post('/register', otpLimiter, async (req, res) => {
     if (password.length < 8) {
       return res.status(400).json({ error: 'Password must be at least 8 characters.' })
     }
+    if (password.length > 128) {
+      return res.status(400).json({ error: 'Password must be 128 characters or fewer.' })
+    }
     if (Number(startYear) >= Number(endYear)) {
       return res.status(400).json({ error: 'End year must be after start year.' })
     }
@@ -155,6 +158,9 @@ router.post('/login', loginLimiter, async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required.' })
     }
+    if (password.length > 128) {
+      return res.status(401).json({ error: 'Invalid email or password.' })
+    }
 
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password')
     if (!user) return res.status(401).json({ error: 'Invalid email or password.' })
@@ -263,6 +269,9 @@ router.post('/reset-password', loginLimiter, async (req, res) => {
     const { email, otp, newPassword } = req.body
     if (!newPassword || newPassword.length < 8) {
       return res.status(400).json({ error: 'Password must be at least 8 characters.' })
+    }
+    if (newPassword.length > 128) {
+      return res.status(400).json({ error: 'Password must be 128 characters or fewer.' })
     }
 
     const user = await User.findOne({ email: email.toLowerCase() })
