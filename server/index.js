@@ -37,19 +37,43 @@ app.set('trust proxy', 1)   // read real client IP from X-Forwarded-For (needed 
 const PORT   = process.env.PORT || 3001
 const isProd = process.env.NODE_ENV === 'production'
 
-// Security headers — CSP disabled because Vite's built SPA uses inline module scripts
+// Security headers with Content-Security-Policy.
+// modulePreload polyfill is disabled in vite.config.js so no inline scripts exist
+// in the production build, allowing script-src 'self' without 'unsafe-inline'.
 app.use(helmet({
-  contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:  ["'self'"],
+      scriptSrc:   ["'self'"],
+      styleSrc:    ["'self'", "'unsafe-inline'"],   // React inline style props
+      imgSrc:      ["'self'", 'data:', 'blob:', 'https:'],  // S3 images
+      connectSrc:  ["'self'", 'https:'],            // API + any server-side fetches
+      fontSrc:     ["'self'", 'data:'],
+      objectSrc:   ["'none'"],
+      baseUri:     ["'self'"],
+      formAction:  ["'self'"],
+      workerSrc:   ["'self'", 'blob:'],
+      frameAncestors: ["'none'"],
+    },
+  },
 }))
 
 // In prod the SPA is served by this same Express server (same origin), so CORS only
 // matters if you later add a separate frontend domain. ALLOWED_ORIGINS is optional.
+// In production the SPA is served from the same Express server (same origin),
+// so browsers never send a CORS header for normal usage. ALLOWED_ORIGINS is only
+// needed if a separate frontend domain or mobile app calls this API.
+// Default to false (no cross-origin access) when the env var is not set.
 const allowedOrigins = isProd
   ? (process.env.ALLOWED_ORIGINS
       ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-      : true)   // true = reflect request origin (same-server SPA deploy is always same-origin)
+      : false)
   : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175']
+
+if (isProd && !process.env.ALLOWED_ORIGINS) {
+  console.log('ℹ️   ALLOWED_ORIGINS not set — cross-origin requests blocked (safe for same-origin SPA deploy)')
+}
 
 app.use(cors({
   origin: allowedOrigins,

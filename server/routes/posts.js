@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
       .populate('comments.user', 'name profilePhoto')
       .sort({ createdAt: -1 })
       .skip(Number(skip))
-      .limit(Number(limit))
+      .limit(Math.min(100, Number(limit) || 30))
 
     res.json({ posts })
   } catch (e) { res.status(500).json({ error: e.message }) }

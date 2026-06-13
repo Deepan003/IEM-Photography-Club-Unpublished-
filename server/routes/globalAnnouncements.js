@@ -1,4 +1,5 @@
 import nodemailer          from 'nodemailer'
+import sanitizeHtml        from 'sanitize-html'
 import { Router }          from 'express'
 import rateLimit           from 'express-rate-limit'
 import GlobalAnnouncement  from '../models/GlobalAnnouncement.js'
@@ -55,7 +56,19 @@ function autoLink(html) {
 }
 
 // ── Email HTML builder ────────────────────────────────────────────────────────
+const SAFE_EMAIL_TAGS = {
+  allowedTags: ['p','br','div','span','strong','em','b','i','u','s',
+                 'h1','h2','h3','h4','ul','ol','li','blockquote','a','img'],
+  allowedAttributes: {
+    'a':   ['href', 'style', 'target', 'rel'],
+    'img': ['src', 'alt', 'width', 'height', 'style'],
+    '*':   ['style'],
+  },
+  allowedSchemes: ['http', 'https', 'mailto'],
+}
+
 function buildEmailHtml(subject, content) {
+  content = sanitizeHtml(content, SAFE_EMAIL_TAGS)
   content = autoLink(content)
   const year = new Date().getFullYear()
   return `<!DOCTYPE html>
@@ -290,9 +303,14 @@ router.post('/drafts', announceAccess, async (req, res) => {
 
 router.patch('/drafts/:id', announceAccess, async (req, res) => {
   try {
+    const { subject, content, kind, recipientPreset, filters,
+            customRecipients, toRecipients, ccEmails, bccEmails, attachments } = req.body
+    const update = { subject, content, kind, recipientPreset, filters,
+                     customRecipients, toRecipients, ccEmails, bccEmails, attachments }
+    Object.keys(update).forEach(k => update[k] === undefined && delete update[k])
     const draft = await GlobalAnnouncement.findOneAndUpdate(
       { _id: req.params.id, sentBy: req.user._id, status: 'draft' },
-      { $set: req.body },
+      { $set: update },
       { new: true }
     )
     if (!draft) return res.status(404).json({ error: 'Draft not found' })
@@ -643,9 +661,14 @@ router.post('/ctx/:type/:id/drafts', requireAuth, async (req, res) => {
 router.patch('/ctx/:type/:id/drafts/:did', requireAuth, async (req, res) => {
   try {
     if (!(await ctxAuth(req, res))) return
+    const { subject, content, kind, ccEmails, bccEmails, attachments,
+            contextType, contextId } = req.body
+    const update = { subject, content, kind, ccEmails, bccEmails, attachments,
+                     contextType, contextId }
+    Object.keys(update).forEach(k => update[k] === undefined && delete update[k])
     const draft = await GlobalAnnouncement.findOneAndUpdate(
       { _id: req.params.did, sentBy: req.user._id, status: 'draft' },
-      { $set: req.body }, { new: true }
+      { $set: update }, { new: true }
     )
     if (!draft) return res.status(404).json({ error: 'Draft not found' })
     res.json({ draft })

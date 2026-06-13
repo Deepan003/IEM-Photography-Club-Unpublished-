@@ -12,6 +12,10 @@ export default defineConfig({
   build: {
     // Target modern browsers — smaller, faster output
     target: 'es2020',
+    // Disable the inline modulepreload polyfill so Content-Security-Policy
+    // script-src 'self' works without needing 'unsafe-inline'.
+    // All browsers that can run es2020 natively support modulepreload.
+    modulePreload: { polyfill: false },
     // Keep CSS in separate files so it can be cached independently
     cssCodeSplit: true,
     // Don't inline assets > 4 KB (default) so large images stay as files
