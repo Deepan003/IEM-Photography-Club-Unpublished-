@@ -14,6 +14,8 @@ const winnerSchema = new mongoose.Schema({
 const galleryItemSchema = new mongoose.Schema({
   imageUrl:  { type: String, required: true },
   s3Key:     { type: String },
+  mobileUrl: { type: String },
+  mobileKey: { type: String },
   caption:   { type: String },
   order:     { type: Number, default: 0 },
 }, { _id: true })
@@ -102,7 +104,9 @@ const schema = new mongoose.Schema({
   driveLink:      { type: String, trim: true, default: '' },  // Google Drive link to the full photo set
 
   // Visibility
-  isOpenToAll:    { type: Boolean, default: false }, // non-volunteers can view
+  isOpenToAll:       { type: Boolean, default: false }, // non-volunteers can view
+  hideWinnersTab:    { type: Boolean, default: false }, // hides Winners tab from non-admin/non-core
+  showWinnersOnMain: { type: Boolean, default: true  }, // shows winner name on main page competition cards
 
   // Permissions
   // Per-section coordinator permissions

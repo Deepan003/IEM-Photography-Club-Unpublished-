@@ -155,6 +155,7 @@ function ErrorPlaceholder() {
 // masonry=true: block wrapper that grows to the image's natural height.
 export default function ProgressiveImage({
   src,
+  mobileSrc,
   alt = '',
   className = '',
   style,
@@ -226,7 +227,10 @@ export default function ProgressiveImage({
 
         {/* Layer 1: solid fill */}
         <img
-          src={src} alt={alt}
+          src={src}
+          srcSet={mobileSrc ? `${mobileSrc} 900w, ${src} 1920w` : undefined}
+          sizes={mobileSrc ? '(max-width: 640px) 100vw, 50vw' : undefined}
+          alt={alt}
           className={`block w-full ${className}`}
           style={{
             ...style,
@@ -242,7 +246,10 @@ export default function ProgressiveImage({
         {/* Layer 2: translucent crest strip */}
         {isPouring && pour.poly2 && (
           <img
-            src={src} alt="" aria-hidden="true"
+            src={src}
+            srcSet={mobileSrc ? `${mobileSrc} 900w, ${src} 1920w` : undefined}
+            sizes={mobileSrc ? '(max-width: 640px) 100vw, 50vw' : undefined}
+            alt="" aria-hidden="true"
             className="block w-full"
             style={{
               position: 'absolute', inset: 0,
@@ -269,7 +276,10 @@ export default function ProgressiveImage({
 
       {/* Layer 1: solid fill */}
       <img
-        src={src} alt={alt}
+        src={src}
+        srcSet={mobileSrc ? `${mobileSrc} 900w, ${src} 1920w` : undefined}
+        sizes={mobileSrc ? '(max-width: 640px) 100vw, 50vw' : undefined}
+        alt={alt}
         className={className}
         style={{
           ...style,
@@ -284,7 +294,10 @@ export default function ProgressiveImage({
       {/* Layer 2: translucent crest strip */}
       {isPouring && pour.poly2 && (
         <img
-          src={src} alt="" aria-hidden="true"
+          src={src}
+          srcSet={mobileSrc ? `${mobileSrc} 900w, ${src} 1920w` : undefined}
+          sizes={mobileSrc ? '(max-width: 640px) 100vw, 50vw' : undefined}
+          alt="" aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover"
           style={{
             clipPath: pour.poly2,

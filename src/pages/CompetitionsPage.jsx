@@ -7,6 +7,7 @@ import DriveLinkBanner       from '../components/DriveLinkBanner.jsx'
 import ProgressiveImage      from '../components/ProgressiveImage.jsx'
 import { computeAcademicYear, isCurrentSession, getItemSession, getPrimaryItemDate, currentSession } from '../utils/yearCalc.js'
 import { competitionsApi, uploadFileToS3, settingsApi } from '../api/api.js'
+import { generateWinnersPDF } from '../utils/winnersPdf.js'
 import { useTheme, useAuth } from '../App.jsx'
 import { useData }           from '../hooks/useData.js'
 import ContextAnnouncementStudio from '../components/announcement/ContextAnnouncementStudio.jsx'
@@ -409,8 +410,8 @@ function CompGalleryTab({ comp, setComp, canUpload, canReorder, isPrivileged, L 
     try {
       for (let i = 0; i < files.length; i++) {
         setUploadProgress({ current: i + 1, total: files.length })
-        const { key, publicUrl } = await uploadFileToS3(files[i], 'competitions')
-        const d = await competitionsApi.addGalleryPhoto(comp._id, { imageUrl: publicUrl, s3Key: key })
+        const r = await uploadFileToS3(files[i], 'competitions')
+        const d = await competitionsApi.addGalleryPhoto(comp._id, { imageUrl: r.publicUrl, s3Key: r.key, mobileUrl: r.mobileUrl, mobileKey: r.mobileKey })
         const newPhoto = d.competition?.gallery?.slice(-1)[0]
         if (newPhoto) setPhotos(p => [...p, newPhoto])
         uploaded++
@@ -547,7 +548,7 @@ function CompGalleryTab({ comp, setComp, canUpload, canReorder, isPrivileged, L 
                 onDragOver={e => canReorder && handleDragOver(e, i)}
                 onDragEnd={() => canReorder && handleDragEnd()}
                 onClick={() => !dragIdx && setLightbox(p)}>
-                <ProgressiveImage src={p.imageUrl} className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500" />
+                <ProgressiveImage src={p.imageUrl} mobileSrc={p.mobileUrl} className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500" />
                 {canUpload && (
                   <button onClick={e => { e.stopPropagation(); setDeletePhotoConfirm(p._id) }}
                     className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-600 text-white text-xs items-center justify-center hidden group-hover:flex">x</button>
@@ -616,6 +617,8 @@ function WinnersTab({ comp, setComp, canManage, L }) {
   const [msg,       setMsg]       = useState('')
   const [viewer,        setViewer]        = useState(null) // { w, idx }
   const [portraitViewer,setPortraitViewer]= useState(null) // winner with portrait photo
+  const [uploadResetKey, setUploadResetKey] = useState(0) // force-remounts ImageUpload after add
+  const [pdfBusy, setPdfBusy] = useState(false)
 
   const refresh = async () => { const d = await competitionsApi.get(comp._id); setComp(d.competition) }
 
@@ -624,9 +627,18 @@ function WinnersTab({ comp, setComp, canManage, L }) {
     setBusy(true); setMsg('')
     try {
       await competitionsApi.addWinner(comp._id, { ...newW, photoUrl:portrait?.publicUrl, photoS3Key:portrait?.key, winningPhotoUrl:winningPic?.publicUrl, winningPhotoS3Key:winningPic?.key })
-      setNewW({ name:'', label:'1st Prize' }); setPortrait(null); setWinningPic(null); setMsg('Added!'); refresh()
+      setNewW({ name:'', label:'1st Prize' }); setPortrait(null); setWinningPic(null)
+      setUploadResetKey(k => k + 1) // reset ImageUpload previews
+      setMsg('Added!'); refresh()
     } catch (e) { setMsg(e.message) }
     finally { setBusy(false) }
+  }
+
+  const downloadPDF = async () => {
+    setPdfBusy(true)
+    try { await generateWinnersPDF(comp) }
+    catch (e) { console.error('PDF error:', e) }
+    finally { setPdfBusy(false) }
   }
 
   const saveEdit = async () => {
@@ -728,6 +740,20 @@ function WinnersTab({ comp, setComp, canManage, L }) {
         </div>
       )}
 
+      {/* Download Results button — visible whenever there are winners */}
+      {winners.length > 0 && (
+        <div className="flex justify-end">
+          <button onClick={downloadPDF} disabled={pdfBusy}
+            className={'flex items-center gap-2 px-4 py-2 rounded-xl font-inter text-xs font-semibold border transition-all ' + (pdfBusy ? 'opacity-50 cursor-not-allowed ' : '') + (L ? 'border-amber-600/40 text-amber-600 hover:bg-amber-50' : 'border-amber-600/40 text-amber-400 hover:bg-amber-900/20')}
+            style={{ backdropFilter:'blur(8px)' }}>
+            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            {pdfBusy ? 'Generating PDF…' : 'Download Results'}
+          </button>
+        </div>
+      )}
+
       {/* Add winner */}
       {canManage && (
         <ShineCard L={L} className="p-4 space-y-3">
@@ -740,9 +766,9 @@ function WinnersTab({ comp, setComp, canManage, L }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="font-inter text-[10px] text-gray-500 uppercase tracking-widest mb-1 block">Portrait</label>
-              <ImageUpload folder="competitions" onUpload={r=>setPortrait(r)} label="Upload portrait" preview /></div>
+              <ImageUpload key={`portrait-${uploadResetKey}`} folder="competitions" onUpload={r=>setPortrait(r)} label="Upload portrait" preview /></div>
             <div><label className="font-inter text-[10px] text-gray-500 uppercase tracking-widest mb-1 block">Winning Photo</label>
-              <ImageUpload folder="competitions" onUpload={r=>setWinningPic(r)} label="Upload photo" preview /></div>
+              <ImageUpload key={`winning-${uploadResetKey}`} folder="competitions" onUpload={r=>setWinningPic(r)} label="Upload photo" preview /></div>
           </div>
           {msg && <p className={'font-inter text-xs ' + (msg==='Added!'?'text-green-400':'text-red-400')}>{msg}</p>}
           <GlassButton variant="red" disabled={busy||!newW.name} onClick={add} className="w-full font-inter text-xs" style={{ borderRadius:'10px', minHeight:'38px' }}>
@@ -1004,7 +1030,7 @@ function CompetitionDetailPage({ id }) {
     { id:'details',    label:'Details' },
     ...(isEnrolled || isPrivileged ? [{ id:'volunteers', label:`Team (${allTeamMembers.length})` }] : []),
     ...(comp.gallery?.length > 0 || canUploadGallery || isEnrolled ? [{ id:'gallery', label:'Gallery' }] : []),
-    ...(comp.winners?.length > 0 || canManageWinners ? [{ id:'winners', label:'Winners' }] : []),
+    ...((comp.winners?.length > 0 || canManageWinners) && (!comp.hideWinnersTab || isPrivileged || canManageWinners) ? [{ id:'winners', label:'Winners' }] : []),
     ...(canSeeAnnouncements ? [{ id:'announcements', label:'Announcements' }] : []),
   ]
 

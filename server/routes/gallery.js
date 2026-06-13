@@ -103,7 +103,7 @@ router.get('/photos', async (req, res) => {
 
 router.post('/photos', requireAuth, async (req, res) => {
   try {
-    const { imageUrl, s3Key, caption, section, event: eventId, type='club', featured, photographer, order } = req.body
+    const { imageUrl, s3Key, mobileUrl, mobileS3Key, caption, section, event: eventId, type='club', featured, photographer, order } = req.body
     if (!imageUrl) return res.status(400).json({ error: 'imageUrl required.' })
 
     const userRole = req.user.role
@@ -135,8 +135,8 @@ router.post('/photos', requireAuth, async (req, res) => {
     }
 
     const photo = await GalleryPhoto.create({
-      imageUrl, s3Key, caption: caption||undefined,
-      section, event: eventId, type, featured: !!featured,
+      imageUrl, s3Key, mobileUrl: mobileUrl||undefined, mobileS3Key: mobileS3Key||undefined,
+      caption: caption||undefined, section, event: eventId, type, featured: !!featured,
       photographer: photographer || undefined,
       order: order || 0,
       addedBy: req.user._id,

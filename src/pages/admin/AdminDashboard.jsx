@@ -15,6 +15,7 @@ import { computeAcademicYear, currentSession, isCurrentSession, getItemSession, 
 import { downloadCSV, downloadPDF, downloadAdminBulkCSV, downloadAdminBulkPDF,
          downloadSingleItemCSV, downloadSingleItemPDF, downloadAllItemsCSV, downloadAllItemsPDF
 } from '../../utils/profileReport.js'
+import { generateWinnersPDF } from '../../utils/winnersPdf.js'
 import { useTheme, useAuth }   from '../../App.jsx'
 import { clearToken }          from '../../api/auth.js'
 import GlassButton             from '../../components/GlassButton.jsx'
@@ -24,6 +25,7 @@ import Lightbox               from '../../components/Lightbox.jsx'
 import ConfirmDialog           from '../../components/ConfirmDialog.jsx'
 import PhotographerSearch      from '../../components/PhotographerSearch.jsx'
 import { ProfileTab as MemberProfileTab } from '../../components/MemberDashboard.jsx'
+import MyGalleryTab from '../../components/MyGalleryTab.jsx'
 import DownloadingOverlay from '../../components/DownloadingOverlay.jsx'
 import { SkeletonGrid, SkeletonList, SkeletonCard, SkeletonTable } from '../../components/Skeleton.jsx'
 import { useToast } from '../../components/Toast.jsx'
@@ -93,6 +95,31 @@ function CoordToggle({ label, value, onChange, L }) {
       </div>
       <button onClick={onChange}
         className={`relative w-10 h-5 rounded-full transition-colors duration-250 shrink-0 ${value ? 'bg-green-600' : 'bg-gray-700'}`}>
+        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-250 ${value ? 'translate-x-5' : 'translate-x-0.5'}`} />
+      </button>
+    </div>
+  )
+}
+
+function AdminVisibilityToggle({ label, hint, value, onChange, L }) {
+  return (
+    <div className={`flex items-center justify-between px-4 py-2.5 rounded-xl border ${
+      value
+        ? (L ? 'border-sky-600/30 bg-sky-900/10' : 'border-sky-600/25 bg-sky-900/10')
+        : (L ? 'border-amber-600/30 bg-amber-900/10' : 'border-amber-700/25 bg-amber-900/10')
+    }`}>
+      <div className="flex flex-col gap-0.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-inter text-[9px] uppercase tracking-widest text-gray-500">Admin</span>
+          <span className={`font-inter text-xs font-semibold ${value ? (L?'text-sky-600':'text-sky-300') : (L?'text-amber-600':'text-amber-400')}`}>{label}</span>
+          <span className={`font-inter text-[8px] font-bold px-1.5 py-0.5 rounded-full ${value ? 'bg-sky-800/50 text-sky-300' : 'bg-amber-900/50 text-amber-300'}`}>
+            {value ? 'VISIBLE' : 'HIDDEN'}
+          </span>
+        </div>
+        {hint && <span className="font-inter text-[10px] text-gray-600 mt-0.5">{hint}</span>}
+      </div>
+      <button onClick={onChange}
+        className={`relative w-10 h-5 rounded-full transition-colors duration-250 shrink-0 ml-4 ${value ? 'bg-sky-600' : 'bg-amber-700'}`}>
         <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-250 ${value ? 'translate-x-5' : 'translate-x-0.5'}`} />
       </button>
     </div>
@@ -1967,7 +1994,7 @@ function EventManager({ event: initialEvent, onBack, currentUser, L }) {
   // ── Gallery ───────────────────────────────────────────────────────────────────
   const uploadPhoto = async (file) => {
     setUploading(true)
-    try { const {key,publicUrl}=await uploadFileToS3(file,'event-gallery'); const {photo}=await galleryApi.addPhoto({imageUrl:publicUrl,s3Key:key,event:event._id,type:'event',order:photos.length}); setPhotos(p=>[...p,photo]) }
+    try { const r=await uploadFileToS3(file,'event-gallery'); const {photo}=await galleryApi.addPhoto({imageUrl:r.publicUrl,s3Key:r.key,mobileUrl:r.mobileUrl,mobileS3Key:r.mobileKey,event:event._id,type:'event',order:photos.length}); setPhotos(p=>[...p,photo]) }
     catch(e){setMsg(e.message)} finally{setUploading(false)}
   }
   const deletePhoto = async id => { await galleryApi.deletePhoto(id).catch(()=>{}); setPhotos(p=>p.filter(x=>x._id!==id)) }
@@ -2320,7 +2347,7 @@ function EventManager({ event: initialEvent, onBack, currentUser, L }) {
                 <div key={p._id} className={`group relative aspect-square rounded-xl overflow-hidden ${photoDragIdx===i?'opacity-40 ring-2 ring-red-500':''} cursor-grab active:cursor-grabbing`}
                   draggable onDragStart={()=>handleDragStart(i)} onDragOver={e=>handleDragOver(e,i)} onDragEnd={()=>setPhotoDragIdx(null)}
                   onClick={()=>setPhotoLightboxIdx(i)}>
-                  <ProgressiveImage src={p.imageUrl} className="w-full h-full object-cover"/>
+                  <ProgressiveImage src={p.imageUrl} mobileSrc={p.mobileUrl} className="w-full h-full object-cover"/>
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <button onClick={e=>{e.stopPropagation();setDeletePhotoConfirm(p._id)}} className="w-7 h-7 rounded-full bg-red-600/80 hover:bg-red-500 text-white flex items-center justify-center text-xs">✕</button>
                   </div>
@@ -2801,9 +2828,11 @@ function CompetitionManager({ comp: initial, onBack, currentUser, L }) {
   const [mgrDlBusy, setMgrDlBusy] = useState(false)
   const [mgrDlMsg,  setMgrDlMsg]  = useState('')
   const [newAnnounce, setNewAnnounce] = useState('')
-  const [newWinner,   setNewWinner]   = useState({ name:'', label:'1st Prize', position:1 })
-  const [winPhoto,    setWinPhoto]    = useState(null)
-  const [winningPhoto,setWinningPhoto]= useState(null)
+  const [newWinner,        setNewWinner]        = useState({ name:'', label:'1st Prize', position:1 })
+  const [winPhoto,         setWinPhoto]         = useState(null)
+  const [winningPhoto,     setWinningPhoto]      = useState(null)
+  const [winUploadResetKey,setWinUploadResetKey] = useState(0)
+  const [winnerPdfBusy,    setWinnerPdfBusy]     = useState(false)
   const [editWinner,  setEditWinner]  = useState(null) // { _id, name, label, photoUrl, winningPhotoUrl, _newPortrait, _newWinning }
   const [addingLink,  setAddingLink]  = useState(false)
   const [linkForm,    setLinkForm]    = useState({ name:'', url:'', type:'external' })
@@ -2898,6 +2927,7 @@ function CompetitionManager({ comp: initial, onBack, currentUser, L }) {
         winningPhotoUrl: winningPhoto?.publicUrl, winningPhotoS3Key: winningPhoto?.key,
       })
       setNewWinner({ name:'', label:'1st Prize', position:1 }); setWinPhoto(null); setWinningPhoto(null)
+      setWinUploadResetKey(k => k + 1)
       refresh()
     } catch (e) { setMsg(e.message) }
     finally { setBusy(false) }
@@ -3344,7 +3374,7 @@ function CompetitionManager({ comp: initial, onBack, currentUser, L }) {
             : <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {comp.gallery.map((p,i) => (
                   <div key={p._id} className="relative group rounded-xl overflow-hidden aspect-square cursor-pointer" onClick={() => setGalleryLightboxIdx(i)}>
-                    <ProgressiveImage src={p.imageUrl} className="w-full h-full object-cover" />
+                    <ProgressiveImage src={p.imageUrl} mobileSrc={p.mobileUrl} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       {i > 0 && (
                         <button onClick={e => { e.stopPropagation(); moveGallery(comp.gallery, i, i-1) }}
@@ -3378,6 +3408,33 @@ function CompetitionManager({ comp: initial, onBack, currentUser, L }) {
         <div className="space-y-4 tab-panel-sub">
           <CoordToggle L={L} label="manage winners" value={comp.coordCanManageWinners === true}
             onChange={() => toggleCoordPerm('coordCanManageWinners')} />
+          <div className="space-y-2">
+            <p className="font-inter text-[10px] text-gray-500 uppercase tracking-widest px-1">Visibility Controls</p>
+            <AdminVisibilityToggle L={L}
+              label="Winners tab for members"
+              hint="When hidden, only admins and core members can view the Winners tab"
+              value={comp.hideWinnersTab !== true}
+              onChange={() => toggleCoordPerm('hideWinnersTab')} />
+            <AdminVisibilityToggle L={L}
+              label="Winner name on main page"
+              hint="Shows or hides the winner's name on the home page competition card"
+              value={comp.showWinnersOnMain !== false}
+              onChange={() => toggleCoordPerm('showWinnersOnMain')} />
+          </div>
+
+          {/* Download results PDF */}
+          {(comp.winners?.length || 0) > 0 && (
+            <div className="flex justify-end">
+              <button onClick={async () => { setWinnerPdfBusy(true); try { await generateWinnersPDF(comp) } catch(e){console.error(e)} finally { setWinnerPdfBusy(false) } }}
+                disabled={winnerPdfBusy}
+                className={'flex items-center gap-2 px-3 py-1.5 rounded-xl font-inter text-[11px] font-semibold border transition-all ' + (winnerPdfBusy ? 'opacity-50 cursor-not-allowed ' : '') + (L ? 'border-amber-600/40 text-amber-600 hover:bg-amber-50' : 'border-amber-600/40 text-amber-400 hover:bg-amber-900/20')}>
+                <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                {winnerPdfBusy ? 'Generating…' : 'Download Results PDF'}
+              </button>
+            </div>
+          )}
 
           {/* Existing winners list */}
           {comp.winners?.length > 0 && (
@@ -3475,11 +3532,11 @@ function CompetitionManager({ comp: initial, onBack, currentUser, L }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="font-inter text-[10px] text-gray-500 uppercase tracking-widest mb-1 block">Winner Portrait</label>
-                <ImageUpload folder="competitions" onUpload={r => setWinPhoto(r)} label="Upload portrait" preview />
+                <ImageUpload key={`adm-portrait-${winUploadResetKey}`} folder="competitions" onUpload={r => setWinPhoto(r)} label="Upload portrait" preview />
               </div>
               <div>
                 <label className="font-inter text-[10px] text-gray-500 uppercase tracking-widest mb-1 block">Winning Photo</label>
-                <ImageUpload folder="competitions" onUpload={r => setWinningPhoto(r)} label="Upload winning photo" preview />
+                <ImageUpload key={`adm-winning-${winUploadResetKey}`} folder="competitions" onUpload={r => setWinningPhoto(r)} label="Upload winning photo" preview />
               </div>
             </div>
             <GlassButton onClick={addWinner} variant="red" disabled={busy||!newWinner.name} className="w-full font-inter text-xs" style={{ borderRadius:'10px', minHeight:'38px' }}>
@@ -3801,8 +3858,8 @@ function GalleryTab({ L }) {
     try {
       for (let i = 0; i < count; i++) {
         setUploadProgress({ current: i + 1, total: count })
-        const { key, publicUrl } = await uploadFileToS3(uploadFiles[i], 'gallery')
-        await galleryApi.addPhoto({ imageUrl: publicUrl, s3Key: key, caption: uploadCaption, photographer: uploadPhotographer, section: uploadSect || undefined, type: 'club', order: photos.length + i })
+        const r = await uploadFileToS3(uploadFiles[i], 'gallery')
+        await galleryApi.addPhoto({ imageUrl: r.publicUrl, s3Key: r.key, mobileUrl: r.mobileUrl, mobileS3Key: r.mobileKey, caption: uploadCaption, photographer: uploadPhotographer, section: uploadSect || undefined, type: 'club', order: photos.length + i })
       }
       setUploadFiles([]); setUploadPreviews([]); setUploadCaption('')
       setUploadPhotographer({ name: 'anonymous' }); setPhotogKey(k => k + 1)
@@ -3945,7 +4002,7 @@ function GalleryTab({ L }) {
               <div key={p._id} className={`group relative aspect-square rounded-xl overflow-hidden cursor-grab active:cursor-grabbing ${dragIdx===i?'opacity-40 ring-2 ring-red-500':''}`}
                 draggable onDragStart={()=>handleDragStart(i)} onDragOver={e=>handleDragOver(e,i)} onDragEnd={()=>setDragIdx(null)}
                 onClick={()=>setLightboxIdx(i)}>
-                <ProgressiveImage src={p.imageUrl} className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500" />
+                <ProgressiveImage src={p.imageUrl} mobileSrc={p.mobileUrl} className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500" />
                 <button onClick={e=>{e.stopPropagation();setConfirm(p)}}
                   className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-600 text-white text-xs items-center justify-center hidden group-hover:flex">✕</button>
                 {/* Photographer attribution — always visible over a soft vignette */}
@@ -4907,7 +4964,7 @@ function CoreTab({ L }) {
       const results = []
       for (const file of Array.from(files)) {
         const r = await uploadFileToS3(file, 'core-gallery')
-        results.push({ url: r.publicUrl, s3Key: r.key })
+        results.push({ url: r.publicUrl, s3Key: r.key, mobileUrl: r.mobileUrl, mobileKey: r.mobileKey })
       }
       const d = await coreApi.addGalleryPhotos(editId, { photos: results })
       setEditGallery(d.gallery || [])
@@ -4996,9 +5053,9 @@ function CoreTab({ L }) {
               </div>
             </div>
             <div>
-              <label className="font-inter text-[11px] text-gray-500 uppercase tracking-widest mb-1.5 block">Stream <span className="text-gray-600 normal-case">(optional — e.g. Landscape, Portrait)</span></label>
+              <label className="font-inter text-[11px] text-gray-500 uppercase tracking-widest mb-1.5 block">Stream <span className="text-gray-600 normal-case">(optional — e.g. B.Tech, BBA, BCA)</span></label>
               <input value={form.stream} onChange={e => setForm(f=>({...f,stream:e.target.value}))}
-                className="glass-input w-full" style={{ borderRadius:'10px' }} placeholder="e.g. Landscape Photography" />
+                className="glass-input w-full" style={{ borderRadius:'10px' }} placeholder="e.g. B.Tech CSE, BBA, BCA…" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -5175,7 +5232,7 @@ function CoreTab({ L }) {
               <div>
                 <label className="font-inter text-[11px] text-gray-500 uppercase tracking-widest mb-1.5 block">Stream <span className="text-gray-600 normal-case">(optional)</span></label>
                 <input value={form.stream} onChange={e => setForm(f=>({...f,stream:e.target.value}))}
-                  className="glass-input w-full" style={{ borderRadius:'10px' }} placeholder="e.g. Landscape Photography, Portraiture…" />
+                  className="glass-input w-full" style={{ borderRadius:'10px' }} placeholder="e.g. B.Tech CSE, BBA, BCA…" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -5269,6 +5326,7 @@ const TAB_ICONS = {
   themes:       <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>,
   permissions:  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
   profile:      <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  'my-gallery': <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/><path d="M9 21H5"/></svg>,
 }
 
 // ── ACTIVITIES ADMIN TAB ──────────────────────────────────────────────────────
@@ -6023,8 +6081,8 @@ function ActivityAdminDetail({ act: initialAct, onBack, currentUser, L }) {
               setActUploading(true); setActUploadProgress({ current: 0, total: picked.length })
               for (let i = 0; i < picked.length; i++) {
                 setActUploadProgress({ current: i + 1, total: picked.length })
-                const { key, publicUrl } = await uploadFileToS3(picked[i], 'activities').catch(() => ({ key:'', publicUrl:'' }))
-                if (publicUrl) await activitiesApi.addGalleryPhoto(act._id, { imageUrl: publicUrl, s3Key: key }).catch(() => {})
+                const r = await uploadFileToS3(picked[i], 'activities').catch(() => ({ key:'', publicUrl:'', mobileKey:'', mobileUrl:'' }))
+                if (r.publicUrl) await activitiesApi.addGalleryPhoto(act._id, { imageUrl: r.publicUrl, s3Key: r.key, mobileUrl: r.mobileUrl, mobileKey: r.mobileKey }).catch(() => {})
               }
               setActUploading(false); setActUploadProgress({ current: 0, total: 0 })
               refresh()
@@ -6034,7 +6092,7 @@ function ActivityAdminDetail({ act: initialAct, onBack, currentUser, L }) {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               {[...(act.gallery||[])].sort((a,b)=>(a.order||0)-(b.order||0)).map((p, i) => (
                 <div key={p._id} className="group relative aspect-square rounded-xl overflow-hidden cursor-pointer" onClick={() => setActLightboxIdx(i)}>
-                  <ProgressiveImage src={p.imageUrl} className="w-full h-full object-cover" />
+                  <ProgressiveImage src={p.imageUrl} mobileSrc={p.mobileUrl} className="w-full h-full object-cover" />
                   <button onClick={e => { e.stopPropagation(); setActGalleryDeleteConfirm(p._id) }}
                     className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-600 text-white text-xs items-center justify-center hidden group-hover:flex">✕</button>
                 </div>
@@ -6425,10 +6483,20 @@ export default function AdminDashboard() {
   const [drawerOpen, setDrawer]         = useState(false)
   const [leaveDialog,   setLeaveDialog]   = useState(false)
   const [pendingTabId,  setPendingTabId]  = useState(null)
-  // Tab is URL-driven so it survives refresh. Validate against TABS to reject invalid values.
+
+  // Core sees My Profile + My Gallery first; admin keeps the original order
+  const visibleTabs = isCore
+    ? [
+        { id:'profile',    label:'My Profile' },
+        { id:'my-gallery', label:'My Gallery' },
+        ...TABS.filter(t => t.id !== 'profile'),
+      ]
+    : TABS
+
+  // Tab is URL-driven so it survives refresh. Validate against visibleTabs.
   const _defaultTab = isCore ? 'profile' : 'users'
   const _rawTab     = searchParams.get('tab')
-  const activeTab   = (_rawTab && TABS.some(t => t.id === _rawTab)) ? _rawTab : _defaultTab
+  const activeTab   = (_rawTab && visibleTabs.some(t => t.id === _rawTab)) ? _rawTab : _defaultTab
   const setActiveTab = (tabId) => {
     if (_adminDirty) { setPendingTabId(tabId); setLeaveDialog(true); return }
     setSearchParams({ tab: tabId }, { replace: true })
@@ -6454,16 +6522,11 @@ export default function AdminDashboard() {
     )
   }
 
-  // Core sees My Profile first; admin keeps the original order
-  const visibleTabs = isCore
-    ? [{ id:'profile', label:'My Profile' }, ...TABS.filter(t => t.id !== 'profile')]
-    : TABS
-
   const activeLabel = visibleTabs.find(t => t.id === activeTab)?.label || ''
 
   // Primary tabs shown on mobile bottom bar (most used)
   const PRIMARY_TABS = isCore
-    ? ['profile','events','gallery','announce','users']
+    ? ['profile','my-gallery','events','announce','competitions']
     : ['users','events','gallery','announce','profile']
   const primaryTabs  = visibleTabs.filter(t => PRIMARY_TABS.includes(t.id))
 
@@ -6715,6 +6778,7 @@ export default function AdminDashboard() {
             {activeTab === 'socials'      && <SocialsTab           L={L} />}
             {activeTab === 'themes'       && <HeroThemesTab        L={L} />}
             {activeTab === 'permissions'  && <PermissionsTab       L={L} />}
+            {activeTab === 'my-gallery'   && isCore && <MyGalleryTab user={user} L={L} />}
             {activeTab === 'profile'      && (isCore ? <MemberProfileTab user={user} L={L} /> : <AdminProfileTab L={L} />)}
           </div>
         </div>

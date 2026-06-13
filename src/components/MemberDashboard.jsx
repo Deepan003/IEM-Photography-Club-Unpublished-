@@ -11,6 +11,7 @@ import GlassButton              from './GlassButton.jsx'
 import ImageUpload              from './ImageUpload.jsx'
 import PhotographerSearch       from './PhotographerSearch.jsx'
 import { downloadCSV, downloadPDF } from '../utils/profileReport.js'
+import { generateWinnersPDF } from '../utils/winnersPdf.js'
 import DownloadingOverlay from './DownloadingOverlay.jsx'
 import { SkeletonGrid, SkeletonList, SkeletonCard, SkeletonProfile } from './Skeleton.jsx'
 import ProgressiveImage from './ProgressiveImage.jsx'
@@ -951,9 +952,23 @@ function CompetitionsTab({ currentUser, L }) {
                 </div>
               )
 
-              return canView
-                ? <Link key={c._id} to={`/competitions/${c._id}`}>{card}</Link>
-                : <div key={c._id} className="opacity-50 cursor-not-allowed" title="Enrollment required">{card}</div>
+              return (
+                <div key={c._id} className="flex flex-col gap-1.5">
+                  {canView
+                    ? <Link to={`/competitions/${c._id}`}>{card}</Link>
+                    : <div className="opacity-50 cursor-not-allowed" title="Enrollment required">{card}</div>}
+                  {c.winners?.length > 0 && c.hideWinnersTab !== true && (
+                    <button onClick={() => generateWinnersPDF(c)}
+                      className={'w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl font-inter text-[10px] font-semibold border transition-all ' + (L ? 'border-amber-600/40 text-amber-600 hover:bg-amber-50' : 'border-amber-600/35 text-amber-400 hover:bg-amber-900/15')}
+                      style={{ backdropFilter:'blur(8px)' }}>
+                      <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      Download Results
+                    </button>
+                  )}
+                </div>
+              )
             })}
           </div>
         </>
@@ -1595,9 +1610,9 @@ function CoordGalleryTab({ user, canUpload = true, L }) {
       const added = []
       for (let i = 0; i < count; i++) {
         setUploadProgress({ current: i + 1, total: count })
-        const { key, publicUrl } = await uploadFileToS3(files[i], 'gallery')
+        const r = await uploadFileToS3(files[i], 'gallery')
         const { photo } = await galleryApi.addPhoto({
-          imageUrl: publicUrl, s3Key: key,
+          imageUrl: r.publicUrl, s3Key: r.key, mobileUrl: r.mobileUrl, mobileS3Key: r.mobileKey,
           caption:  caption || undefined,
           section:  section || undefined,
           photographer: attribution,
@@ -1710,7 +1725,7 @@ function CoordGalleryTab({ user, canUpload = true, L }) {
             {photos.map((p, i) => (
               <div key={p._id} className="relative group mb-1.5 rounded-xl overflow-hidden break-inside-avoid cursor-pointer"
                 onClick={() => setLightboxIdx(i)}>
-                <ProgressiveImage src={p.imageUrl} alt="" masonry />
+                <ProgressiveImage src={p.imageUrl} mobileSrc={p.mobileUrl} alt="" masonry />
                 {/* Photographer attribution — so the manager can verify who it's credited to */}
                 {p.photographer?.name && (
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent px-2 pt-4 pb-1 flex items-center gap-1.5">

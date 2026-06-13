@@ -1233,7 +1233,7 @@ const FlowRow = forwardRef(function FlowRow({ photos, speed = 0.5, pausedRef, cl
       <div ref={trackRef} className="flex gap-2 sm:gap-3" style={{ width: 'max-content', willChange: 'transform' }}>
         {[...photos, ...photos].map((p, i) => (
           <div key={i} className="shrink-0 overflow-hidden rounded-xl sm:rounded-2xl"
-            style={{ height: 'clamp(112px, 19vw, 196px)', width: 'clamp(152px, 25.5vw, 264px)' }}>
+            style={{ height: 'clamp(165px, 19vw, 196px)', width: 'clamp(222px, 25.5vw, 264px)' }}>
             <img src={p.imageUrl} alt="" className="w-full h-full object-cover pointer-events-none" draggable={false} />
           </div>
         ))}
@@ -1260,15 +1260,15 @@ function FlowingGallery({ photos, L }) {
     <div className="relative select-none -mx-5 sm:-mx-8">
 
       {/* Edge fade */}
-      <div className="absolute inset-y-0 left-0 w-10 sm:w-16 z-10 pointer-events-none"
+      <div className="absolute inset-y-0 left-0 w-4 sm:w-7 z-10 pointer-events-none"
         style={{ background: `linear-gradient(to right, ${edgeFade}, transparent)` }} />
-      <div className="absolute inset-y-0 right-0 w-10 sm:w-16 z-10 pointer-events-none"
+      <div className="absolute inset-y-0 right-0 w-4 sm:w-7 z-10 pointer-events-none"
         style={{ background: `linear-gradient(to left, ${edgeFade}, transparent)` }} />
 
       <div className="space-y-2 sm:space-y-3">
         <FlowRow ref={r0} photos={rows[0]} speed={0.40} pausedRef={pausedRef} />
         <FlowRow ref={r1} photos={rows[1]} speed={0.32} pausedRef={pausedRef} />
-        <FlowRow ref={r2} photos={rows[2]} speed={0.36} pausedRef={pausedRef} className="sm:hidden" />
+        <FlowRow ref={r2} photos={rows[2]} speed={0.36} pausedRef={pausedRef} className="hidden" />
       </div>
 
       {/* Arrow buttons */}

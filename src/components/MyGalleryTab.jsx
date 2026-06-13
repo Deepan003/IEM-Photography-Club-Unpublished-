@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { userGalleryApi, settingsApi, uploadFileToS3 } from '../api/api.js'
 import { LiquidLoader } from './ProgressiveImage.jsx'
 import ProgressiveImage from './ProgressiveImage.jsx'
@@ -73,6 +73,17 @@ export default function MyGalleryTab({ user, L }) {
   const [deleteConfirm,  setDeleteConfirm]  = useState(null)
   const [galleryEnabled, setGalleryEnabled] = useState(true)
   const [maxPhotos,      setMaxPhotos]      = useState(0)   // 0 = unlimited
+
+  // Cover drag-to-reposition
+  const coverRef        = useRef(null)
+  const isDraggingRef   = useRef(false)
+  const dragStartY      = useRef(0)
+  const dragStartPos    = useRef(50)
+  const pendingSave     = useRef(null)
+  const [coverPosition, setCoverPosition]   = useState(parseFloat(user?.coverPhotoPosition) || 50)
+  const [isDragging,    setIsDragging]      = useState(false)
+  const [coverHover,    setCoverHover]      = useState(false)
+
   const fileInputRef     = useRef(null)
   const coverInputRef    = useRef(null)
 
@@ -84,6 +95,7 @@ export default function MyGalleryTab({ user, L }) {
     ]).then(([d, gs]) => {
       setPhotos((d.gallery || []).sort((a, b) => a.order - b.order))
       if (d.coverPhoto) setCoverUrl(d.coverPhoto)
+      if (d.coverPhotoPosition) setCoverPosition(parseFloat(d.coverPhotoPosition) || 50)
       setGalleryEnabled(gs.gallery?.enabled !== false)
       setMaxPhotos(gs.gallery?.maxPhotos ?? 0)
     }).catch(() => {})
@@ -101,6 +113,49 @@ export default function MyGalleryTab({ user, L }) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [lightboxIndex, photos.length])
+
+  // Cover drag-to-reposition
+  const startDrag = useCallback((clientY) => {
+    isDraggingRef.current = true
+    setIsDragging(true)
+    dragStartY.current   = clientY
+    dragStartPos.current = coverPosition
+  }, [coverPosition])
+
+  const moveDrag = useCallback((clientY) => {
+    if (!isDraggingRef.current || !coverRef.current) return
+    const h      = coverRef.current.offsetHeight || 1
+    const delta  = ((dragStartY.current - clientY) / h) * 100
+    const newPos = Math.max(0, Math.min(100, dragStartPos.current + delta))
+    setCoverPosition(newPos)
+    pendingSave.current = newPos
+  }, [])
+
+  const endDrag = useCallback(async () => {
+    if (!isDraggingRef.current) return
+    isDraggingRef.current = false
+    setIsDragging(false)
+    const pos = pendingSave.current
+    if (pos === null) return
+    pendingSave.current = null
+    try { await userGalleryApi.setCoverPos(`${Math.round(pos)}%`) } catch (_) {}
+  }, [])
+
+  useEffect(() => {
+    const onMove = (e) => moveDrag(e.clientY ?? e.touches?.[0]?.clientY)
+    const onUp   = ()  => endDrag()
+    const onTM   = (e) => moveDrag(e.touches[0].clientY)
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup',   onUp)
+    window.addEventListener('touchmove', onTM, { passive: true })
+    window.addEventListener('touchend',  onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup',   onUp)
+      window.removeEventListener('touchmove', onTM)
+      window.removeEventListener('touchend',  onUp)
+    }
+  }, [moveDrag, endDrag])
 
   // Multi-file upload: sequential to avoid server overload
   const handleFiles = async (files) => {
@@ -127,7 +182,7 @@ export default function MyGalleryTab({ user, L }) {
     for (let i = 0; i < batch.length; i++) {
       try {
         const result = await uploadFileToS3(batch[i], 'gallery')
-        uploaded.push({ url: result.publicUrl, s3Key: result.key })
+        uploaded.push({ url: result.publicUrl, s3Key: result.key, mobileUrl: result.mobileUrl, mobileKey: result.mobileKey })
       } catch {}
       setUploadProgress({ current: i + 1, total: batch.length })
     }
@@ -217,24 +272,46 @@ export default function MyGalleryTab({ user, L }) {
         <p className={`font-inter text-[10px] uppercase tracking-[0.22em] mb-3 ${L?'text-gray-500':'text-gray-500'}`}>
           Cover Photo
         </p>
-        <div className="relative rounded-2xl overflow-hidden"
+        <div
+          ref={coverRef}
+          className="relative rounded-2xl overflow-hidden select-none"
           style={{
             height: 168,
             background: coverUrl
               ? '#000'
               : L ? 'linear-gradient(135deg,#dce1ec,#c8d0e0)' : 'linear-gradient(135deg,#0d0d1c,#06060e)',
-          }}>
+            cursor: coverUrl && !coverUploading ? (isDragging ? 'grabbing' : 'grab') : 'default',
+          }}
+          onMouseDown={e => coverUrl && !coverUploading && startDrag(e.clientY)}
+          onTouchStart={e => coverUrl && !coverUploading && startDrag(e.touches[0].clientY)}
+          onMouseEnter={() => setCoverHover(true)}
+          onMouseLeave={() => setCoverHover(false)}>
+
           {coverUrl && !coverUploading && (
-            <img src={coverUrl} alt="Cover" className="absolute inset-0 w-full h-full object-cover" />
+            <img src={coverUrl} alt="Cover" draggable={false}
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+              style={{ objectPosition: `center ${coverPosition}%` }} />
           )}
           {coverUploading && (
             <div className="absolute inset-0">
               <LiquidLoader progress={55} label="Uploading…" />
             </div>
           )}
-          {/* Overlay gradient + button */}
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,0.55) 0%,transparent 55%)' }} />
-          <div className="absolute bottom-3 left-3">
+
+          {/* Drag hint */}
+          {coverUrl && !coverUploading && (coverHover || isDragging) && (
+            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none">
+              <span className="font-inter text-[10px] font-semibold text-white px-2.5 py-1 rounded-full"
+                style={{ background: 'rgba(0,0,0,0.55)', letterSpacing: '0.08em' }}>
+                {isDragging ? 'Repositioning…' : 'Drag to reposition'}
+              </span>
+            </div>
+          )}
+
+          {/* Overlay gradient + buttons */}
+          <div className="absolute inset-0 pointer-events-none"
+            style={{ background: 'linear-gradient(to top,rgba(0,0,0,0.55) 0%,transparent 55%)' }} />
+          <div className="absolute bottom-3 left-3" onMouseDown={e => e.stopPropagation()}>
             <button
               onClick={() => coverInputRef.current?.click()}
               disabled={coverUploading}
@@ -367,7 +444,8 @@ export default function MyGalleryTab({ user, L }) {
                 onClick={() => setLightboxIndex(i)}>
 
                 <ProgressiveImage
-                  src={photo.url} alt={photo.caption || ''}
+                  src={photo.url} mobileSrc={photo.mobileUrl}
+                  alt={photo.caption || ''}
                   className="w-full h-auto block"
                   masonry />
 

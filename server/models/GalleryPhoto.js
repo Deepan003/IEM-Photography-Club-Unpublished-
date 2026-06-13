@@ -8,6 +8,8 @@ const photographerSchema = new mongoose.Schema({
 const schema = new mongoose.Schema({
   imageUrl:     { type: String, required: true },
   s3Key:        { type: String },
+  mobileUrl:    { type: String },
+  mobileS3Key:  { type: String },
   caption:      { type: String, trim: true },
   section:      { type: mongoose.Schema.Types.ObjectId, ref: 'GallerySection' },
   event:        { type: mongoose.Schema.Types.ObjectId, ref: 'Event' },

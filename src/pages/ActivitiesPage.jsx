@@ -177,8 +177,8 @@ function ActGalleryTab({ act, canUpload, canReorder, isPrivileged, onGalleryTogg
     try {
       for (let i = 0; i < files.length; i++) {
         setUploadProgress({ current: i + 1, total: files.length })
-        const { key, publicUrl } = await uploadFileToS3(files[i], 'activities')
-        const d = await activitiesApi.addGalleryPhoto(act._id, { imageUrl: publicUrl, s3Key: key })
+        const r = await uploadFileToS3(files[i], 'activities')
+        const d = await activitiesApi.addGalleryPhoto(act._id, { imageUrl: r.publicUrl, s3Key: r.key, mobileUrl: r.mobileUrl, mobileKey: r.mobileKey })
         const newPhoto = d.activity?.gallery?.slice(-1)[0]
         if (newPhoto) setPhotos(p => [...p, newPhoto])
         uploaded++
@@ -312,7 +312,7 @@ function ActGalleryTab({ act, canUpload, canReorder, isPrivileged, onGalleryTogg
                 onDragOver={e => canReorder && handleDragOver(e, i)}
                 onDragEnd={() => canReorder && handleDragEnd()}
                 onClick={() => !dragIdx && setLightbox(p)}>
-                <ProgressiveImage masonry src={p.imageUrl} className="w-full block"
+                <ProgressiveImage masonry src={p.imageUrl} mobileSrc={p.mobileUrl} className="w-full block"
                   style={{ display:'block', height:'auto', transition:'transform 500ms ease' }}
                   onMouseEnter={e => e.currentTarget.style.transform='scale(1.03)'}
                   onMouseLeave={e => e.currentTarget.style.transform='scale(1)'} />

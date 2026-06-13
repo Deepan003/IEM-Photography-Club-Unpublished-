@@ -1,5 +1,6 @@
 import { Router }    from 'express'
 import multer         from 'multer'
+import sharp          from 'sharp'
 import { randomUUID } from 'crypto'
 import rateLimit      from 'express-rate-limit'
 import { requireAuth } from '../middleware/auth.js'
@@ -14,7 +15,8 @@ const uploadLimiter = rateLimit({
 
 const router  = Router()
 const storage = multer.memoryStorage()
-const upload  = multer({
+
+const upload = multer({
   storage,
   limits: { fileSize: 25 * 1024 * 1024 },   // 25 MB max
   fileFilter: (_, file, cb) => {
@@ -25,29 +27,85 @@ const upload  = multer({
   },
 })
 
-const ALLOWED_FOLDERS = ['postcards','gallery','events','profiles','competitions','core','posts','magazines']
+const uploadVideo = multer({
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 },  // 100 MB max for video
+  fileFilter: (_, file, cb) => {
+    if (!file.mimetype.startsWith('video/')) {
+      return cb(new Error('Only video files are allowed.'), false)
+    }
+    cb(null, true)
+  },
+})
+
+const ALLOWED_FOLDERS = [
+  'postcards','gallery','events','profiles','competitions','core','posts','magazines',
+  'core-gallery','core-covers','event-gallery','activities',
+]
 
 const uploadAttachment = multer({
   storage,
   limits: { fileSize: 50 * 1024 * 1024 },  // 50 MB max for attachments
 })
 
-// ── POST /api/upload/file  (browser sends file → server → S3) ─────────────────
-// This avoids the S3 CORS issue entirely — no browser-to-S3 direct PUT needed.
-// Body: multipart/form-data with field "file" + optional field "folder"
+// ── POST /api/upload/file  (image → server → S3, two sizes via sharp) ─────────
 router.post('/file', uploadLimiter, requireAuth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded.' })
 
-    const folder     = ALLOWED_FOLDERS.includes(req.body?.folder) ? req.body.folder : 'uploads'
-    const ext        = (req.file.originalname.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')
-    const key        = `${folder}/${randomUUID()}.${ext}`
+    const folder = ALLOWED_FOLDERS.includes(req.body?.folder) ? req.body.folder : 'uploads'
+    const uuid   = randomUUID()
+
+    // Compress to desktop (1920px) and mobile (900px) JPEG variants
+    const [desktopBuf, mobileBuf] = await Promise.all([
+      sharp(req.file.buffer)
+        .rotate()                                // honour EXIF orientation
+        .resize({ width: 1920, withoutEnlargement: true })
+        .flatten({ background: '#ffffff' })      // PNG alpha → white
+        .jpeg({ quality: 85, progressive: true })
+        .toBuffer(),
+      sharp(req.file.buffer)
+        .rotate()
+        .resize({ width: 900, withoutEnlargement: true })
+        .flatten({ background: '#ffffff' })
+        .jpeg({ quality: 82, progressive: true })
+        .toBuffer(),
+    ])
+
+    const key       = `${folder}/${uuid}.jpg`
+    const mobileKey = `${folder}/${uuid}_mobile.jpg`
+
+    const [result, mobileResult] = await Promise.all([
+      putBuffer(key,       desktopBuf, 'image/jpeg'),
+      putBuffer(mobileKey, mobileBuf,  'image/jpeg'),
+    ])
+
+    res.json({
+      key:       result.key,
+      publicUrl: result.publicUrl,
+      mobileKey: mobileResult.key,
+      mobileUrl: mobileResult.publicUrl,
+    })
+  } catch (err) {
+    console.error('\n[upload/file] ❌', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── POST /api/upload/video  (video → server → S3, no processing) ──────────────
+router.post('/video', uploadLimiter, requireAuth, uploadVideo.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded.' })
+
+    const folder = ALLOWED_FOLDERS.includes(req.body?.folder) ? req.body.folder : 'uploads'
+    const ext    = (req.file.originalname.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '')
+    const key    = `${folder}/${randomUUID()}.${ext}`
 
     const result = await putBuffer(key, req.file.buffer, req.file.mimetype)
 
-    res.json(result)
+    res.json({ key: result.key, publicUrl: result.publicUrl, mobileKey: null, mobileUrl: null })
   } catch (err) {
-    console.error('\n[upload/file] ❌', err.message)
+    console.error('\n[upload/video] ❌', err.message)
     res.status(500).json({ error: err.message })
   }
 })
@@ -69,7 +127,6 @@ router.post('/attachment', uploadLimiter, requireAuth, uploadAttachment.single('
 })
 
 // ── POST /api/upload/presigned  (optional — kept for reference) ───────────────
-// Only useful if the S3 bucket has CORS configured for direct browser uploads.
 router.post('/presigned', uploadLimiter, requireAuth, async (req, res) => {
   try {
     const { filename, contentType, folder = 'uploads' } = req.body
@@ -84,6 +141,26 @@ router.post('/presigned', uploadLimiter, requireAuth, async (req, res) => {
     console.error('  S3_BUCKET_NAME:',    process.env.S3_BUCKET_NAME    ? '✓' : '❌ MISSING')
     res.status(500).json({ error: err.message })
   }
+})
+
+// ── GET /api/upload/proxy-image  (server-side image fetch for PDF generation) ──
+// Only proxies images from the known S3 bucket — prevents open-proxy abuse
+router.get('/proxy-image', async (req, res) => {
+  const { url } = req.query
+  const BUCKET_HOST = process.env.S3_BUCKET_NAME
+    ? `${process.env.S3_BUCKET_NAME}.s3`
+    : 'college-photography-competition-iem.s3'
+  if (!url || !url.startsWith('https://') || !url.includes(BUCKET_HOST)) {
+    return res.status(400).json({ error: 'Invalid or disallowed URL.' })
+  }
+  try {
+    const upstream = await fetch(url)
+    if (!upstream.ok) return res.status(upstream.status).end()
+    const buf = Buffer.from(await upstream.arrayBuffer())
+    res.set('Content-Type', upstream.headers.get('content-type') || 'image/jpeg')
+    res.set('Cache-Control', 'public, max-age=3600')
+    res.send(buf)
+  } catch { res.status(502).end() }
 })
 
 export default router

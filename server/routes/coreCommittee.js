@@ -109,7 +109,7 @@ router.post('/:id/gallery', admin, async (req, res) => {
     const { photos } = req.body
     if (!Array.isArray(photos) || !photos.length) return res.status(400).json({ error: 'photos required' })
     const nextOrder = m.gallery.length ? Math.max(...m.gallery.map(p => p.order)) + 1 : 0
-    photos.forEach((p, i) => m.gallery.push({ url: p.url, s3Key: p.s3Key, caption: p.caption || '', order: nextOrder + i }))
+    photos.forEach((p, i) => m.gallery.push({ url: p.url, s3Key: p.s3Key, mobileUrl: p.mobileUrl, mobileKey: p.mobileKey, caption: p.caption || '', order: nextOrder + i }))
     await m.save()
     res.json({ gallery: m.gallery.sort((a, b) => a.order - b.order) })
   } catch (e) { res.status(500).json({ error: e.message }) }

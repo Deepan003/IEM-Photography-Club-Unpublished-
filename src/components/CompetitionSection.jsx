@@ -88,7 +88,7 @@ function CompCard({ s, L, compact = false }) {
         {!compact && t2.length > 0 && <p className="font-inter text-[10px] mb-1" style={{ color:c2.accent }}>{t2[0]}</p>}
         <p className={`font-inter truncate ${compact?'text-[9px]':'text-[10px]'}`}
           style={{ color: isLight ? 'rgba(71,85,105,0.70)' : 'rgba(255,255,255,0.50)' }}>
-          {s.type === 'past' && s.comp.winners?.[0]
+          {s.type === 'past' && s.comp.winners?.[0] && s.comp.showWinnersOnMain !== false
             ? s.comp.winners[0].name
             : s.comp.endDate && s.type !== 'past'
               ? 'Until ' + new Date(s.comp.endDate).toLocaleDateString('en-IN',{day:'numeric',month:'short'})
@@ -208,7 +208,7 @@ export function CompetitionSlots({ competitions, L }) {
       </div>
 
       {/* Mobile: 3 independent stacked rows */}
-      <div className="sm:hidden flex flex-col gap-2" style={{ height:'clamp(360px,76vw,440px)' }}>
+      <div className="sm:hidden flex flex-col gap-2" style={{ height:'clamp(540px,116vw,640px)' }}>
         {slots.map((sl, i) => (
           <div key={i} className="flex-1 min-h-0">
             <SlotCarousel comps={sl.comps} type={sl.type} L={L} compact autoMs={sl.autoMs} />

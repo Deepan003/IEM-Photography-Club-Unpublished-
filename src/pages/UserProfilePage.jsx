@@ -442,7 +442,8 @@ export default function UserProfilePage() {
                     className="break-inside-avoid mb-3 rounded-xl overflow-hidden cursor-pointer group relative"
                     onClick={() => !isAdmin && setLightboxIndex(i)}>
                     <ProgressiveImage
-                      src={photo.url} alt={photo.caption || ''}
+                      src={photo.url} mobileSrc={photo.mobileUrl}
+                      alt={photo.caption || ''}
                       className="w-full h-auto block"
                       masonry />
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"

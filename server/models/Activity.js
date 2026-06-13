@@ -1,10 +1,12 @@
 import mongoose from 'mongoose'
 
 const galleryItemSchema = new mongoose.Schema({
-  imageUrl: { type: String, required: true },
-  s3Key:    { type: String },
-  caption:  { type: String },
-  order:    { type: Number, default: 0 },
+  imageUrl:  { type: String, required: true },
+  s3Key:     { type: String },
+  mobileUrl: { type: String },
+  mobileKey: { type: String },
+  caption:   { type: String },
+  order:     { type: Number, default: 0 },
 }, { _id: true })
 
 const linkSchema = new mongoose.Schema({

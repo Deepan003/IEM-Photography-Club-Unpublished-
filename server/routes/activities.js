@@ -169,10 +169,10 @@ router.delete('/:id', admin, async (req, res) => {
 
 router.post('/:id/gallery', [requireAuth, adminOrActVolunteer], async (req, res) => {
   try {
-    const { imageUrl, s3Key, caption } = req.body
+    const { imageUrl, s3Key, mobileUrl, mobileKey, caption } = req.body
     const act = await Activity.findById(req.params.id)
     if (!act) return res.status(404).json({ error: 'Not found.' })
-    act.gallery.push({ imageUrl, s3Key, caption, order: act.gallery.length })
+    act.gallery.push({ imageUrl, s3Key, mobileUrl, mobileKey, caption, order: act.gallery.length })
     await act.save()
     res.json({ activity: act })
   } catch (e) { res.status(500).json({ error: e.message }) }

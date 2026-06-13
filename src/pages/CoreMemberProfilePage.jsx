@@ -202,7 +202,7 @@ export default function CoreMemberProfilePage() {
       const results = []
       for (const file of Array.from(files)) {
         const r = await uploadFileToS3(file, 'core-gallery')
-        results.push({ url: r.publicUrl, s3Key: r.key })
+        results.push({ url: r.publicUrl, s3Key: r.key, mobileUrl: r.mobileUrl, mobileKey: r.mobileKey })
       }
       const d = await coreApi.addGalleryPhotos(id, { photos: results })
       setMember(m => ({ ...m, gallery: d.gallery || [] }))
@@ -479,7 +479,8 @@ export default function CoreMemberProfilePage() {
                       onDragEnd={() => { dragIndexRef.current = null; setDragOver(null) }}
                       onClick={() => !isAdmin && setLightboxIndex(i)}>
                       <ProgressiveImage
-                        src={photo.url} alt={photo.caption || ''}
+                        src={photo.url} mobileSrc={photo.mobileUrl}
+                        alt={photo.caption || ''}
                         className={isAdmin ? 'absolute inset-0 w-full h-full object-cover pointer-events-none' : 'w-full h-auto block'}
                         masonry={!isAdmin} />
                       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"

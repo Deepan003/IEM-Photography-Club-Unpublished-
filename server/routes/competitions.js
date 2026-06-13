@@ -185,7 +185,7 @@ router.patch('/:id/coord-perms', admin, async (req, res) => {
   try {
     const comp = await Competition.findById(req.params.id)
     if (!comp) return res.status(404).json({ error: 'Not found.' })
-    const fields = ['coordCanEditDetails','coordCanManageGallery','coordCanManageWinners','coordCanManageVolunteers','coordCanAnnounce','allowVolunteersEdit','showInGallery','manualStatus','status']
+    const fields = ['coordCanEditDetails','coordCanManageGallery','coordCanManageWinners','coordCanManageVolunteers','coordCanAnnounce','allowVolunteersEdit','showInGallery','manualStatus','status','hideWinnersTab','showWinnersOnMain']
     fields.forEach(f => { if (req.body[f] !== undefined) comp[f] = req.body[f] })
     // Keep allowVolunteersEdit in sync with coordCanEditDetails as the master toggle
     if (req.body.coordCanEditDetails !== undefined) comp.allowVolunteersEdit = req.body.coordCanEditDetails
@@ -197,10 +197,10 @@ router.patch('/:id/coord-perms', admin, async (req, res) => {
 // ── GALLERY ───────────────────────────────────────────────────────────────────
 router.post('/:id/gallery', [requireAuth, adminOrCompVolunteer], async (req, res) => {
   try {
-    const { imageUrl, s3Key, caption } = req.body
+    const { imageUrl, s3Key, mobileUrl, mobileKey, caption } = req.body
     const comp = await Competition.findById(req.params.id)
     if (!comp) return res.status(404).json({ error: 'Not found.' })
-    comp.gallery.push({ imageUrl, s3Key, caption, order: comp.gallery.length })
+    comp.gallery.push({ imageUrl, s3Key, mobileUrl, mobileKey, caption, order: comp.gallery.length })
     await comp.save()
     res.json({ competition: comp })
   } catch (e) { res.status(500).json({ error: e.message }) }

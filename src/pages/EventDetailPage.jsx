@@ -170,9 +170,9 @@ function GalleryTab({ event, photos, setPhotos, canUpload, canReorder, isPrivile
     try {
       for (let i = 0; i < files.length; i++) {
         setUploadProgress({ current: i + 1, total: files.length })
-        const { key, publicUrl } = await uploadFileToS3(files[i], 'event-gallery')
+        const r = await uploadFileToS3(files[i], 'event-gallery')
         const { photo } = await galleryApi.addPhoto({
-          imageUrl: publicUrl, s3Key: key,
+          imageUrl: r.publicUrl, s3Key: r.key, mobileUrl: r.mobileUrl, mobileS3Key: r.mobileKey,
           event: event._id, type: 'event',
         })
         setPhotos(p => [photo, ...p])
@@ -325,7 +325,7 @@ function GalleryTab({ event, photos, setPhotos, canUpload, canReorder, isPrivile
               onDragOver={e  => canReorder && handleDragOver(e, i)}
               onDragEnd={()  => canReorder && handleDragEnd()}
               onClick={() => !dragIdx && setLightbox(p)}>
-              <ProgressiveImage src={p.imageUrl} className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500" />
+              <ProgressiveImage src={p.imageUrl} mobileSrc={p.mobileUrl} className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500" />
               {canUpload && (
                 <button
                   onClick={e => { e.stopPropagation(); setDeletePhotoConfirm(p._id) }}

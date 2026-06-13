@@ -53,9 +53,9 @@ function PhotoDialog({ mode, photo, sections, onClose, onDone, L }) {
           section: section || undefined,
         })
       } else {
-        const { key, publicUrl } = await uploadFileToS3(files[0], 'gallery')
+        const r = await uploadFileToS3(files[0], 'gallery')
         await galleryApi.addPhoto({
-          imageUrl: publicUrl, s3Key: key, type: 'club',
+          imageUrl: r.publicUrl, s3Key: r.key, mobileUrl: r.mobileUrl, mobileS3Key: r.mobileKey, type: 'club',
           caption: caption.trim() || undefined,
           photographer: attribution,
           section: section || undefined,
@@ -499,7 +499,7 @@ export default function ClubGalleryPage() {
       onDragEnd={()=>canManage&&handleDragEnd()}
       onClick={()=>setLightbox(i)}
       style={{breakInside:'avoid',marginBottom:3,animation:`quickZoom 380ms cubic-bezier(0.22,1,0.36,1) ${Math.min(i*12,360)}ms both`}}>
-      <ProgressiveImage masonry src={p.imageUrl} className="w-full block" style={{display:'block',height:'auto',transition:'transform 500ms ease'}}
+      <ProgressiveImage masonry src={p.imageUrl} mobileSrc={p.mobileUrl} className="w-full block" style={{display:'block',height:'auto',transition:'transform 500ms ease'}}
         onMouseEnter={e=>e.currentTarget.style.transform='scale(1.03)'} onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}/>
       {/* Photographer attribution — always visible at the bottom over a soft vignette.
           Shows the photographer's profile photo (or a camera icon for free-typed names)

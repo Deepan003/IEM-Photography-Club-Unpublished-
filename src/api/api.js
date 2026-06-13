@@ -20,8 +20,8 @@ const patch  = (path, body) => req('PATCH',  path, body)
 const del    = (path)       => req('DELETE', path)
 
 // ── Upload helpers ────────────────────────────────────────────────────────────
-// Sends file → Express server → S3 (server-side proxy).
-// This avoids S3 CORS issues entirely — no bucket CORS config needed.
+// Sends image → Express server → S3. sharp compresses to 1920px (desktop) and
+// 900px (mobile) JPEG variants. Returns { key, publicUrl, mobileKey, mobileUrl }.
 export async function uploadFileToS3(file, folder = 'uploads') {
   const token = getToken()
   const form  = new FormData()
@@ -33,6 +33,24 @@ export async function uploadFileToS3(file, folder = 'uploads') {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body:    form,
     // Note: do NOT set Content-Type manually — browser sets it with boundary
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Upload failed')
+  return data  // { key, publicUrl, mobileKey, mobileUrl }
+}
+
+// Sends video → Express server → S3 (no processing, max 100 MB).
+// Returns { key, publicUrl }.
+export async function uploadVideoToS3(file, folder = 'uploads') {
+  const token = getToken()
+  const form  = new FormData()
+  form.append('file',   file)
+  form.append('folder', folder)
+
+  const res  = await fetch('/api/upload/video', {
+    method:  'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body:    form,
   })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'Upload failed')

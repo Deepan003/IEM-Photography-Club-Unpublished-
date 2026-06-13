@@ -57,10 +57,12 @@ const userSchema = new mongoose.Schema({
 
   // ── Personal gallery ───────────────────────────────────────────────────────
   gallery: [{
-    url:      { type: String, required: true },
-    s3Key:    { type: String, required: true },
-    caption:  { type: String, maxlength: 200, default: '' },
-    order:    { type: Number, default: 0 },
+    url:       { type: String, required: true },
+    s3Key:     { type: String, required: true },
+    mobileUrl: { type: String },
+    mobileKey: { type: String },
+    caption:   { type: String, maxlength: 200, default: '' },
+    order:     { type: Number, default: 0 },
   }],
 
   // ── Optional device info ───────────────────────────────────────────────────

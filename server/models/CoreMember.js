@@ -11,10 +11,12 @@ const schema = new mongoose.Schema({
   coverPhotoS3Key:      { type: String },
   coverPhotoPosition:   { type: String, default: '50%' },
   gallery: [{
-    url:      { type: String, required: true },
-    s3Key:    { type: String, required: true },
-    caption:  { type: String, maxlength: 200, default: '' },
-    order:    { type: Number, default: 0 },
+    url:       { type: String, required: true },
+    s3Key:     { type: String, required: true },
+    mobileUrl: { type: String },
+    mobileKey: { type: String },
+    caption:   { type: String, maxlength: 200, default: '' },
+    order:     { type: Number, default: 0 },
   }],
   linkedUser:   { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // if they have an account
   order:        { type: Number, default: 0 },

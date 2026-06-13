@@ -66,8 +66,8 @@ router.get('/passout', async (req, res) => {
 // Authenticated: get own gallery
 router.get('/me/gallery', requireAuth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('gallery coverPhoto coverPhotoS3Key')
-    res.json({ gallery: (user.gallery || []).sort((a, b) => a.order - b.order), coverPhoto: user.coverPhoto || null })
+    const user = await User.findById(req.user._id).select('gallery coverPhoto coverPhotoS3Key coverPhotoPosition')
+    res.json({ gallery: (user.gallery || []).sort((a, b) => a.order - b.order), coverPhoto: user.coverPhoto || null, coverPhotoPosition: user.coverPhotoPosition || '50%' })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
@@ -79,10 +79,12 @@ router.post('/me/gallery', requireAuth, async (req, res) => {
     const user = await User.findById(req.user._id).select('gallery')
     const startOrder = (user.gallery || []).reduce((max, p) => Math.max(max, p.order), -1) + 1
     const toAdd = photos.slice(0, 50).map((p, i) => ({
-      url:     p.url,
-      s3Key:   p.s3Key,
-      caption: p.caption || '',
-      order:   startOrder + i,
+      url:       p.url,
+      s3Key:     p.s3Key,
+      mobileUrl: p.mobileUrl,
+      mobileKey: p.mobileKey,
+      caption:   p.caption || '',
+      order:     startOrder + i,
     }))
     user.gallery.push(...toAdd)
     await user.save()
