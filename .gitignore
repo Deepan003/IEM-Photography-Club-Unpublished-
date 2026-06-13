@@ -80,3 +80,14 @@ made-voyager-personal-use/
 
 # Claude Code
 .claude/
+
+# ── Seeds and one-time scripts (kept locally, not on GitHub) ──────────────────
+server/seed-members.mjs
+server/seed-cores.mjs
+server/seed-all.mjs
+server/seeds/
+scripts/seed-members.mjs
+server/scripts/seedTestUsers.js
+server/scripts/cleanupOrphans.js
+server/scripts/removeGalleryTitles.js
+server/scripts/backfillCacheControl.js
