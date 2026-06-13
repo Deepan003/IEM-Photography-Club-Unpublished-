@@ -1,8 +1,11 @@
 import { useState }  from 'react'
+import { Link }      from 'react-router-dom'
 import PageLayout    from '../components/PageLayout.jsx'
 import { coreApi, settingsApi }   from '../api/api.js'
 import { useTheme, useAuth }  from '../App.jsx'
 import { useData }   from '../hooks/useData.js'
+import { SkeletonPhotoGrid } from '../components/Skeleton.jsx'
+import ProgressiveImage from '../components/ProgressiveImage.jsx'
 
 // Same threshold as main page:
 // Academic year "2025-26" (endYear=2026):
@@ -20,7 +23,7 @@ function CorePortraitCard({ m, isCurrentBatch }) {
   const { theme } = useTheme()
   const L         = theme === 'light'
   const initials  = m.name.trim().split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
-  const desig     = m.designation || 'Core'
+  const desig     = isCurrentBatch ? (m.designation || 'Core') : 'Alumni'
 
   return (
     <div
@@ -37,8 +40,8 @@ function CorePortraitCard({ m, isCurrentBatch }) {
       }}>
       {/* Photo */}
       {m.photoUrl
-        ? <img src={m.photoUrl} alt={m.name}
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-600" />
+        ? <ProgressiveImage src={m.photoUrl} alt={m.name}
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         : <div className="absolute inset-0 flex items-center justify-center">
             <span className={`font-clash font-black ${L ? 'text-black/8' : 'text-white/8'}`} style={{ fontSize: 'clamp(2rem,5vw,4rem)' }}>
               {initials}
@@ -117,7 +120,7 @@ export default function CoreCommitteePage() {
   })
 
   return (
-    <PageLayout title="Core Committee" subtitle={resolvedSubtitle}>
+    <PageLayout title="Core Committee" subtitle={resolvedSubtitle} loading={loading}>
       <div className="max-w-5xl mx-auto px-5 sm:px-8 pt-3 sm:pt-4 pb-8 sm:pb-12">
 
         {/* Subtitle edit controls — admin/core only */}
@@ -158,15 +161,13 @@ export default function CoreCommitteePage() {
           </div>
         )}
         {loading ? (
-          <p className={`py-20 text-center font-inter text-sm animate-pulse ${L ? 'text-gray-400' : 'text-gray-600'}`}>
-            Loading…
-          </p>
+          <SkeletonPhotoGrid n={10} ratio="4/5" className="pl-section-in" />
         ) : years.length === 0 ? (
           <p className={`py-20 text-center font-inter text-sm ${L ? 'text-gray-400' : 'text-gray-600'}`}>
             No core members listed yet.
           </p>
         ) : (
-          <div className="space-y-14 sm:space-y-20">
+          <div className="pl-section-in space-y-14 sm:space-y-20">
 
             {/* ── CURRENT BATCH ── */}
             {currentYr && (
@@ -183,9 +184,11 @@ export default function CoreCommitteePage() {
                   <div className={`flex-1 h-px ${L ? 'bg-red-200/60' : 'bg-red-900/30'}`} />
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5">
-                  {sortCore(byYear[currentYr]).map(m => (
-                    <CorePortraitCard key={m._id} m={m} isCurrentBatch={true} />
-                  ))}
+                  {sortCore(byYear[currentYr]).map(m => {
+                    const userId = m.linkedUser?._id || (typeof m.linkedUser === 'string' ? m.linkedUser : null)
+                    const to = userId ? `/members/${userId}` : `/core-member/${m._id}`
+                    return <Link key={m._id} to={to} className="block"><CorePortraitCard m={m} isCurrentBatch={true} /></Link>
+                  })}
                 </div>
               </section>
             )}
@@ -212,9 +215,11 @@ export default function CoreCommitteePage() {
                       <div className={`flex-1 h-px ${L ? 'bg-black/8' : 'bg-white/8'}`} />
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
-                      {sortCore(byYear[year]).map(m => (
-                        <CorePortraitCard key={m._id} m={m} isCurrentBatch={false} />
-                      ))}
+                      {sortCore(byYear[year]).map(m => {
+                        const userId = m.linkedUser?._id || (typeof m.linkedUser === 'string' ? m.linkedUser : null)
+                        const to = userId ? `/members/${userId}` : `/core-member/${m._id}`
+                        return <Link key={m._id} to={to} className="block"><CorePortraitCard m={m} isCurrentBatch={false} /></Link>
+                      })}
                     </div>
                   </section>
                 ))}

@@ -80,6 +80,57 @@ export function SkeletonProfile({ className = '' }) {
   )
 }
 
+// ── Photo grid skeleton (Postcards / Club Gallery) ────────────────────────────
+export function SkeletonPhotoGrid({ n = 8, ratio = '4/5', className = '' }) {
+  return (
+    <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 ${className}`}>
+      {Array.from({ length: n }).map((_, i) => (
+        <div key={i} className="skeleton-shimmer rounded-2xl" style={{ aspectRatio: ratio }} />
+      ))}
+    </div>
+  )
+}
+
+// ── Banner card grid skeleton (Events / Competitions / Activities) ─────────────
+export function SkeletonCardGrid({ n = 8, ratio = '16/9', className = '' }) {
+  return (
+    <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5 ${className}`}>
+      {Array.from({ length: n }).map((_, i) => (
+        <div key={i} className="auth-glass rounded-2xl border border-white/5 overflow-hidden">
+          <div className="skeleton-shimmer" style={{ aspectRatio: ratio }} />
+          <div className="p-3 sm:p-3.5 space-y-2">
+            <div className="skeleton-shimmer rounded-lg" style={{ height: 13, width: '72%' }} />
+            <div className="skeleton-shimmer rounded" style={{ height: 10, width: '48%' }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Masonry skeleton (Club Gallery) ──────────────────────────────────────────
+export function SkeletonMasonryGrid({ n = 9, className = '' }) {
+  const H = [195, 275, 215, 315, 175, 255, 235, 295, 205]
+  return (
+    <div className={`grid grid-cols-2 sm:grid-cols-3 gap-1 ${className}`}>
+      {Array.from({ length: n }).map((_, i) => (
+        <div key={i} className="skeleton-shimmer rounded-xl" style={{ height: H[i % H.length] }} />
+      ))}
+    </div>
+  )
+}
+
+// ── Book / magazine grid skeleton ─────────────────────────────────────────────
+export function SkeletonBookGrid({ n = 6, className = '' }) {
+  return (
+    <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6 ${className}`}>
+      {Array.from({ length: n }).map((_, i) => (
+        <div key={i} className="skeleton-shimmer rounded-xl" style={{ aspectRatio: '3/4' }} />
+      ))}
+    </div>
+  )
+}
+
 // ── Table skeleton ────────────────────────────────────────────────────────────
 export function SkeletonTable({ rows = 5, cols = 4, className = '' }) {
   return (

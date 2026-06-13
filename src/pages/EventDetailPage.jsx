@@ -143,6 +143,7 @@ function ShineCard({ children, className = '', style = {}, L }) {
 function GalleryTab({ event, photos, setPhotos, canUpload, canReorder, isPrivileged, onGalleryToggle, L }) {
   const [lightbox,          setLightbox]          = useState(null)
   const [uploading,         setUploading]         = useState(false)
+  const [uploadProgress,    setUploadProgress]    = useState({ current: 0, total: 0 })
   const [files,             setFiles]             = useState([])
   const [previews,          setPreviews]          = useState([])
   const [msg,               setMsg]               = useState('')
@@ -164,11 +165,12 @@ function GalleryTab({ event, photos, setPhotos, canUpload, canReorder, isPrivile
   const uploadPhotos = async (e) => {
     e.preventDefault()
     if (!files.length) return
-    setUploading(true); setMsg('')
+    setUploading(true); setMsg(''); setUploadProgress({ current: 0, total: files.length })
     let uploaded = 0
     try {
-      for (const file of files) {
-        const { key, publicUrl } = await uploadFileToS3(file, 'event-gallery')
+      for (let i = 0; i < files.length; i++) {
+        setUploadProgress({ current: i + 1, total: files.length })
+        const { key, publicUrl } = await uploadFileToS3(files[i], 'event-gallery')
         const { photo } = await galleryApi.addPhoto({
           imageUrl: publicUrl, s3Key: key,
           event: event._id, type: 'event',
@@ -179,7 +181,7 @@ function GalleryTab({ event, photos, setPhotos, canUpload, canReorder, isPrivile
       setFiles([]); setPreviews([])
       setMsg(`✓ ${uploaded} photo${uploaded > 1 ? 's' : ''} uploaded!`)
     } catch (err) { setMsg(err.message) }
-    finally { setUploading(false) }
+    finally { setUploading(false); setUploadProgress({ current: 0, total: 0 }) }
   }
 
   const [dragIdx,       setDragIdx]       = useState(null)
@@ -273,6 +275,18 @@ function GalleryTab({ event, photos, setPhotos, canUpload, canReorder, isPrivile
               </label>
             )}
             {msg && <p className={`font-inter text-xs ${msg.startsWith('✓')?'text-green-400':'text-red-400'}`}>{msg}</p>}
+            {uploading && (
+              <div className="flex items-center gap-2.5">
+                <div className="w-3.5 h-3.5 border-2 border-red-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                <span className="font-inter text-xs text-gray-400">
+                  Uploading {uploadProgress.current} of {uploadProgress.total}…
+                </span>
+                <div className="flex-1 h-1 bg-white/8 rounded-full overflow-hidden">
+                  <div className="h-full bg-red-500 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress.total ? Math.round(uploadProgress.current / uploadProgress.total * 100) : 0}%` }} />
+                </div>
+              </div>
+            )}
             <GlassButton type="submit" variant="red" disabled={uploading || !files.length}
               className="w-full font-inter text-sm" style={{ borderRadius:'12px', minHeight:'42px' }}>
               {uploading ? `Uploading…` : `Upload ${files.length > 0 ? `${files.length} Photo${files.length>1?'s':''}` : 'Photos'}`}
@@ -376,9 +390,29 @@ export default function EventDetailPage() {
   }, [id])
 
   if (loading) return (
-    <PageLayout><div className="min-h-screen flex items-center justify-center">
-      <p className="font-inter text-sm text-gray-500 animate-pulse">Loading event…</p>
-    </div></PageLayout>
+    <PageLayout title={null}>
+      <div className={`min-h-screen ${L ? 'bg-gray-50' : 'bg-[#060608]'}`}>
+        <div className="relative overflow-hidden" style={{ minHeight:'clamp(110px,20vw,200px)', background:'#060814' }}>
+          <div className="px-4 sm:px-8 pt-4 pb-4 max-w-5xl mx-auto flex items-start gap-3 sm:gap-4">
+            <div className="skeleton-shimmer rounded-xl shrink-0" style={{ width:'clamp(72px,10vw,88px)', height:'clamp(72px,10vw,88px)' }} />
+            <div className="flex-1 space-y-2 pt-1">
+              <div className="skeleton-shimmer rounded-full" style={{ width:60, height:18 }} />
+              <div className="skeleton-shimmer rounded-lg" style={{ width:'52%', height:28 }} />
+              <div className="skeleton-shimmer rounded" style={{ width:'30%', height:13 }} />
+            </div>
+          </div>
+        </div>
+        <div className={`border-b ${L ? 'border-black/5 bg-white' : 'border-white/5 bg-[#060608]'}`}>
+          <div className="max-w-5xl mx-auto px-4 sm:px-8 flex gap-6 py-3.5">
+            {[58, 52, 68].map((w, i) => <div key={i} className="skeleton-shimmer rounded" style={{ width:w, height:13 }} />)}
+          </div>
+        </div>
+        <div className="max-w-5xl mx-auto px-4 sm:px-8 py-6 space-y-4">
+          <div className="skeleton-shimmer rounded-2xl" style={{ height:190 }} />
+          <div className="skeleton-shimmer rounded-2xl" style={{ height:130 }} />
+        </div>
+      </div>
+    </PageLayout>
   )
   if (!event) return (
     <PageLayout><div className="min-h-screen flex items-center justify-center">
@@ -466,9 +500,9 @@ export default function EventDetailPage() {
             <div className="flex items-center gap-4 sm:gap-5">
               {/* Logo */}
               {event.logoUrl && (
-                <div className="shrink-0 rounded-xl overflow-hidden shadow-xl border border-white/10"
+                <div className="relative shrink-0 rounded-xl overflow-hidden shadow-xl border border-white/10"
                   style={{ width:'clamp(52px,9vw,80px)', height:'clamp(52px,9vw,80px)' }}>
-                  <img src={event.logoUrl} alt={event.name} className="w-full h-full object-cover" />
+                  <ProgressiveImage src={event.logoUrl} alt={event.name} className="absolute inset-0 w-full h-full object-cover" />
                 </div>
               )}
               {/* Info — takes all remaining space */}

@@ -10,6 +10,7 @@ import ConfirmDialog from '../components/ConfirmDialog.jsx'
 import { useTheme, useAuth } from '../App.jsx'
 import { useData }        from '../hooks/useData.js'
 import { isCurrentSession, getItemSession, getPrimaryItemDate, currentSession } from '../utils/yearCalc.js'
+import { SkeletonCardGrid } from '../components/Skeleton.jsx'
 
 const statusCfg = {
   ongoing:  { label:'Ongoing',  badge:'bg-emerald-900/60 text-emerald-300 border-emerald-700/50',   glow:'rgba(16,185,129,0.14)',  stripe:'via-emerald-500' },
@@ -153,6 +154,7 @@ function ActGalleryTab({ act, canUpload, canReorder, isPrivileged, onGalleryTogg
   const [photos, setPhotos]       = useState([...(act.gallery||[])].sort((a,b)=>(a.order||0)-(b.order||0)))
   const [lightbox, setLightbox]   = useState(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 })
   const [files, setFiles]         = useState([])
   const [previews, setPreviews]   = useState([])
   const [msg, setMsg]             = useState('')
@@ -170,11 +172,12 @@ function ActGalleryTab({ act, canUpload, canReorder, isPrivileged, onGalleryTogg
   const uploadPhotos = async (e) => {
     e.preventDefault()
     if (!files.length) return
-    setUploading(true); setMsg('')
+    setUploading(true); setMsg(''); setUploadProgress({ current: 0, total: files.length })
     let uploaded = 0
     try {
-      for (const file of files) {
-        const { key, publicUrl } = await uploadFileToS3(file, 'activities')
+      for (let i = 0; i < files.length; i++) {
+        setUploadProgress({ current: i + 1, total: files.length })
+        const { key, publicUrl } = await uploadFileToS3(files[i], 'activities')
         const d = await activitiesApi.addGalleryPhoto(act._id, { imageUrl: publicUrl, s3Key: key })
         const newPhoto = d.activity?.gallery?.slice(-1)[0]
         if (newPhoto) setPhotos(p => [...p, newPhoto])
@@ -183,7 +186,7 @@ function ActGalleryTab({ act, canUpload, canReorder, isPrivileged, onGalleryTogg
       setFiles([]); setPreviews([])
       setMsg('Uploaded ' + uploaded + ' photo' + (uploaded>1?'s':'') + '!')
     } catch (err) { setMsg(err.message) }
-    finally { setUploading(false) }
+    finally { setUploading(false); setUploadProgress({ current: 0, total: 0 }) }
   }
 
   const handleDragStart = (i) => setDragIdx(i)
@@ -263,6 +266,18 @@ function ActGalleryTab({ act, canUpload, canReorder, isPrivileged, onGalleryTogg
               </label>
             )}
             {msg && <p className={'font-inter text-xs ' + (msg.startsWith('Upload')?'text-green-400':'text-red-400')}>{msg}</p>}
+            {uploading && (
+              <div className="flex items-center gap-2.5">
+                <div className="w-3.5 h-3.5 border-2 border-red-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                <span className="font-inter text-xs text-gray-400">
+                  Uploading {uploadProgress.current} of {uploadProgress.total}…
+                </span>
+                <div className="flex-1 h-1 bg-white/8 rounded-full overflow-hidden">
+                  <div className="h-full bg-red-500 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress.total ? Math.round(uploadProgress.current / uploadProgress.total * 100) : 0}%` }} />
+                </div>
+              </div>
+            )}
             <GlassButton type="submit" variant="red" disabled={uploading || !files.length}
               className="w-full font-inter text-sm" style={{ borderRadius:'12px', minHeight:'42px' }}>
               {uploading ? 'Uploading...' : 'Upload ' + (files.length > 0 ? files.length + ' Photo' + (files.length>1?'s':'') : 'Photos')}
@@ -353,9 +368,29 @@ function ActivityDetailPage({ id }) {
   }, [activeTab, id])
 
   if (loading) return (
-    <PageLayout><div className="min-h-screen flex items-center justify-center">
-      <p className="font-inter text-sm text-gray-500 animate-pulse">Loading activity...</p>
-    </div></PageLayout>
+    <PageLayout title={null}>
+      <div className={`min-h-screen ${L ? 'bg-gray-50' : 'bg-[#060608]'}`}>
+        <div className="relative overflow-hidden" style={{ minHeight:'clamp(100px,18vw,190px)', background:'#060814' }}>
+          <div className="px-4 sm:px-8 pt-4 pb-4 max-w-5xl mx-auto flex items-start gap-3 sm:gap-4">
+            <div className="skeleton-shimmer rounded-xl shrink-0" style={{ width:'clamp(64px,9vw,80px)', height:'clamp(64px,9vw,80px)' }} />
+            <div className="flex-1 space-y-2 pt-1">
+              <div className="skeleton-shimmer rounded-full" style={{ width:60, height:18 }} />
+              <div className="skeleton-shimmer rounded-lg" style={{ width:'55%', height:26 }} />
+              <div className="skeleton-shimmer rounded" style={{ width:'35%', height:13 }} />
+            </div>
+          </div>
+        </div>
+        <div className={`border-b ${L ? 'border-black/5 bg-white' : 'border-white/5 bg-[#060608]'}`}>
+          <div className="max-w-5xl mx-auto px-4 sm:px-8 flex gap-6 py-3.5">
+            {[58, 48, 62].map((w, i) => <div key={i} className="skeleton-shimmer rounded" style={{ width:w, height:13 }} />)}
+          </div>
+        </div>
+        <div className="max-w-5xl mx-auto px-4 sm:px-8 py-6 space-y-4">
+          <div className="skeleton-shimmer rounded-2xl" style={{ height:180 }} />
+          <div className="skeleton-shimmer rounded-2xl" style={{ height:110 }} />
+        </div>
+      </div>
+    </PageLayout>
   )
   if (!act) return (
     <PageLayout><div className="min-h-screen flex items-center justify-center">
@@ -420,8 +455,8 @@ function ActivityDetailPage({ id }) {
             style={{ opacity:heroIn?1:0, transform:heroIn?'none':'translateY(8px)', transition:'opacity 0.4s ease 0.1s,transform 0.45s ease 0.1s' }}>
             <div className="flex items-start gap-2.5 sm:gap-4">
               {act.bannerUrl && (
-                <div className="shrink-0 self-center rounded-md sm:rounded-xl overflow-hidden border border-white/20 shadow-lg" style={{ width:'clamp(64px,9vw,80px)', height:'clamp(64px,9vw,80px)' }}>
-                  <img src={act.bannerUrl} alt={act.name} className="w-full h-full object-cover" />
+                <div className="relative shrink-0 self-center rounded-md sm:rounded-xl overflow-hidden border border-white/20 shadow-lg" style={{ width:'clamp(64px,9vw,80px)', height:'clamp(64px,9vw,80px)' }}>
+                  <ProgressiveImage src={act.bannerUrl} alt={act.name} className="absolute inset-0 w-full h-full object-cover" />
                 </div>
               )}
               <div className="min-w-0 flex-1">
@@ -678,7 +713,7 @@ function ActivityCard({ act, L, delay = 0, userRole = null }) {
       <div className={`h-[1.5px] w-full bg-gradient-to-r from-transparent ${cfg.stripe} to-transparent shrink-0 relative z-10`} />
       <div className="relative overflow-hidden shrink-0" style={{ height:'clamp(95px,15vw,175px)' }}>
         {act.bannerUrl
-          ? <img src={act.bannerUrl} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.07]" />
+          ? <ProgressiveImage src={act.bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.07]" />
           : <div className="w-full h-full flex items-center justify-center" style={{ background: L ? 'linear-gradient(135deg,#e2e6f0,#d8dde8)' : 'linear-gradient(135deg,#0d0720,#0a0a1e)' }}>
               <span className="font-clash font-black" style={{ fontSize:'clamp(60px,8vw,100px)', color: L ? 'rgba(163,177,200,0.22)' : 'rgba(255,255,255,0.05)' }}>{act.name[0]}</span>
             </div>}
@@ -730,7 +765,7 @@ function PastActivityCard({ act, L, delay = 0 }) {
       onMouseLeave={e=>{ e.currentTarget.style.transform=''; e.currentTarget.style.filter='grayscale(20%) brightness(0.82)' }}>
       <div className="relative overflow-hidden" style={{ height:'clamp(90px,13vw,160px)' }}>
         {act.bannerUrl
-          ? <img src={act.bannerUrl} alt="" className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-600" />
+          ? <ProgressiveImage src={act.bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-600" />
           : <div className="w-full h-full flex items-center justify-center" style={{ background: L ? 'linear-gradient(135deg,#e2e6f0,#d8dde8)' : 'linear-gradient(135deg,#111,#1a1a2e)' }}>
               <span className="font-clash text-6xl font-black" style={{ color: L ? 'rgba(163,177,200,0.18)' : 'rgba(255,255,255,0.06)' }}>{act.name[0]}</span>
             </div>}
@@ -828,11 +863,11 @@ export default function ActivitiesPage() {
         {/* Header */}
         <div className={`border-b px-5 sm:px-8 pt-4 sm:pt-5 pb-2 sm:pb-6 ${L?'bg-white border-black/5':'bg-[#08080c] border-white/5'}`}>
           <div className="max-w-6xl mx-auto text-center">
-            <h1 className={`font-inter font-bold leading-none ${L?'text-gray-900':'text-white'}`}
+            <h1 className={`pl-heading-in font-inter font-bold leading-none ${L?'text-gray-900':'text-white'}`}
               style={{ fontSize:'clamp(1.75rem,5.5vw,3.6rem)' }}>
               Activities
             </h1>
-            <p className={`font-inter text-xs sm:text-sm mt-1 sm:mt-5 ${L?'text-gray-400':'text-gray-500'}`}>
+            <p className={`pl-subtitle-in font-inter text-xs sm:text-sm mt-1 sm:mt-5 ${L?'text-gray-400':'text-gray-500'}`}>
               Every event. Every story. Captured through our lens.
             </p>
             {active.length > 0 && (
@@ -885,7 +920,7 @@ export default function ActivitiesPage() {
             })}
           </div>
 
-          {loading && <p className={`text-center py-12 font-inter text-sm animate-pulse ${L?'text-gray-400':'text-gray-600'}`}>Loading activities…</p>}
+          {loading && <SkeletonCardGrid n={6} ratio="16/9" className="pl-section-in" />}
 
           {!loading && isPastSession && (
             <div className="mb-4">
@@ -904,7 +939,7 @@ export default function ActivitiesPage() {
           )}
 
           {filter === 'all' && !loading && (
-            <>
+            <div className="pl-section-in space-y-2 sm:space-y-4">
               {live.length > 0 && (
                 <section>
                   <div className="flex items-center gap-2 mb-2.5">
@@ -926,11 +961,11 @@ export default function ActivitiesPage() {
                   </div>
                 </section>
               )}
-            </>
+            </div>
           )}
 
           {filter !== 'all' && !loading && displayed.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="pl-section-in grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {displayed.map((a,i) => filter==='past'
                 ? <PastActivityCard key={a._id} act={a} L={L} delay={i*70}/>
                 : <ActivityCard key={a._id} act={a} L={L} delay={i*70} userRole={getUserRole(a)}/>

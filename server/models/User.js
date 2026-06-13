@@ -50,6 +50,19 @@ const userSchema = new mongoose.Schema({
   profilePhotoS3Key:  { type: String },
   instagramHandle:    { type: String, trim: true },
 
+  // ── Cover photo ────────────────────────────────────────────────────────────
+  coverPhoto:           { type: String },   // S3 URL
+  coverPhotoS3Key:      { type: String },
+  coverPhotoPosition:   { type: String, default: '50%' }, // vertical object-position %
+
+  // ── Personal gallery ───────────────────────────────────────────────────────
+  gallery: [{
+    url:      { type: String, required: true },
+    s3Key:    { type: String, required: true },
+    caption:  { type: String, maxlength: 200, default: '' },
+    order:    { type: Number, default: 0 },
+  }],
+
   // ── Optional device info ───────────────────────────────────────────────────
   devices: [deviceSchema],
 

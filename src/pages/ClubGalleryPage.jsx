@@ -6,6 +6,7 @@ import PhotographerSearch    from '../components/PhotographerSearch.jsx'
 import ProgressiveImage      from '../components/ProgressiveImage.jsx'
 import { galleryApi, uploadFileToS3 } from '../api/api.js'
 import { useTheme, useAuth } from '../App.jsx'
+import { SkeletonMasonryGrid } from '../components/Skeleton.jsx'
 
 // ── Upload/Edit dialog ────────────────────────────────────────────────────────
 function PhotoDialog({ mode, photo, sections, onClose, onDone, L }) {
@@ -524,7 +525,7 @@ export default function ClubGalleryPage() {
   )
 
   return (
-    <PageLayout title="Club Gallery" subtitle="A curated collection of moments captured by the IEM Photography Club.">
+    <PageLayout title="Club Gallery" subtitle="A curated collection of moments captured by the IEM Photography Club." loading={loading}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-4 pb-16">
 
         {/* Action bar */}
@@ -577,11 +578,7 @@ export default function ClubGalleryPage() {
 
         {/* Masonry grid — all photos together, no section grouping */}
         {loading ? (
-          <div style={{columns:'3 auto',columnGap:3}}>
-            {Array.from({length:9}).map((_,i)=>(
-              <div key={i} className="animate-pulse" style={{marginBottom:3,height:120+i*30,background:L?'#e0e0e4':'#141416'}}/>
-            ))}
-          </div>
+          <SkeletonMasonryGrid n={9} />
         ) : displayed.length===0 ? (
           <div className={`py-24 text-center rounded-3xl border ${L?'border-black/7 bg-white/50':'border-white/7'}`}>
             <p className="text-4xl mb-3">🖼️</p>
@@ -591,7 +588,7 @@ export default function ClubGalleryPage() {
             {canManage&&filterSect==='all'&&<button onClick={()=>setDialog({mode:'upload'})} className="mt-4 font-inter text-sm text-red-400 hover:text-red-300">Upload the first photo →</button>}
           </div>
         ) : (
-          <div style={{columns:'3 auto',columnGap:3,width:'100%'}}>
+          <div className="pl-section-in" style={{columns:'3 auto',columnGap:3,width:'100%'}}>
             {displayed.map((p,i)=><PhotoCell key={p._id} p={p} i={i}/>)}
           </div>
         )}

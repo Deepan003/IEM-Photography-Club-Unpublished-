@@ -6,6 +6,8 @@ import { eventsApi, settingsApi } from '../api/api.js'
 import { useTheme, useAuth } from '../App.jsx'
 import { useData }      from '../hooks/useData.js'
 import { isCurrentSession, getItemSession, getPrimaryItemDate, currentSession } from '../utils/yearCalc.js'
+import ProgressiveImage from '../components/ProgressiveImage.jsx'
+import { SkeletonCardGrid } from '../components/Skeleton.jsx'
 
 const STATUS_COLOR = {
   upcoming: { text:'text-yellow-400', bg:'bg-yellow-900/25 border-yellow-700/40' },
@@ -44,8 +46,8 @@ function EventCard({ event, userId, userRole, L, dim = false }) {
       {/* Banner */}
       <div className="relative overflow-hidden" style={{ height:'clamp(140px,18vw,200px)' }}>
         {event.logoUrl
-          ? <img src={event.logoUrl} alt={event.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-600" />
+          ? <ProgressiveImage src={event.logoUrl} alt={event.name}
+              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
           : <div className="w-full h-full flex items-center justify-center"
               style={{ background:'linear-gradient(135deg,#1a1a2e,#16213e)' }}>
               <span className="font-clash text-6xl font-bold text-white opacity-15">{event.name.charAt(0)}</span>
@@ -206,7 +208,7 @@ export default function EventsPage() {
         )}
 
         {loading ? (
-          <p className={`py-16 text-center font-inter text-sm animate-pulse ${L ? 'text-gray-400' : 'text-gray-600'}`}>Loading events…</p>
+          <SkeletonCardGrid n={6} ratio="16/9" />
         ) : filtered.length === 0 ? (
           <p className={`py-16 text-center font-inter text-sm ${L ? 'text-gray-400' : 'text-gray-600'}`}>
             {filter !== 'all' ? `No ${filter} events in ${sessionFilter}.` : `No events in ${sessionFilter}.`}

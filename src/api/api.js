@@ -101,18 +101,38 @@ export const eventsApi = {
 
 // ── Members ───────────────────────────────────────────────────────────────────
 export const membersApi = {
-  list:         ()     => get('/api/members'),
-  listPassout:  ()     => get('/api/members/passout'),
-  get:          (id)   => get(`/api/members/${id}`),
-  updateMe:     (body) => patch('/api/members/me/profile', body),
+  list:              ()               => get('/api/members'),
+  listPassout:       ()               => get('/api/members/passout'),
+  get:               (id)             => get(`/api/members/${id}`),
+  updateMe:          (body)           => patch('/api/members/me/profile', body),
+  adminDeletePhoto:  (userId, photoId) => del(`/api/members/${userId}/gallery/${photoId}`),
+  adminDeleteCover:  (userId)          => del(`/api/members/${userId}/cover`),
+  adminSetCoverPos:  (userId, pos)     => patch(`/api/members/${userId}/cover-position`, { coverPhotoPosition: pos }),
+}
+
+// ── User Gallery ──────────────────────────────────────────────────────────────
+export const userGalleryApi = {
+  getMyGallery:   ()           => authGet('/api/members/me/gallery'),
+  addPhotos:      (body)       => post('/api/members/me/gallery', body),
+  deletePhoto:    (id)         => del(`/api/members/me/gallery/${id}`),
+  reorder:        (orderedIds) => put('/api/members/me/gallery/reorder', { orderedIds }),
+  setCoverPhoto:  (body)       => patch('/api/members/me/cover', body),
+  setCoverPos:    (pos)        => patch('/api/members/me/cover-position', { coverPhotoPosition: pos }),
 }
 
 // ── Core Committee ────────────────────────────────────────────────────────────
 export const coreApi = {
-  list:   ()       => get('/api/core'),
-  create: (body)   => post('/api/core', body),
-  update: (id, b)  => put(`/api/core/${id}`, b),
-  delete: (id)     => del(`/api/core/${id}`),
+  list:              ()           => get('/api/core'),
+  get:               (id)         => get(`/api/core/${id}`),
+  create:            (body)       => post('/api/core', body),
+  update:            (id, b)      => put(`/api/core/${id}`, b),
+  delete:            (id)         => del(`/api/core/${id}`),
+  setCover:          (id, body)   => patch(`/api/core/${id}/cover`, body),
+  deleteCover:       (id)         => del(`/api/core/${id}/cover`),
+  setCoverPos:       (id, pos)    => patch(`/api/core/${id}/cover-position`, { coverPhotoPosition: pos }),
+  addGalleryPhotos:  (id, body)   => post(`/api/core/${id}/gallery`, body),
+  deleteGalleryPhoto:(id, pid)    => del(`/api/core/${id}/gallery/${pid}`),
+  reorderGallery:    (id, ids)    => patch(`/api/core/${id}/gallery/reorder`, { orderedIds: ids }),
 }
 
 // ── Social Links ──────────────────────────────────────────────────────────────
@@ -174,6 +194,7 @@ export const settingsApi = {
   setSectionVisible: (sectionId, v)  => patch('/api/settings/sections', { sectionId, visible: v }),
   coordPermissions:  ()              => authGet('/api/settings/coord-permissions'),
   getContent:        ()              => get('/api/settings/content'),
+  getGallerySettings:()              => authGet('/api/settings/gallery'),
 }
 
 // ── Posts (member feed) ───────────────────────────────────────────────────────

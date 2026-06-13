@@ -45,6 +45,8 @@ const UserEventsPage    = lazy(() => import('./pages/UserEventsPage'))
 const AlumniPage        = lazy(() => import('./pages/AlumniPage'))
 const AdminDashboard       = lazy(() => import('./pages/admin/AdminDashboard'))
 const CoordinatorDashboard = lazy(() => import('./pages/CoordinatorDashboard'))
+const UserProfilePage      = lazy(() => import('./pages/UserProfilePage'))
+const CoreMemberProfilePage = lazy(() => import('./pages/CoreMemberProfilePage'))
 
 // ── Theme context ─────────────────────────────────────────────────────────────
 export const ThemeCtx = createContext({ theme: 'dark', toggleTheme: () => {} })
@@ -194,6 +196,8 @@ export default function App() {
               <Route path="/events"        element={<EventsPage />} />
               <Route path="/events/:id"    element={<EventDetailPage />} />
               <Route path="/members"       element={<MembersPage />} />
+              <Route path="/members/:id"     element={<UserProfilePage />} />
+              <Route path="/core-member/:id" element={<CoreMemberProfilePage />} />
               <Route path="/alumni"        element={<AlumniPage />} />
               <Route path="/core"          element={<CoreCommitteePage />} />
               <Route path="/join"          element={<Navigate to="/#join" replace />} />

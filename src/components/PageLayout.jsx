@@ -21,7 +21,7 @@ function getParentRoute(pathname, userRole) {
   return '/'
 }
 
-export default function PageLayout({ children, title, subtitle }) {
+export default function PageLayout({ children, title, subtitle, loading = false }) {
   const location               = useLocation()
   const { pathname }           = location
   const navigate               = useNavigate()
@@ -107,7 +107,18 @@ export default function PageLayout({ children, title, subtitle }) {
       </header>
 
       {/* Page title banner */}
-      {(title || subtitle) && (
+      {(title || subtitle) && loading && (
+        <div className={`pt-[96px] sm:pt-[112px] pb-6 sm:pb-10 px-4 sm:px-6 text-center border-b ${L ? 'border-black/5' : 'border-white/5'}`}>
+          <div className="skeleton-shimmer rounded-2xl mx-auto" style={{ height: 52, width: 'clamp(140px,28vw,280px)' }} />
+          {subtitle !== undefined && (
+            <div className="mt-6 sm:mt-7 space-y-2 max-w-sm mx-auto">
+              <div className="skeleton-shimmer rounded-lg mx-auto" style={{ height: 11, width: '80%' }} />
+              <div className="skeleton-shimmer rounded-lg mx-auto" style={{ height: 11, width: '55%' }} />
+            </div>
+          )}
+        </div>
+      )}
+      {(title || subtitle) && !loading && (
         <div className={`pt-[96px] sm:pt-[112px] pb-6 sm:pb-10 px-4 sm:px-6 text-center border-b ${L ? 'border-black/5' : 'border-white/5'}`}>
           {title && (() => {
             const len = title.length
@@ -117,14 +128,14 @@ export default function PageLayout({ children, title, subtitle }) {
               ? 'clamp(2rem, 9vw, 5rem)'
               : 'clamp(2.5rem, 11vw, 5.5rem)'
             return (
-              <h1 className={`font-breathing italic leading-[1.05] font-semibold ${L ? 'text-gray-900' : 'text-white'}`}
+              <h1 className={`pl-heading-in font-breathing italic leading-[1.05] font-semibold ${L ? 'text-gray-900' : 'text-white'}`}
                 style={{ fontSize }}>
                 {title}
               </h1>
             )
           })()}
           {subtitle && (
-            <p className={`font-inter text-sm max-w-2xl mx-auto leading-relaxed mt-6 sm:mt-7 ${L ? 'text-gray-500' : 'text-gray-400'}`}>
+            <p className={`pl-subtitle-in font-inter text-sm max-w-2xl mx-auto leading-relaxed mt-6 sm:mt-7 ${L ? 'text-gray-500' : 'text-gray-400'}`}>
               {subtitle}
             </p>
           )}

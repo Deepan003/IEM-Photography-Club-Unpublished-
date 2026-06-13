@@ -53,6 +53,9 @@ const DEFAULTS = {
   'coordinator.canUploadGallery':         { value: true,  label: 'Upload to Club Gallery' },
   'coordinator.canCreatePostcardSection': { value: false, label: 'Create Postcard Sections' },
   'coordinator.canSendAnnouncements':     { value: false, label: 'Send Global Announcements' },
+  // Member gallery controls
+  'member.gallery.enabled':   { value: true, label: 'Enable My Gallery for Members' },
+  'member.gallery.maxPhotos': { value: 0,    label: 'Maximum Photos per Member (0 = No Limit)' },
 }
 
 // GET public subtitle / join content (no auth required — used by all visitors)
@@ -70,11 +73,26 @@ router.get('/coord-permissions', requireAuth, async (req, res) => {
   try {
     const result = {}
     for (const [key, def] of Object.entries(DEFAULTS)) {
+      if (!key.startsWith('coordinator.')) continue
       const found = await AppSettings.findOne({ key })
       const shortKey = key.replace('coordinator.', '')
       result[shortKey] = found ? found.value : def.value
     }
     res.json({ permissions: result })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// GET gallery settings (authenticated members need to know their limits)
+router.get('/gallery', requireAuth, async (req, res) => {
+  try {
+    const keys = ['member.gallery.enabled', 'member.gallery.maxPhotos']
+    const result = {}
+    for (const key of keys) {
+      const found = await AppSettings.findOne({ key })
+      const shortKey = key.replace('member.gallery.', '')
+      result[shortKey] = found != null ? found.value : DEFAULTS[key].value
+    }
+    res.json({ gallery: result })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 

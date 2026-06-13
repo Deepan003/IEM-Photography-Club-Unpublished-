@@ -618,13 +618,11 @@ export default function AuthModal({ onClose, onAuthSuccess }) {
           </div>
         </div>
 
-        {/* Footer toggle */}
-        {view !== 'forgot' && (
+        {/* Footer toggle — only on login view; register has its own Back to Login link */}
+        {view === 'login' && (
           <div className="px-5 sm:px-6 pt-4 border-t border-white/5 text-center shrink-0" style={{ paddingBottom: 'max(28px, env(safe-area-inset-bottom, 28px))' }}>
             <p className="font-inter text-sm text-gray-500">
-              {view === 'login'
-                ? <>New here? <button onClick={() => setView('register')} className="text-white hover:text-red-400 transition-colors font-medium ml-1">Create account</button></>
-                : <>Have an account? <button onClick={() => setView('login')} className="text-white hover:text-red-400 transition-colors font-medium ml-1">Log in</button></>}
+              New here? <button onClick={() => setView('register')} className="text-white hover:text-red-400 transition-colors font-medium ml-1">Create account</button>
             </p>
           </div>
         )}

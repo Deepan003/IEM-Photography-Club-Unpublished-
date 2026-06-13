@@ -1,10 +1,11 @@
 import { Router }    from 'express'
 import User          from '../models/User.js'
 import CoreMember    from '../models/CoreMember.js'
-import { requireAuth } from '../middleware/auth.js'
+import { requireAuth, requireRole } from '../middleware/auth.js'
 import { deleteObject } from '../utils/s3.js'
 
 const router = Router()
+const adminOrCore = [requireAuth, requireRole('admin', 'core')]
 
 // Academic session base: June 1 starts new session
 function sessionBase() {
@@ -60,13 +61,134 @@ router.get('/passout', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
-// Public: get one member's public profile
+// ── Gallery routes (/me/*) — must be defined before GET /:id ─────────────────
+
+// Authenticated: get own gallery
+router.get('/me/gallery', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('gallery coverPhoto coverPhotoS3Key')
+    res.json({ gallery: (user.gallery || []).sort((a, b) => a.order - b.order), coverPhoto: user.coverPhoto || null })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Authenticated: add photos to own gallery
+router.post('/me/gallery', requireAuth, async (req, res) => {
+  try {
+    const { photos } = req.body // [{ url, s3Key, caption? }]
+    if (!Array.isArray(photos) || !photos.length) return res.status(400).json({ error: 'photos required' })
+    const user = await User.findById(req.user._id).select('gallery')
+    const startOrder = (user.gallery || []).reduce((max, p) => Math.max(max, p.order), -1) + 1
+    const toAdd = photos.slice(0, 50).map((p, i) => ({
+      url:     p.url,
+      s3Key:   p.s3Key,
+      caption: p.caption || '',
+      order:   startOrder + i,
+    }))
+    user.gallery.push(...toAdd)
+    await user.save()
+    res.json({ gallery: user.gallery.sort((a, b) => a.order - b.order) })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Authenticated: delete one gallery photo
+router.delete('/me/gallery/:photoId', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('gallery')
+    const photo = user.gallery.id(req.params.photoId)
+    if (!photo) return res.status(404).json({ error: 'Photo not found' })
+    const s3Key = photo.s3Key
+    user.gallery.pull(req.params.photoId)
+    await user.save()
+    if (s3Key) await deleteObject(s3Key).catch(() => {})
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Authenticated: reorder gallery
+router.put('/me/gallery/reorder', requireAuth, async (req, res) => {
+  try {
+    const { orderedIds } = req.body
+    if (!Array.isArray(orderedIds)) return res.status(400).json({ error: 'orderedIds required' })
+    const user = await User.findById(req.user._id).select('gallery')
+    orderedIds.forEach((id, i) => {
+      const photo = user.gallery.id(id)
+      if (photo) photo.order = i
+    })
+    await user.save()
+    res.json({ gallery: user.gallery.sort((a, b) => a.order - b.order) })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Authenticated: set cover photo
+router.patch('/me/cover', requireAuth, async (req, res) => {
+  try {
+    const { coverPhoto, coverPhotoS3Key } = req.body
+    const old = await User.findById(req.user._id).select('coverPhotoS3Key')
+    if (old?.coverPhotoS3Key && old.coverPhotoS3Key !== coverPhotoS3Key) {
+      await deleteObject(old.coverPhotoS3Key).catch(() => {})
+    }
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { coverPhoto, coverPhotoS3Key },
+      { new: true }
+    ).select('coverPhoto coverPhotoS3Key')
+    res.json({ user })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// Authenticated: update own cover photo position
+router.patch('/me/cover-position', requireAuth, async (req, res) => {
+  try {
+    const { coverPhotoPosition } = req.body
+    await User.findByIdAndUpdate(req.user._id, { coverPhotoPosition })
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── Public member profile ─────────────────────────────────────────────────────
+
+// Public: get one member's public profile (includes gallery + coverPhoto)
 router.get('/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
-      .select('name role profilePhoto bio department enrollmentNumber startYear endYear createdAt')
-    if (!user || user.status !== 'approved') return res.status(404).json({ error: 'Not found.' })
-    res.json({ user })
+      .select('name role profilePhoto bio department enrollmentNumber startYear endYear createdAt coverPhoto coverPhotoPosition gallery instagramHandle email status')
+    if (!user || !['approved', 'passout'].includes(user.status)) return res.status(404).json({ error: 'Not found.' })
+    // Sort gallery by order before sending
+    const plain = user.toObject()
+    plain.gallery = (plain.gallery || []).sort((a, b) => a.order - b.order)
+    res.json({ user: plain })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// ── Admin: manage any user's gallery / cover ──────────────────────────────────
+router.delete('/:id/gallery/:photoId', adminOrCore, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('gallery')
+    if (!user) return res.status(404).json({ error: 'User not found.' })
+    const photo = user.gallery.id(req.params.photoId)
+    if (!photo) return res.status(404).json({ error: 'Photo not found.' })
+    if (photo.s3Key) deleteObject(photo.s3Key).catch(() => {})
+    user.gallery.pull(req.params.photoId)
+    await user.save()
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+router.patch('/:id/cover-position', adminOrCore, async (req, res) => {
+  try {
+    const { coverPhotoPosition } = req.body
+    await User.findByIdAndUpdate(req.params.id, { coverPhotoPosition })
+    res.json({ ok: true })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+router.delete('/:id/cover', adminOrCore, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('coverPhoto coverPhotoS3Key')
+    if (!user) return res.status(404).json({ error: 'User not found.' })
+    if (user.coverPhotoS3Key) deleteObject(user.coverPhotoS3Key).catch(() => {})
+    await User.findByIdAndUpdate(req.params.id, { $unset: { coverPhoto: '', coverPhotoS3Key: '' } })
+    res.json({ ok: true })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 

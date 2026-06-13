@@ -20,6 +20,7 @@ import { clearToken }          from '../../api/auth.js'
 import GlassButton             from '../../components/GlassButton.jsx'
 import ImageUpload             from '../../components/ImageUpload.jsx'
 import ProgressiveImage        from '../../components/ProgressiveImage.jsx'
+import Lightbox               from '../../components/Lightbox.jsx'
 import ConfirmDialog           from '../../components/ConfirmDialog.jsx'
 import PhotographerSearch      from '../../components/PhotographerSearch.jsx'
 import { ProfileTab as MemberProfileTab } from '../../components/MemberDashboard.jsx'
@@ -55,6 +56,27 @@ const STATUS_LABEL = {
 function Badge({ style, children }) {
   return <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-inter uppercase tracking-wider ${style}`}>{children}</span>
 }
+
+// Module-level dirty flag — only one admin form is ever active at a time
+let _adminDirty = false
+
+// Hook: registers dirty state globally + blocks browser refresh when dirty
+function useUnsavedGuard(isDirty) {
+  useEffect(() => {
+    _adminDirty = isDirty
+    return () => { _adminDirty = false }
+  }, [isDirty])
+
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = e => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
+}
+
+// Stub — tab-switch warning is now handled by AdminDashboard's ConfirmDialog
+function RouteBlockDialog() { return null }
 
 // Reusable coordinator permission toggle banner shown at top of each tab
 function CoordToggle({ label, value, onChange, L }) {
@@ -1024,7 +1046,19 @@ function UsersTab({ currentUserRole, L }) {
                       <td className="px-4 py-3"><Badge style={ROLE_BADGE[u.role] || ROLE_BADGE.photographer}>{u.role}</Badge></td>
                       <td className="px-4 py-3"><Badge style={STATUS_BADGE[u.status] || ''}>{STATUS_LABEL[u.status] || u.status}</Badge></td>
                       <td className="px-4 py-3">
-                        <span className="font-inter text-xs text-gray-500 hover:text-white transition-colors">View →</span>
+                        <div className="flex items-center gap-2.5" onClick={e => e.stopPropagation()}>
+                          {!isAdminRow && (
+                            <Link to={`/members/${u._id}`}
+                              className="font-inter text-[11px] font-medium px-2.5 py-1 rounded-lg transition-colors"
+                              style={{ background:'rgba(59,130,246,0.12)', color:'#93c5fd', border:'1px solid rgba(59,130,246,0.2)' }}>
+                              See Profile
+                            </Link>
+                          )}
+                          <span className="font-inter text-xs text-gray-500 hover:text-white transition-colors cursor-pointer"
+                            onClick={e => { e.stopPropagation(); setSelectedUser(u) }}>
+                            View →
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -1037,21 +1071,30 @@ function UsersTab({ currentUserRole, L }) {
           <div className="sm:hidden space-y-2">
             {filtered.map(u => {
               const yr = computeAcademicYear(u.startYear, u.endYear)
+              const isAdminRow = u.role === 'admin'
               return (
-                <div key={u._id} onClick={() => setSelectedUser(u)}
-                  className={`flex items-center gap-3 p-3.5 auth-glass rounded-2xl border cursor-pointer ${L ? 'border-black/8' : 'border-white/8'}`}>
-                  <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-800 border border-white/10 flex items-center justify-center shrink-0">
+                <div key={u._id}
+                  className={`flex items-center gap-3 p-3.5 auth-glass rounded-2xl border ${L ? 'border-black/8' : 'border-white/8'}`}>
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-800 border border-white/10 flex items-center justify-center shrink-0 cursor-pointer"
+                    onClick={() => setSelectedUser(u)}>
                     {u.profilePhoto
                       ? <img src={u.profilePhoto} alt="" className="w-full h-full object-cover" />
                       : <span className="font-clash text-sm font-bold text-white">{u.name[0]}</span>}
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedUser(u)}>
                     <p className={`font-inter text-sm font-medium ${L ? 'text-gray-900' : 'text-white'} truncate`}>{u.name}</p>
                     <p className="font-inter text-[10px] text-gray-500 truncate">{dept(u)} · {yr.isPassout ? 'Passout' : yr.label}</p>
                   </div>
-                  <div className="flex flex-col gap-1 items-end">
+                  <div className="flex flex-col gap-1.5 items-end shrink-0">
                     <Badge style={ROLE_BADGE[u.role] || ROLE_BADGE.photographer}>{u.role}</Badge>
                     <Badge style={STATUS_BADGE[u.status] || ''}>{STATUS_LABEL[u.status] || u.status}</Badge>
+                    {!isAdminRow && (
+                      <Link to={`/members/${u._id}`}
+                        className="font-inter text-[9px] font-medium px-2 py-0.5 rounded-lg transition-colors"
+                        style={{ background:'rgba(59,130,246,0.12)', color:'#93c5fd', border:'1px solid rgba(59,130,246,0.2)' }}>
+                        See Profile
+                      </Link>
+                    )}
                   </div>
                 </div>
               )
@@ -1224,7 +1267,9 @@ function PostcardThumb({ card, onDelete, onView }) {
     <div className="relative group rounded-xl overflow-hidden cursor-pointer"
          style={{ background:'#fff', padding:'4px 4px 20px', boxShadow:'0 2px 10px rgba(0,0,0,0.25)' }}>
       {thumb
-        ? <img src={thumb} alt="" className="w-full aspect-[4/5] object-cover rounded-lg" onClick={() => onView?.(card)} />
+        ? <div className="relative w-full aspect-[4/5] overflow-hidden rounded-lg cursor-pointer" onClick={() => onView?.(card)}>
+            <ProgressiveImage src={thumb} className="absolute inset-0 w-full h-full object-cover" />
+          </div>
         : <div className="w-full aspect-[4/5] bg-gray-900 rounded-lg flex items-center justify-center"><svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth={1.4}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
       }
       {imgs.length > 1 && (
@@ -1372,10 +1417,11 @@ function PostcardsTab({ L }) {
         </div>
       )}
       {lightbox && (
-        <div className="fixed inset-0 z-[300] bg-black/97 flex items-center justify-center p-4" onClick={()=>setLightbox(null)}>
-          <img src={lightbox.imageUrl||lightbox.url||''} alt="" className="max-w-3xl w-full max-h-[85vh] object-contain rounded-2xl"/>
-          <button onClick={()=>setLightbox(null)} className="absolute top-6 right-6 text-white/50 hover:text-white font-inter text-xs uppercase tracking-wider">Close</button>
-        </div>
+        <Lightbox
+          photos={[{ url: lightbox.imageUrl || lightbox.url || '' }]}
+          startIndex={0}
+          onClose={() => setLightbox(null)}
+        />
       )}
       <ConfirmDialog open={!!confirm} title={confirm?.type==='section'?`Delete "${confirm?.name}"?`:'Delete Postcard?'}
         message={confirm?.type==='section'
@@ -1434,6 +1480,9 @@ function EventsTab({ currentUser, L }) {
     const poll = setInterval(() => { if (!selected) fetchEvents(true) }, 15000)
     return () => clearInterval(poll)
   }, [fetchEvents, selected])
+
+  const isCreateDirty = creating && !!(newForm.name.trim() || newForm.description.trim() || newForm.venue.trim() || newForm.startDate || newForm.endDate || newForm.eventDates.length > 0)
+  const createBlocker = useUnsavedGuard(isCreateDirty)
 
   const doDelete = async () => {
     if (!deleteConfirm) return
@@ -1761,6 +1810,7 @@ function EventsTab({ currentUser, L }) {
 
       <CreateFAB label="Create Event" isActive={creating} onCreate={() => setCreating(c => !c)} />
       <DownloadingOverlay visible={tabDlBusy} message={tabDlMsg} />
+      <RouteBlockDialog blocker={createBlocker} L={L} />
     </div>
   )
 }
@@ -1802,6 +1852,7 @@ function EventManager({ event: initialEvent, onBack, currentUser, L }) {
   const [orderChanged,      setOrderChanged]      = useState(false)
   const [savingOrder,       setSavingOrder]       = useState(false)
   const [deletePhotoConfirm,setDeletePhotoConfirm]= useState(null)
+  const [photoLightboxIdx,  setPhotoLightboxIdx]  = useState(null)
   const [announce,          setAnnounce]          = useState('')
   const [annSubject,    setAnnSubject]    = useState('')
   const [recipType,     setRecipType]     = useState('all')
@@ -1821,6 +1872,7 @@ function EventManager({ event: initialEvent, onBack, currentUser, L }) {
       ef.status !== (ev.manualStatus ? (ev.status || '') : '') ||
       ef.isOpenToAll !== (ev.isOpenToAll || false)
   }, [editForm, event])
+  const routeBlocker = useUnsavedGuard(isDirty)
 
   const refreshEvent = async () => { const d = await eventsApi.get(event._id); setEvent(d.event) }
 
@@ -2255,6 +2307,7 @@ function EventManager({ event: initialEvent, onBack, currentUser, L }) {
             <div className="flex items-center gap-2">
               {orderChanged&&<GlassButton variant="red" disabled={savingOrder} onClick={savePhotoOrder} className="font-inter text-xs" style={{borderRadius:8,minHeight:28,padding:'0 12px'}}>{savingOrder?'Saving…':'Save Order'}</GlassButton>}
               <label className="glass-btn glass-btn-light inline-flex items-center gap-2 px-4 font-inter text-xs cursor-pointer" style={{borderRadius:'10px',minHeight:'36px'}}>
+                {uploading && <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin shrink-0" />}
                 {uploading?'Uploading…':'+ Upload'}
                 <input type="file" accept="image/*" className="hidden" onChange={e=>uploadPhoto(e.target.files[0])} disabled={uploading}/>
               </label>
@@ -2265,10 +2318,11 @@ function EventManager({ event: initialEvent, onBack, currentUser, L }) {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {photos.map((p,i)=>(
                 <div key={p._id} className={`group relative aspect-square rounded-xl overflow-hidden ${photoDragIdx===i?'opacity-40 ring-2 ring-red-500':''} cursor-grab active:cursor-grabbing`}
-                  draggable onDragStart={()=>handleDragStart(i)} onDragOver={e=>handleDragOver(e,i)} onDragEnd={()=>setPhotoDragIdx(null)}>
+                  draggable onDragStart={()=>handleDragStart(i)} onDragOver={e=>handleDragOver(e,i)} onDragEnd={()=>setPhotoDragIdx(null)}
+                  onClick={()=>setPhotoLightboxIdx(i)}>
                   <ProgressiveImage src={p.imageUrl} className="w-full h-full object-cover"/>
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <button onClick={()=>setDeletePhotoConfirm(p._id)} className="w-7 h-7 rounded-full bg-red-600/80 hover:bg-red-500 text-white flex items-center justify-center text-xs">✕</button>
+                    <button onClick={e=>{e.stopPropagation();setDeletePhotoConfirm(p._id)}} className="w-7 h-7 rounded-full bg-red-600/80 hover:bg-red-500 text-white flex items-center justify-center text-xs">✕</button>
                   </div>
                   <div className="absolute top-1.5 left-1.5 font-inter text-[8px] text-white/60 bg-black/40 rounded px-1">{i+1}</div>
                 </div>
@@ -2304,14 +2358,23 @@ function EventManager({ event: initialEvent, onBack, currentUser, L }) {
         onConfirm={() => { deletePhoto(deletePhotoConfirm); setDeletePhotoConfirm(null) }}
         onCancel={() => setDeletePhotoConfirm(null)}
       />
+      {photoLightboxIdx !== null && (
+        <Lightbox
+          photos={photos.map(p => ({ url: p.imageUrl }))}
+          startIndex={photoLightboxIdx}
+          onClose={() => setPhotoLightboxIdx(null)}
+        />
+      )}
       <ConfirmDialog
         open={backConfirm}
         title="Unsaved Changes"
-        message="You have unsaved changes. Leave without saving?"
-        confirmLabel="Leave"
+        message="You have unsaved changes. Discard them and leave, or go back to save?"
+        confirmLabel="Discard Changes"
+        cancelLabel="Save Changes"
         onConfirm={onBack}
         onCancel={() => setBackConfirm(false)}
       />
+      <RouteBlockDialog blocker={routeBlocker} L={L} />
     </div>
   )
 }
@@ -2381,6 +2444,9 @@ function CompetitionsAdminTab({ currentUser, L }) {
     const poll = setInterval(() => { if (!selected) fetch_(true) }, 15000)
     return () => clearInterval(poll)
   }, [fetch_, selected])
+
+  const isCreateDirty = creating && !!(form.name.trim() || form.description.trim() || form.startDate || form.submissionDeadline || form.details.venue || form.details.rules)
+  const createBlocker = useUnsavedGuard(isCreateDirty)
 
   const create = async () => {
     if (!form.name) return setMsg('Name is required.')
@@ -2720,6 +2786,7 @@ function CompetitionsAdminTab({ currentUser, L }) {
 
       <CreateFAB label="Create Competition" isActive={creating} onCreate={() => setCreating(c => !c)} />
       <DownloadingOverlay visible={tabDlBusy} message={tabDlMsg} />
+      <RouteBlockDialog blocker={createBlocker} L={L} />
     </div>
   )
 }
@@ -2741,6 +2808,7 @@ function CompetitionManager({ comp: initial, onBack, currentUser, L }) {
   const [addingLink,  setAddingLink]  = useState(false)
   const [linkForm,    setLinkForm]    = useState({ name:'', url:'', type:'external' })
 
+  const [galleryLightboxIdx, setGalleryLightboxIdx] = useState(null)
   const [logoBanner,  setLogoBanner]  = useState(null)
   const [compBanner,  setCompBanner]  = useState(null)
   const [form, setForm] = useState({
@@ -2788,6 +2856,7 @@ function CompetitionManager({ comp: initial, onBack, currentUser, L }) {
       f.googleFormUrl !== (c.googleFormUrl || '') ||
       f.formPublished !== (c.formPublished || false)
   }, [form, comp])
+  const routeBlocker = useUnsavedGuard(isDirty)
 
   const refresh = async () => { const d = await competitionsApi.get(comp._id); setComp(d.competition) }
   const setF = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -2834,10 +2903,15 @@ function CompetitionManager({ comp: initial, onBack, currentUser, L }) {
     finally { setBusy(false) }
   }
 
+  const [uploadingGallery, setUploadingGallery] = useState(false)
   const uploadGalleryPhoto = async (file) => {
-    const { key, publicUrl } = await uploadFileToS3(file, 'competitions')
-    await competitionsApi.addGalleryPhoto(comp._id, { imageUrl:publicUrl, s3Key:key })
-    refresh()
+    setUploadingGallery(true)
+    try {
+      const { key, publicUrl } = await uploadFileToS3(file, 'competitions')
+      await competitionsApi.addGalleryPhoto(comp._id, { imageUrl:publicUrl, s3Key:key })
+      refresh()
+    } catch(e) { setMsg(e.message) }
+    finally { setUploadingGallery(false) }
   }
 
   const moveGallery = async (photos, fromIdx, toIdx) => {
@@ -3260,26 +3334,27 @@ function CompetitionManager({ comp: initial, onBack, currentUser, L }) {
           <div className="flex items-center justify-between">
             <p className="font-inter text-[11px] text-gray-500 uppercase tracking-widest">{comp.gallery?.length||0} Photos</p>
             <label className="glass-btn glass-btn-light inline-flex items-center gap-2 px-4 font-inter text-xs cursor-pointer" style={{ borderRadius:'10px', minHeight:'36px' }}>
-              + Upload
-              <input type="file" accept="image/*" className="hidden" onChange={e => uploadGalleryPhoto(e.target.files[0])} />
+              {uploadingGallery && <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin shrink-0" />}
+              {uploadingGallery ? 'Uploading…' : '+ Upload'}
+              <input type="file" accept="image/*" className="hidden" onChange={e => uploadGalleryPhoto(e.target.files[0])} disabled={uploadingGallery} />
             </label>
           </div>
           {!comp.gallery?.length
             ? <p className={`text-center py-10 font-inter text-sm ${L?'text-gray-400':'text-gray-600'}`}>No gallery photos yet.</p>
             : <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {comp.gallery.map((p,i) => (
-                  <div key={p._id} className="relative group rounded-xl overflow-hidden aspect-square">
+                  <div key={p._id} className="relative group rounded-xl overflow-hidden aspect-square cursor-pointer" onClick={() => setGalleryLightboxIdx(i)}>
                     <ProgressiveImage src={p.imageUrl} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       {i > 0 && (
-                        <button onClick={() => moveGallery(comp.gallery, i, i-1)}
+                        <button onClick={e => { e.stopPropagation(); moveGallery(comp.gallery, i, i-1) }}
                           className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center text-xs">Prev</button>
                       )}
                       {i < comp.gallery.length-1 && (
-                        <button onClick={() => moveGallery(comp.gallery, i, i+1)}
+                        <button onClick={e => { e.stopPropagation(); moveGallery(comp.gallery, i, i+1) }}
                           className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center text-xs">Next</button>
                       )}
-                      <button onClick={async () => { await competitionsApi.deleteGalleryPhoto(comp._id, p._id); refresh() }}
+                      <button onClick={e => { e.stopPropagation(); competitionsApi.deleteGalleryPhoto(comp._id, p._id).then(() => refresh()) }}
                         className="w-7 h-7 rounded-full bg-red-600/80 hover:bg-red-500 text-white flex items-center justify-center text-xs">Del</button>
                     </div>
                     <div className="absolute top-1.5 left-1.5 font-inter text-[8px] text-white/60 bg-black/40 rounded px-1">{i+1}</div>
@@ -3288,6 +3363,14 @@ function CompetitionManager({ comp: initial, onBack, currentUser, L }) {
               </div>
           }
         </div>
+      )}
+
+      {galleryLightboxIdx !== null && (
+        <Lightbox
+          photos={(comp.gallery || []).map(p => ({ url: p.imageUrl }))}
+          startIndex={galleryLightboxIdx}
+          onClose={() => setGalleryLightboxIdx(null)}
+        />
       )}
 
       {/* WINNERS */}
@@ -3650,11 +3733,13 @@ function CompetitionManager({ comp: initial, onBack, currentUser, L }) {
       <ConfirmDialog
         open={backConfirm}
         title="Unsaved Changes"
-        message="You have unsaved changes. Leave without saving?"
-        confirmLabel="Leave"
+        message="You have unsaved changes. Discard them and leave, or go back to save?"
+        confirmLabel="Discard Changes"
+        cancelLabel="Save Changes"
         onConfirm={onBack}
         onCancel={() => setBackConfirm(false)}
       />
+      <RouteBlockDialog blocker={routeBlocker} L={L} />
     </div>
   )
 }
@@ -3673,12 +3758,13 @@ function GalleryTab({ L }) {
   const [uploadCaption, setUploadCaption] = useState('')
   const [uploadPhotographer, setUploadPhotographer] = useState({ name: 'anonymous' })
   const [photogKey,   setPhotogKey]   = useState(0)
-  const [uploadFile,  setUploadFile]  = useState(null)
-  const [uploadPreview, setUploadPreview] = useState(null)
+  const [uploadFiles,   setUploadFiles]   = useState([])
+  const [uploadPreviews, setUploadPreviews] = useState([])
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 })
   const [dragIdx,     setDragIdx]     = useState(null)
   const [orderChanged,setOrderChanged]= useState(false)
   const [savingOrder, setSavingOrder] = useState(false)
-  const [lightbox,    setLightbox]    = useState(null)
+  const [lightboxIdx, setLightboxIdx] = useState(null)
   const [msg,         setMsg]         = useState('')
   const [confirm,     setConfirm]     = useState(null)
   const [sectionToDelete, setSectionToDelete] = useState(null)   // { id, name }
@@ -3708,16 +3794,20 @@ function GalleryTab({ L }) {
   }
 
   const uploadPhoto = async (e) => {
-    e.preventDefault(); if (!uploadFile) return
+    e.preventDefault(); if (!uploadFiles.length) return
     if (!uploadPhotographer?.name?.trim()) { setMsg('Photographer name is required.'); return }
     setUploading(true); setMsg('')
+    const count = uploadFiles.length
     try {
-      const { key, publicUrl } = await uploadFileToS3(uploadFile, 'gallery')
-      await galleryApi.addPhoto({ imageUrl: publicUrl, s3Key: key, caption: uploadCaption, photographer: uploadPhotographer, section: uploadSect || undefined, type: 'club', order: photos.length })
-      setUploadFile(null); setUploadPreview(null); setUploadCaption('')
+      for (let i = 0; i < count; i++) {
+        setUploadProgress({ current: i + 1, total: count })
+        const { key, publicUrl } = await uploadFileToS3(uploadFiles[i], 'gallery')
+        await galleryApi.addPhoto({ imageUrl: publicUrl, s3Key: key, caption: uploadCaption, photographer: uploadPhotographer, section: uploadSect || undefined, type: 'club', order: photos.length + i })
+      }
+      setUploadFiles([]); setUploadPreviews([]); setUploadCaption('')
       setUploadPhotographer({ name: 'anonymous' }); setPhotogKey(k => k + 1)
-      toast.success('Uploaded', 'Photo added to gallery'); fetchAll()
-    } catch (err) { setMsg(err.message) } finally { setUploading(false) }
+      toast.success('Uploaded', `${count} photo${count > 1 ? 's' : ''} added to gallery`); fetchAll()
+    } catch (err) { setMsg(err.message) } finally { setUploading(false); setUploadProgress({ current: 0, total: 0 }) }
   }
 
   const deletePhoto = async () => {
@@ -3789,15 +3879,23 @@ function GalleryTab({ L }) {
       <div className={`auth-glass rounded-2xl p-4 border ${L?'border-black/8':'border-white/8'} space-y-3`}>
         <p className="font-inter text-[11px] text-gray-500 uppercase tracking-widest">Upload Photo</p>
         <form onSubmit={uploadPhoto} className="space-y-3">
-          {uploadPreview ? (
-            <div className="relative w-40 h-28 rounded-xl overflow-hidden border border-white/10">
-              <img src={uploadPreview} alt="" className="w-full h-full object-cover" />
-              <button type="button" onClick={()=>{setUploadFile(null);setUploadPreview(null)}} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-600 text-white text-[9px] flex items-center justify-center">✕</button>
+          {uploadPreviews.length > 0 ? (
+            <div className="space-y-2">
+              <div className="grid grid-cols-3 gap-2">
+                {uploadPreviews.map((src, i) => (
+                  <div key={i} className="relative rounded-xl overflow-hidden aspect-square">
+                    <img src={src} alt="" className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={()=>{setUploadFiles([]);setUploadPreviews([])}} className={`font-inter text-xs transition-colors ${L?'text-gray-500 hover:text-red-600':'text-gray-500 hover:text-red-400'}`}>
+                Remove all ({uploadFiles.length})
+              </button>
             </div>
           ) : (
             <label className={`block w-full rounded-xl cursor-pointer border-2 border-dashed transition-colors ${L?'border-black/12 hover:border-red-600/30':'border-white/10 hover:border-red-600/30'}`}>
-              <div className="flex items-center justify-center py-5 text-gray-500"><p className="font-inter text-sm">Click to choose photo</p></div>
-              <input type="file" accept="image/*" className="hidden" onChange={e=>{const f=e.target.files[0];if(!f)return;setUploadFile(f);setUploadPreview(URL.createObjectURL(f))}} />
+              <div className="flex items-center justify-center py-5 text-gray-500"><p className="font-inter text-sm">Click to choose photos</p></div>
+              <input type="file" accept="image/*" className="hidden" multiple onChange={e=>{const fs=Array.from(e.target.files);if(!fs.length)return;setUploadFiles(fs);setUploadPreviews(fs.map(f=>URL.createObjectURL(f)))}} />
             </label>
           )}
           {/* Photographer — required, defaults to "anonymous", searchable dropdown */}
@@ -3814,8 +3912,19 @@ function GalleryTab({ L }) {
             {sections.map(s=><option key={s._id} value={s._id}>{s.name}</option>)}
           </select>
           {msg && <p className={`font-inter text-xs ${msg.startsWith('✓')?'text-green-400':'text-red-400'}`}>{msg}</p>}
-          <GlassButton type="submit" variant="red" disabled={uploading||!uploadFile} className="w-full font-inter text-sm" style={{ borderRadius:'12px', minHeight:'42px' }}>
-            {uploading?'Uploading…':'Upload Photo'}
+          {uploading && uploadProgress.total > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                <p className="font-inter text-xs text-gray-400">Uploading {uploadProgress.current} of {uploadProgress.total}…</p>
+              </div>
+              <div className={`w-full h-1 rounded-full overflow-hidden ${L?'bg-black/8':'bg-white/8'}`}>
+                <div className="h-full bg-red-500 rounded-full transition-all duration-300" style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }} />
+              </div>
+            </div>
+          )}
+          <GlassButton type="submit" variant="red" disabled={uploading||!uploadFiles.length} className="w-full font-inter text-sm" style={{ borderRadius:'12px', minHeight:'42px' }}>
+            {uploading?'Uploading…':`Upload Photo${uploadFiles.length > 1 ? 's' : ''}${uploadFiles.length > 1 ? ` (${uploadFiles.length})` : ''}`}
           </GlassButton>
         </form>
       </div>
@@ -3835,7 +3944,7 @@ function GalleryTab({ L }) {
             {filtered.map((p, i) => (
               <div key={p._id} className={`group relative aspect-square rounded-xl overflow-hidden cursor-grab active:cursor-grabbing ${dragIdx===i?'opacity-40 ring-2 ring-red-500':''}`}
                 draggable onDragStart={()=>handleDragStart(i)} onDragOver={e=>handleDragOver(e,i)} onDragEnd={()=>setDragIdx(null)}
-                onClick={()=>setLightbox(p)}>
+                onClick={()=>setLightboxIdx(i)}>
                 <ProgressiveImage src={p.imageUrl} className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500" />
                 <button onClick={e=>{e.stopPropagation();setConfirm(p)}}
                   className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-600 text-white text-xs items-center justify-center hidden group-hover:flex">✕</button>
@@ -3860,24 +3969,18 @@ function GalleryTab({ L }) {
       )}
 
       {/* Lightbox */}
-      {lightbox && (
-        <div className="fixed inset-0 z-[300] bg-black/97 flex items-center justify-center p-4" onClick={()=>setLightbox(null)}>
-          <div className="relative max-w-3xl w-full" onClick={e=>e.stopPropagation()}>
-            <img src={lightbox.imageUrl} alt="" className="w-full max-h-[80vh] object-contain rounded-2xl"/>
-            {lightbox.photographer?.name && (
-              <div className="flex items-center justify-center gap-2 mt-3">
-                {lightbox.photographer?.userId?.profilePhoto
-                  ? <img src={lightbox.photographer.userId.profilePhoto} alt="" className="w-6 h-6 rounded-full object-cover" style={{boxShadow:'0 0 0 1.5px rgba(220,38,38,0.6)'}}/>
-                  : <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{background:'#dc2626'}}>
-                      <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                    </div>}
-                <p className="font-inter text-sm font-semibold text-white">{lightbox.photographer.name}</p>
-              </div>
-            )}
-            {lightbox.caption && <p className="font-inter text-sm text-gray-400 mt-2 text-center">{lightbox.caption}</p>}
-          </div>
-          <button onClick={()=>setLightbox(null)} className="absolute top-6 right-6 text-white/50 hover:text-white font-inter text-xs uppercase tracking-wider">Close ✕</button>
-        </div>
+      {lightboxIdx !== null && (
+        <Lightbox
+          photos={filtered.map(p => ({
+            url: p.imageUrl,
+            caption: p.caption,
+            photographer: p.photographer?.name
+              ? { name: p.photographer.name, photoUrl: p.photographer.userId?.profilePhoto }
+              : undefined
+          }))}
+          startIndex={lightboxIdx}
+          onClose={() => setLightboxIdx(null)}
+        />
       )}
 
       <ConfirmDialog open={!!confirm} title="Delete Photo?" message={confirm?`Delete this photo? This cannot be undone.`:''} confirmLabel="Yes, Delete" onConfirm={deletePhoto} onCancel={()=>setConfirm(null)} />
@@ -4570,10 +4673,23 @@ function PermissionsTab({ L }) {
   const [loading,  setLoading]  = useState(true)
   const [saving,   setSaving]   = useState({})
   const [msg,      setMsg]      = useState('')
+  const [galleryEnabled,   setGalleryEnabled]   = useState(true)
+  const [galleryMax,       setGalleryMax]        = useState(0)   // 0 = unlimited
+  const [galleryMaxInput,  setGalleryMaxInput]   = useState('0')
+  const [gallerySaving,    setGallerySaving]     = useState(false)
 
   useEffect(() => {
-    settingsApi.list()
-      .then(d => setSettings(d.settings))
+    Promise.all([
+      settingsApi.list(),
+      settingsApi.getGallerySettings(),
+    ])
+      .then(([d, g]) => {
+        setSettings(d.settings)
+        setGalleryEnabled(g.gallery?.enabled !== false)
+        const max = g.gallery?.maxPhotos ?? 0
+        setGalleryMax(max)
+        setGalleryMaxInput(max === 0 ? '0' : String(max))
+      })
       .catch(e => setMsg(e.message))
       .finally(() => setLoading(false))
   }, [])
@@ -4586,6 +4702,22 @@ function PermissionsTab({ L }) {
       toast.success('Updated', 'Permission saved')
     } catch (e) { setMsg(e.message) }
     finally { setSaving(s => ({ ...s, [key]: false })) }
+  }
+
+  const saveGallerySettings = async () => {
+    setGallerySaving(true)
+    try {
+      const maxVal = parseInt(galleryMaxInput, 10)
+      const safeMax = isNaN(maxVal) || maxVal < 0 ? 0 : maxVal
+      await Promise.all([
+        settingsApi.patch('member.gallery.enabled', galleryEnabled),
+        settingsApi.patch('member.gallery.maxPhotos', safeMax),
+      ])
+      setGalleryMax(safeMax)
+      setGalleryMaxInput(String(safeMax))
+      toast.success('Saved', 'Gallery settings updated')
+    } catch (e) { setMsg(e.message) }
+    finally { setGallerySaving(false) }
   }
 
   const coordinatorSettings = settings.filter(s => s.key.startsWith('coordinator.'))
@@ -4638,6 +4770,79 @@ function PermissionsTab({ L }) {
         </div>
       </div>
 
+      {/* Member gallery settings */}
+      <div className={`auth-glass rounded-2xl border overflow-hidden ${L?'border-black/8':'border-white/8'}`}>
+        <div className={`px-5 py-4 border-b ${L?'border-black/5':'border-white/5'}`}>
+          <p className="font-clash font-semibold text-emerald-400 uppercase tracking-wider text-sm">Member Gallery</p>
+          <p className={`font-inter text-xs mt-1 ${L?'text-gray-500':'text-gray-500'}`}>
+            Control whether members can use the My Gallery feature and set an upload limit.
+          </p>
+        </div>
+        <div className={`divide-y ${L?'divide-black/5':'divide-white/5'}`}>
+          {/* Enable/disable toggle */}
+          <div className="flex items-center justify-between px-5 py-4 gap-4">
+            <div className="flex-1 min-w-0">
+              <p className={`font-inter text-sm font-medium ${L?'text-gray-900':'text-white'}`}>Enable My Gallery</p>
+              <p className={`font-inter text-[10px] mt-0.5 ${L?'text-gray-400':'text-gray-600'}`}>
+                Allow all members (photographer, coordinator, core) to upload a personal gallery.
+              </p>
+            </div>
+            <div
+              onClick={() => !gallerySaving && setGalleryEnabled(v => !v)}
+              className={`toggle-track shrink-0 ${galleryEnabled ? 'on' : 'off'} ${gallerySaving ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="toggle-thumb" />
+            </div>
+          </div>
+
+          {/* Max photos */}
+          <div className="px-5 py-4 space-y-3">
+            <p className={`font-inter text-sm font-medium ${L?'text-gray-900':'text-white'}`}>
+              Maximum Photos per Member
+            </p>
+            <p className={`font-inter text-[10px] ${L?'text-gray-400':'text-gray-600'}`}>
+              Set how many photos each member can upload. 0 means no limit.
+            </p>
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* No limit radio */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" checked={galleryMaxInput === '0' || parseInt(galleryMaxInput) === 0}
+                  onChange={() => setGalleryMaxInput('0')}
+                  className="accent-emerald-500" />
+                <span className={`font-inter text-sm ${L?'text-gray-700':'text-gray-300'}`}>No Limit</span>
+              </label>
+              {/* Custom number */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" checked={parseInt(galleryMaxInput) > 0}
+                  onChange={() => setGalleryMaxInput(galleryMax > 0 ? String(galleryMax) : '20')}
+                  className="accent-emerald-500" />
+                <span className={`font-inter text-sm ${L?'text-gray-700':'text-gray-300'}`}>Limit to</span>
+              </label>
+              <input
+                type="number" min={1} max={999}
+                value={parseInt(galleryMaxInput) > 0 ? galleryMaxInput : ''}
+                placeholder="e.g. 20"
+                disabled={parseInt(galleryMaxInput) === 0 || galleryMaxInput === '0'}
+                onChange={e => setGalleryMaxInput(e.target.value)}
+                className="glass-input w-20 text-center font-inter text-sm py-1.5 px-2 disabled:opacity-40"
+                style={{ borderRadius: 10 }}
+              />
+              <span className={`font-inter text-xs ${L?'text-gray-500':'text-gray-600'}`}>photos</span>
+            </div>
+          </div>
+
+          {/* Save button */}
+          <div className="px-5 py-4">
+            <button
+              onClick={saveGallerySettings}
+              disabled={gallerySaving}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-inter text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors disabled:opacity-50 active:scale-95">
+              {gallerySaving && <div className="w-3.5 h-3.5 border-2 border-white/50 border-t-white rounded-full animate-spin" />}
+              {gallerySaving ? 'Saving…' : 'Save Gallery Settings'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {msg && <p className={`font-inter text-xs ${msg.startsWith('✓')?'text-green-400':'text-red-400'}`}>{msg}</p>}
     </div>
   )
@@ -4645,17 +4850,22 @@ function PermissionsTab({ L }) {
 
 // ── CORE COMMITTEE TAB ───────────────────────────────────────────────────────
 function CoreTab({ L }) {
-  const [members,       setMembers]       = useState([])
-  const [loading,       setLoading]       = useState(true)
-  const [creating,      setCreating]      = useState(false)
-  const [form,          setForm]          = useState({ name:'', year:'', designation:'Core' })
-  const [photo,         setPhoto]         = useState(null)
-  const [busy,          setBusy]          = useState(false)
-  const [editId,        setEditId]        = useState(null)
-  const [editOpen,      setEditOpen]      = useState(false)
-  const [msg,           setMsg]           = useState('')
-  const [customDesig,   setCustomDesig]   = useState(false)
-  const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [members,         setMembers]         = useState([])
+  const [loading,         setLoading]         = useState(true)
+  const [creating,        setCreating]        = useState(false)
+  const [form,            setForm]            = useState({ name:'', year:'', designation:'Core', stream:'' })
+  const [photo,           setPhoto]           = useState(null)
+  const [coverImg,        setCoverImg]        = useState(null)
+  const [busy,            setBusy]            = useState(false)
+  const [editId,          setEditId]          = useState(null)
+  const [editOpen,        setEditOpen]        = useState(false)
+  const [msg,             setMsg]             = useState('')
+  const [customDesig,     setCustomDesig]     = useState(false)
+  const [deleteConfirm,   setDeleteConfirm]   = useState(null)
+  const [editGallery,     setEditGallery]     = useState([])
+  const [galleryUploading,setGalleryUploading]= useState(false)
+  const { toast } = useToast()
+  const galleryInputRef = useRef(null)
 
   const fetch_ = useCallback(async () => {
     setLoading(true)
@@ -4669,17 +4879,49 @@ function CoreTab({ L }) {
     if (!form.name || !form.year) return setMsg('Name and year are required.')
     setBusy(true); setMsg('')
     try {
-      const body = { ...form, photoUrl: photo?.publicUrl, s3Key: photo?.key }
+      const body = {
+        ...form,
+        photoUrl: photo?.publicUrl, s3Key: photo?.key,
+        coverPhoto: coverImg?.publicUrl, coverPhotoS3Key: coverImg?.key,
+      }
       if (editId) await coreApi.update(editId, body)
       else        await coreApi.create(body)
       setCreating(false); setEditOpen(false)
-      setForm({ name:'', year:'', designation:'Core' }); setPhoto(null); setEditId(null)
+      setForm({ name:'', year:'', designation:'Core', stream:'' })
+      setPhoto(null); setCoverImg(null); setEditId(null); setEditGallery([])
       fetch_()
     } catch (e) { setMsg(e.message) }
     finally { setBusy(false) }
   }
 
-  const closeEditDialog = () => { setEditOpen(false); setEditId(null); setForm({ name:'', year:'', designation:'Core' }); setPhoto(null); setCustomDesig(false); setMsg('') }
+  const closeEditDialog = () => {
+    setEditOpen(false); setEditId(null)
+    setForm({ name:'', year:'', designation:'Core', stream:'' })
+    setPhoto(null); setCoverImg(null); setCustomDesig(false); setMsg(''); setEditGallery([])
+  }
+
+  const uploadGalleryPhotos = async (files) => {
+    if (!editId) return
+    setGalleryUploading(true)
+    try {
+      const results = []
+      for (const file of Array.from(files)) {
+        const r = await uploadFileToS3(file, 'core-gallery')
+        results.push({ url: r.publicUrl, s3Key: r.key })
+      }
+      const d = await coreApi.addGalleryPhotos(editId, { photos: results })
+      setEditGallery(d.gallery || [])
+      toast.success('Uploaded', `${results.length} photo${results.length !== 1 ? 's' : ''} added`)
+    } catch (e) { toast.error('Upload failed', e.message) }
+    finally { setGalleryUploading(false); if (galleryInputRef.current) galleryInputRef.current.value = '' }
+  }
+
+  const removeGalleryPhoto = async (photoId) => {
+    try {
+      await coreApi.deleteGalleryPhoto(editId, photoId)
+      setEditGallery(g => g.filter(p => (p._id || p.id) !== photoId))
+    } catch (e) { toast.error('Delete failed', e.message) }
+  }
 
   const remove = async (id) => {
     await coreApi.delete(id).catch(() => {})
@@ -4689,9 +4931,11 @@ function CoreTab({ L }) {
 
   const startEdit = (m) => {
     const desig = m.designation || 'Core'
-    setForm({ name: m.name, year: m.year, designation: desig })
+    setForm({ name: m.name, year: m.year, designation: desig, stream: m.stream || '' })
     setCustomDesig(desig !== 'Core')
     setPhoto(m.photoUrl ? { publicUrl: m.photoUrl, key: m.s3Key } : null)
+    setCoverImg(m.coverPhoto ? { publicUrl: m.coverPhoto, key: m.coverPhotoS3Key } : null)
+    setEditGallery((m.gallery || []).sort((a, b) => a.order - b.order))
     setMsg('')
     setEditId(m._id); setEditOpen(true)
   }
@@ -4752,8 +4996,19 @@ function CoreTab({ L }) {
               </div>
             </div>
             <div>
-              <label className="font-inter text-[11px] text-gray-500 uppercase tracking-widest mb-1.5 block">Photo</label>
-              <ImageUpload folder="core" onUpload={r => setPhoto(r)} label="Upload photo" currentUrl={photo?.publicUrl} />
+              <label className="font-inter text-[11px] text-gray-500 uppercase tracking-widest mb-1.5 block">Stream <span className="text-gray-600 normal-case">(optional — e.g. Landscape, Portrait)</span></label>
+              <input value={form.stream} onChange={e => setForm(f=>({...f,stream:e.target.value}))}
+                className="glass-input w-full" style={{ borderRadius:'10px' }} placeholder="e.g. Landscape Photography" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="font-inter text-[11px] text-gray-500 uppercase tracking-widest mb-1.5 block">Profile Photo</label>
+                <ImageUpload folder="core" onUpload={r => setPhoto(r)} label="Upload photo" currentUrl={photo?.publicUrl} />
+              </div>
+              <div>
+                <label className="font-inter text-[11px] text-gray-500 uppercase tracking-widest mb-1.5 block">Cover Photo <span className="text-gray-600 normal-case">(optional)</span></label>
+                <ImageUpload folder="core-covers" onUpload={r => setCoverImg(r)} label="Upload cover" currentUrl={coverImg?.publicUrl} />
+              </div>
             </div>
             {msg && <p className={`font-inter text-xs ${msg.startsWith('✓')?'text-green-400':'text-red-400'}`}>{msg}</p>}
             <div className="flex gap-2">
@@ -4815,22 +5070,34 @@ function CoreTab({ L }) {
                         </div>
                       </div>
                     )}
-                    {/* Action buttons on hover */}
-                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* View profile — left side, on hover */}
+                    <Link to={`/core-member/${m._id}`}
+                      className="absolute top-2 left-2 w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
+                      style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.18)' }}
+                      title="View profile"
+                      onClick={e => e.stopPropagation()}>
+                      <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 20a6 6 0 0 0-12 0"/>
+                        <circle cx="12" cy="10" r="4"/>
+                      </svg>
+                    </Link>
+                    {/* Edit + Delete — right side, on hover */}
+                    <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200">
                       <button onClick={() => startEdit(m)}
-                        className="w-6 h-6 bg-blue-600/80 hover:bg-blue-600 rounded-lg text-white flex items-center justify-center transition-colors"
+                        className="w-7 h-7 rounded-lg text-white flex items-center justify-center transition-all hover:scale-110"
+                        style={{ background: 'rgba(59,130,246,0.85)', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.18)' }}
                         title="Edit">
-                        <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
                         </svg>
                       </button>
                       <button onClick={() => setDeleteConfirm(m._id)}
-                        className="w-6 h-6 bg-red-600/80 hover:bg-red-600 rounded-lg text-white flex items-center justify-center transition-colors"
+                        className="w-7 h-7 rounded-lg text-white flex items-center justify-center transition-all hover:scale-110"
+                        style={{ background: 'rgba(220,38,38,0.85)', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.18)' }}
                         title="Delete">
-                        <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                        <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="3 6 5 6 21 6"/>
-                          <path d="M19 6l-1 14H6L5 6"/>
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
                           <path d="M10 11v6M14 11v6"/>
                           <path d="M9 6V4h6v2"/>
                         </svg>
@@ -4906,9 +5173,64 @@ function CoreTab({ L }) {
                 )}
               </div>
               <div>
-                <label className="font-inter text-[11px] text-gray-500 uppercase tracking-widest mb-1.5 block">Photo</label>
-                <ImageUpload folder="core" onUpload={r => setPhoto(r)} label="Change photo" currentUrl={photo?.publicUrl} />
+                <label className="font-inter text-[11px] text-gray-500 uppercase tracking-widest mb-1.5 block">Stream <span className="text-gray-600 normal-case">(optional)</span></label>
+                <input value={form.stream} onChange={e => setForm(f=>({...f,stream:e.target.value}))}
+                  className="glass-input w-full" style={{ borderRadius:'10px' }} placeholder="e.g. Landscape Photography, Portraiture…" />
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-inter text-[11px] text-gray-500 uppercase tracking-widest mb-1.5 block">Profile Photo</label>
+                  <ImageUpload folder="core" onUpload={r => setPhoto(r)} label="Change photo" currentUrl={photo?.publicUrl} />
+                </div>
+                <div>
+                  <label className="font-inter text-[11px] text-gray-500 uppercase tracking-widest mb-1.5 block">Cover Photo <span className="text-gray-600 normal-case">(optional)</span></label>
+                  <ImageUpload folder="core-covers" onUpload={r => setCoverImg(r)} label="Set cover" currentUrl={coverImg?.publicUrl} />
+                  {coverImg && (
+                    <button type="button" onClick={() => setCoverImg(null)}
+                      className="mt-1 font-inter text-[10px] text-red-400 hover:text-red-300 transition-colors">
+                      Remove cover
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Gallery management */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="font-inter text-[11px] text-gray-500 uppercase tracking-widest">
+                    Gallery Photos · {editGallery.length}
+                  </label>
+                  <button type="button" onClick={() => galleryInputRef.current?.click()}
+                    disabled={galleryUploading}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl font-inter text-[10px] font-semibold text-white transition-all disabled:opacity-40"
+                    style={{ background: 'rgba(220,38,38,0.8)' }}>
+                    {galleryUploading
+                      ? <><div className="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Uploading…</>
+                      : <><svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Photos</>}
+                  </button>
+                  <input ref={galleryInputRef} type="file" multiple accept="image/*" className="hidden"
+                    onChange={e => uploadGalleryPhotos(e.target.files)} />
+                </div>
+                {editGallery.length > 0 ? (
+                  <div className="columns-2 sm:columns-3 gap-2">
+                    {editGallery.map(p => (
+                      <div key={p._id} className="break-inside-avoid mb-2 relative group rounded-xl overflow-hidden">
+                        <img src={p.url} alt={p.caption || ''} className="w-full h-auto block rounded-xl" />
+                        <button type="button" onClick={() => removeGalleryPhoto(p._id)}
+                          className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          style={{ background: 'rgba(220,38,38,0.88)' }}>
+                          <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={`py-6 text-center rounded-xl border border-dashed ${L?'border-black/10':'border-white/8'}`}>
+                    <p className="font-inter text-[10px] text-gray-600">No photos yet · Click "Add Photos" to upload</p>
+                  </div>
+                )}
+              </div>
+
               {msg && <p className={`font-inter text-xs ${msg.startsWith('✓')?'text-green-400':'text-red-400'}`}>{msg}</p>}
             </div>
             {/* Footer */}
@@ -4993,6 +5315,9 @@ function ActivitiesAdminTab({ currentUser, L }) {
     const poll = setInterval(() => { if (!selected) load(true) }, 15000)
     return () => clearInterval(poll)
   }, [load, selected])
+
+  const isCreateDirty = creating && !!(newForm.name.trim() || newForm.subject.trim() || newForm.description.trim() || newForm.venue.trim())
+  const createBlocker = useUnsavedGuard(isCreateDirty)
 
   const doDeleteAct = async () => {
     if (!deleteActConfirm) return
@@ -5275,6 +5600,7 @@ function ActivitiesAdminTab({ currentUser, L }) {
 
       <CreateFAB label="Create Activity" isActive={creating} onCreate={() => setCreating(c => !c)} />
       <DownloadingOverlay visible={tabDlBusy} message={tabDlMsg} />
+      <RouteBlockDialog blocker={createBlocker} L={L} />
     </div>
   )
 }
@@ -5299,6 +5625,9 @@ function ActivityAdminDetail({ act: initialAct, onBack, currentUser, L }) {
   const [volFilter,              setVolFilter]              = useState({ year:'all', stream:'all', role:'all' })
   const [roleVolConfirm,         setRoleVolConfirm]         = useState(null)
   const [actGalleryDeleteConfirm,setActGalleryDeleteConfirm]= useState(null)
+  const [actLightboxIdx,     setActLightboxIdx]     = useState(null)
+  const [actUploading,       setActUploading]       = useState(false)
+  const [actUploadProgress,  setActUploadProgress]  = useState({ current: 0, total: 0 })
   const [addingLink, setAddingLink] = useState(false)
   const [newLink, setNewLink] = useState({ name:'', url:'', type:'external' })
   const [annBody, setAnnBody] = useState('')
@@ -5339,6 +5668,7 @@ function ActivityAdminDetail({ act: initialAct, onBack, currentUser, L }) {
       f.status !== (a.manualStatus ? (a.status || '') : '') ||
       f.isOpenToAll !== (a.isOpenToAll || false)
   }, [form, act])
+  const routeBlocker = useUnsavedGuard(isDirty)
 
   const refresh = async () => { const d = await activitiesApi.get(act._id); setAct(d.activity) }
   const setF  = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -5671,29 +6001,54 @@ function ActivityAdminDetail({ act: initialAct, onBack, currentUser, L }) {
           <p className="font-inter text-[11px] text-gray-500 uppercase tracking-widest">Activity Gallery ({act.gallery?.length||0})</p>
           <label className={'block w-full rounded-xl cursor-pointer border-2 border-dashed transition-colors ' + (L?'border-black/12 hover:border-violet-600/30':'border-white/10 hover:border-violet-600/30')}>
             <div className={'flex flex-col items-center justify-center py-8 ' + (L?'text-gray-400':'text-gray-600')}>
-              <p className="font-inter text-sm">Choose photos to upload</p>
+              {actUploading ? (
+                <div className="flex flex-col items-center gap-3 w-full px-6">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                    <span className="font-inter text-xs text-gray-400">
+                      Uploading {actUploadProgress.current} of {actUploadProgress.total}…
+                    </span>
+                  </div>
+                  <div className="w-full h-1 bg-white/8 rounded-full overflow-hidden">
+                    <div className="h-full bg-red-500 rounded-full transition-all duration-300"
+                      style={{ width: `${actUploadProgress.total ? Math.round(actUploadProgress.current / actUploadProgress.total * 100) : 0}%` }} />
+                  </div>
+                </div>
+              ) : (
+                <p className="font-inter text-sm">Choose photos to upload</p>
+              )}
             </div>
-            <input type="file" accept="image/*" multiple className="hidden" onChange={async e => {
-              const files = Array.from(e.target.files); if (!files.length) return
-              for (const file of files) {
-                const { key, publicUrl } = await uploadFileToS3(file, 'activities').catch(() => ({ key:'', publicUrl:'' }))
+            <input type="file" accept="image/*" multiple className="hidden" disabled={actUploading} onChange={async e => {
+              const picked = Array.from(e.target.files); if (!picked.length) return
+              setActUploading(true); setActUploadProgress({ current: 0, total: picked.length })
+              for (let i = 0; i < picked.length; i++) {
+                setActUploadProgress({ current: i + 1, total: picked.length })
+                const { key, publicUrl } = await uploadFileToS3(picked[i], 'activities').catch(() => ({ key:'', publicUrl:'' }))
                 if (publicUrl) await activitiesApi.addGalleryPhoto(act._id, { imageUrl: publicUrl, s3Key: key }).catch(() => {})
               }
+              setActUploading(false); setActUploadProgress({ current: 0, total: 0 })
               refresh()
             }} />
           </label>
           {(act.gallery?.length||0) > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {[...(act.gallery||[])].sort((a,b)=>(a.order||0)-(b.order||0)).map(p => (
-                <div key={p._id} className="group relative aspect-square rounded-xl overflow-hidden">
+              {[...(act.gallery||[])].sort((a,b)=>(a.order||0)-(b.order||0)).map((p, i) => (
+                <div key={p._id} className="group relative aspect-square rounded-xl overflow-hidden cursor-pointer" onClick={() => setActLightboxIdx(i)}>
                   <ProgressiveImage src={p.imageUrl} className="w-full h-full object-cover" />
-                  <button onClick={() => setActGalleryDeleteConfirm(p._id)}
+                  <button onClick={e => { e.stopPropagation(); setActGalleryDeleteConfirm(p._id) }}
                     className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-600 text-white text-xs items-center justify-center hidden group-hover:flex">✕</button>
                 </div>
               ))}
             </div>
           )}
         </div>
+      )}
+      {actLightboxIdx !== null && (
+        <Lightbox
+          photos={[...(act.gallery||[])].sort((a,b)=>(a.order||0)-(b.order||0)).map(p => ({ url: p.imageUrl }))}
+          startIndex={actLightboxIdx}
+          onClose={() => setActLightboxIdx(null)}
+        />
       )}
 
       {/* VOLUNTEERS TAB */}
@@ -5939,11 +6294,13 @@ function ActivityAdminDetail({ act: initialAct, onBack, currentUser, L }) {
       <ConfirmDialog
         open={backConfirm}
         title="Unsaved Changes"
-        message="You have unsaved changes. Leave without saving?"
-        confirmLabel="Leave"
+        message="You have unsaved changes. Discard them and leave, or go back to save?"
+        confirmLabel="Discard Changes"
+        cancelLabel="Save Changes"
         onConfirm={onBack}
         onCancel={() => setBackConfirm(false)}
       />
+      <RouteBlockDialog blocker={routeBlocker} L={L} />
     </div>
   )
 }
@@ -6066,11 +6423,16 @@ export default function AdminDashboard() {
   const isCore = user?.role === 'core'
   const [searchParams, setSearchParams] = useSearchParams()
   const [drawerOpen, setDrawer]         = useState(false)
+  const [leaveDialog,   setLeaveDialog]   = useState(false)
+  const [pendingTabId,  setPendingTabId]  = useState(null)
   // Tab is URL-driven so it survives refresh. Validate against TABS to reject invalid values.
   const _defaultTab = isCore ? 'profile' : 'users'
   const _rawTab     = searchParams.get('tab')
   const activeTab   = (_rawTab && TABS.some(t => t.id === _rawTab)) ? _rawTab : _defaultTab
-  const setActiveTab = (tabId) => setSearchParams({ tab: tabId }, { replace: true })
+  const setActiveTab = (tabId) => {
+    if (_adminDirty) { setPendingTabId(tabId); setLeaveDialog(true); return }
+    setSearchParams({ tab: tabId }, { replace: true })
+  }
   const L = theme === 'light'
 
   // Mobile-only compaction: shrink the root font while the admin panel is mounted so
@@ -6370,6 +6732,21 @@ export default function AdminDashboard() {
         <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polyline points="15 18 9 12 15 6"/></svg>
         Website
       </Link>
+
+      <ConfirmDialog
+        open={leaveDialog}
+        title="Unsaved Changes"
+        message="You have unsaved changes. Discard them and leave, or go back to save?"
+        confirmLabel="Discard Changes"
+        cancelLabel="Save Changes"
+        onConfirm={() => {
+          _adminDirty = false
+          setLeaveDialog(false)
+          setSearchParams({ tab: pendingTabId }, { replace: true })
+          setPendingTabId(null)
+        }}
+        onCancel={() => { setLeaveDialog(false); setPendingTabId(null) }}
+      />
     </div>
   )
 }

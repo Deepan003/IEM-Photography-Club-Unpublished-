@@ -3,6 +3,8 @@ import PageLayout        from '../components/PageLayout.jsx'
 import GlassButton       from '../components/GlassButton.jsx'
 import { postcardsApi, settingsApi } from '../api/api.js'
 import { useData }       from '../hooks/useData.js'
+import { SkeletonPhotoGrid } from '../components/Skeleton.jsx'
+import ProgressiveImage from '../components/ProgressiveImage.jsx'
 import { useTheme, useAuth } from '../App.jsx'
 
 function getImages(p) {
@@ -66,10 +68,9 @@ function PostcardCard({ p, L, onClick }) {
           <div className="relative overflow-hidden" style={{ paddingBottom:'125%', borderRadius:0 }}>
             <div className="absolute inset-0 bg-gray-900">
               {imgs.map((url, i) => (
-                <img key={i} src={url} alt=""
-                  className="absolute inset-0 w-full h-full object-cover"
-                  style={{ opacity: i===idx ? 1 : 0, transition:'opacity 700ms ease' }}
-                />
+                <div key={i} className="absolute inset-0" style={{ opacity: i===idx ? 1 : 0, transition:'opacity 700ms ease' }}>
+                  <ProgressiveImage src={url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                </div>
               ))}
             </div>
             <PhotoCountBadge count={imgs.length} />
@@ -296,7 +297,7 @@ export default function PostcardsPage() {
       : postcards.filter(p => p.section?._id === selected)
 
   return (
-    <PageLayout title="Postcards" subtitle={resolvedSubtitle}>
+    <PageLayout title="Postcards" subtitle={resolvedSubtitle} loading={loading}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 sm:pt-8 pb-10">
 
         {/* Subtitle edit controls — admin/core only */}
@@ -360,15 +361,13 @@ export default function PostcardsPage() {
 
         {/* Grid */}
         {loading ? (
-          <div className="py-20 text-center">
-            <p className={`font-inter text-sm animate-pulse ${L ? 'text-gray-400' : 'text-gray-600'}`}>Loading postcards…</p>
-          </div>
+          <SkeletonPhotoGrid n={8} ratio="4/5" />
         ) : filtered.length === 0 ? (
           <div className="py-20 text-center">
             <p className={`font-inter text-sm ${L ? 'text-gray-400' : 'text-gray-600'}`}>No postcards yet in this section.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+          <div className="pl-section-in grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
             {filtered.map((p, i) => (
               <PostcardCard key={p._id} p={p} L={L} onClick={() => setLightboxIdx(i)} />
             ))}

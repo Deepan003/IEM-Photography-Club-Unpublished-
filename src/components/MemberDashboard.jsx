@@ -4,6 +4,7 @@ import { authApi, clearToken }  from '../api/auth.js'
 import { membersApi, eventsApi, competitionsApi, activitiesApi, postsApi, postcardsApi, galleryApi, magazineApi, settingsApi, uploadFileToS3 } from '../api/api.js'
 import MagazineTab            from './magazine/MagazineTab.jsx'
 import AnnouncementStudio     from './AnnouncementStudio.jsx'
+import MyGalleryTab           from './MyGalleryTab.jsx'
 import { computeAcademicYear, isCurrentSession, getItemSession, getPrimaryItemDate, currentSession }  from '../utils/yearCalc.js'
 import { useTheme, useAuth }    from '../App.jsx'
 import GlassButton              from './GlassButton.jsx'
@@ -12,6 +13,8 @@ import PhotographerSearch       from './PhotographerSearch.jsx'
 import { downloadCSV, downloadPDF } from '../utils/profileReport.js'
 import DownloadingOverlay from './DownloadingOverlay.jsx'
 import { SkeletonGrid, SkeletonList, SkeletonCard, SkeletonProfile } from './Skeleton.jsx'
+import ProgressiveImage from './ProgressiveImage.jsx'
+import Lightbox        from './Lightbox.jsx'
 import { useToast } from './Toast.jsx'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -582,8 +585,8 @@ function FeedTab({ currentUser, L }) {
               </div>
               {isOwner && <button onClick={() => deletePost(post._id)} className="text-gray-600 hover:text-red-400 transition-colors text-sm px-2">🗑</button>}
             </div>
-            <div className="cursor-pointer" onClick={() => setLightbox(post.imageUrl)}>
-              <img src={post.imageUrl} alt="" className="w-full object-cover max-h-[400px]" style={{ aspectRatio:'1/1', objectFit:'cover' }} />
+            <div className="relative overflow-hidden cursor-pointer" style={{ aspectRatio:'1/1' }} onClick={() => setLightbox(post.imageUrl)}>
+              <ProgressiveImage src={post.imageUrl} className="absolute inset-0 w-full h-full object-cover" />
             </div>
             <div className="px-4 py-3 space-y-2">
               <div className="flex items-center gap-4">
@@ -600,10 +603,11 @@ function FeedTab({ currentUser, L }) {
       })}
 
       {lightbox && (
-        <div className="fixed inset-0 z-[300] bg-black/96 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
-          <img src={lightbox} alt="" className="max-w-3xl w-full max-h-[85vh] object-contain rounded-2xl" />
-          <button onClick={() => setLightbox(null)} className="absolute top-6 right-6 text-white/60 hover:text-white font-inter text-xs">✕</button>
-        </div>
+        <Lightbox
+          photos={[{ url: lightbox }]}
+          startIndex={0}
+          onClose={() => setLightbox(null)}
+        />
       )}
     </div>
   )
@@ -1541,8 +1545,10 @@ function CoordGalleryTab({ user, canUpload = true, L }) {
   const [photos,    setPhotos]    = useState([])
   const [sections,  setSections]  = useState([])
   const [loading,   setLoading]   = useState(true)
-  const [file,      setFile]      = useState(null)
-  const [preview,   setPreview]   = useState(null)
+  const [files,     setFiles]     = useState([])
+  const [previews,  setPreviews]  = useState([])
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 })
+  const [lightboxIdx, setLightboxIdx] = useState(null)
   const [section,   setSection]   = useState('')
   const [caption,   setCaption]   = useState('')
   // Coordinators (like cores/admins) MANAGE the club gallery — they add photos on behalf
@@ -1574,30 +1580,36 @@ function CoordGalleryTab({ user, canUpload = true, L }) {
   useEffect(() => { fetchData() }, [fetchData])
 
   const handleFile = (e) => {
-    const f = e.target.files[0]
-    if (!f) return
-    setFile(f); setPreview(URL.createObjectURL(f)); e.target.value = ''
+    const fs = Array.from(e.target.files)
+    if (!fs.length) return
+    setFiles(fs); setPreviews(fs.map(f => URL.createObjectURL(f))); e.target.value = ''
   }
 
   const submit = async (e) => {
     e.preventDefault()
-    if (!file)    return setMsg('Please select a photo.')
+    if (!files.length) return setMsg('Please select at least one photo.')
     if (!attribution?.name?.trim()) return setMsg('Photographer name is required.')
     setUploading(true); setMsg('')
+    const count = files.length
     try {
-      const { key, publicUrl } = await uploadFileToS3(file, 'gallery')
-      const { photo } = await galleryApi.addPhoto({
-        imageUrl: publicUrl, s3Key: key,
-        caption:  caption || undefined,
-        section:  section || undefined,
-        photographer: attribution,
-      })
-      setPhotos(p => [photo, ...p])
-      setFile(null); setPreview(null); setCaption('')
+      const added = []
+      for (let i = 0; i < count; i++) {
+        setUploadProgress({ current: i + 1, total: count })
+        const { key, publicUrl } = await uploadFileToS3(files[i], 'gallery')
+        const { photo } = await galleryApi.addPhoto({
+          imageUrl: publicUrl, s3Key: key,
+          caption:  caption || undefined,
+          section:  section || undefined,
+          photographer: attribution,
+        })
+        added.push(photo)
+      }
+      setPhotos(p => [...added.reverse(), ...p])
+      setFiles([]); setPreviews([]); setCaption('')
       setAttribution({ name: 'anonymous' }); setPhotogKey(k => k + 1)
-      toast.success('Added!', 'Photo added to gallery')
+      toast.success('Added!', `${count} photo${count > 1 ? 's' : ''} added to gallery`)
     } catch (err) { setMsg(err.message) }
-    finally { setUploading(false) }
+    finally { setUploading(false); setUploadProgress({ current: 0, total: 0 }) }
   }
 
   const deletePhoto = async (id) => {
@@ -1630,19 +1642,27 @@ function CoordGalleryTab({ user, canUpload = true, L }) {
       {canUpload && <div className={`auth-glass rounded-2xl border p-4 ${L?'border-black/8':'border-white/8'}`}>
         <p className="font-inter text-[11px] text-gray-500 uppercase tracking-widest mb-3">Add Photo to Gallery</p>
         <form onSubmit={submit} className="space-y-3">
-          <label className={`block w-full rounded-xl overflow-hidden cursor-pointer border-2 border-dashed transition-colors ${file ? 'border-transparent' : L ? 'border-black/12 hover:border-red-600/30' : 'border-white/10 hover:border-red-600/30'}`}>
-            {preview
-              ? <img src={preview} alt="" className="w-full max-h-56 object-cover" />
-              : <div className={`flex flex-col items-center justify-center py-8 ${L?'text-gray-400':'text-gray-600'}`}>
-                  <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="mb-2 text-gray-500"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                  <p className="font-inter text-sm">Choose photo</p>
-                </div>}
-            <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
-          </label>
-          {file && (
-            <button type="button" onClick={() => { setFile(null); setPreview(null) }}
+          {previews.length > 0 ? (
+            <div className="grid grid-cols-3 gap-2">
+              {previews.map((src, i) => (
+                <div key={i} className="relative rounded-xl overflow-hidden aspect-square">
+                  <img src={src} alt="" className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <label className={`block w-full rounded-xl overflow-hidden cursor-pointer border-2 border-dashed transition-colors ${L ? 'border-black/12 hover:border-red-600/30' : 'border-white/10 hover:border-red-600/30'}`}>
+              <div className={`flex flex-col items-center justify-center py-8 ${L?'text-gray-400':'text-gray-600'}`}>
+                <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="mb-2 text-gray-500"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <p className="font-inter text-sm">Choose photos</p>
+              </div>
+              <input type="file" accept="image/*" className="hidden" multiple onChange={handleFile} />
+            </label>
+          )}
+          {files.length > 0 && (
+            <button type="button" onClick={() => { setFiles([]); setPreviews([]) }}
               className={`font-inter text-xs transition-colors ${L?'text-gray-500 hover:text-red-600':'text-gray-500 hover:text-red-400'}`}>
-              Remove photo
+              Remove all ({files.length})
             </button>
           )}
           {/* Photographer — required, defaults to you, searchable dropdown */}
@@ -1662,9 +1682,20 @@ function CoordGalleryTab({ user, canUpload = true, L }) {
             {sections.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
           </select>
           {msg && <p className={`font-inter text-xs ${msg.startsWith('✓') ? 'text-green-400' : 'text-red-400'}`}>{msg}</p>}
-          <GlassButton type="submit" variant="red" disabled={uploading || !file}
+          {uploading && uploadProgress.total > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                <p className="font-inter text-xs text-gray-400">Uploading {uploadProgress.current} of {uploadProgress.total}…</p>
+              </div>
+              <div className={`w-full h-1 rounded-full overflow-hidden ${L?'bg-black/8':'bg-white/8'}`}>
+                <div className="h-full bg-red-500 rounded-full transition-all duration-300" style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }} />
+              </div>
+            </div>
+          )}
+          <GlassButton type="submit" variant="red" disabled={uploading || !files.length}
             className="w-full font-inter text-sm" style={{ borderRadius:'12px', minHeight:'42px' }}>
-            {uploading ? 'Uploading…' : 'Add to Gallery'}
+            {uploading ? 'Uploading…' : `Add to Gallery${files.length > 1 ? ` (${files.length})` : ''}`}
           </GlassButton>
         </form>
       </div>}
@@ -1676,9 +1707,10 @@ function CoordGalleryTab({ user, canUpload = true, L }) {
         <div>
           <p className="font-inter text-[11px] text-gray-500 uppercase tracking-widest mb-3">Photos You Added</p>
           <div style={{ columns:'3 auto', gap:'6px' }}>
-            {photos.map(p => (
-              <div key={p._id} className="relative group mb-1.5 rounded-xl overflow-hidden break-inside-avoid">
-                <img src={p.imageUrl} alt="" className="w-full object-cover" />
+            {photos.map((p, i) => (
+              <div key={p._id} className="relative group mb-1.5 rounded-xl overflow-hidden break-inside-avoid cursor-pointer"
+                onClick={() => setLightboxIdx(i)}>
+                <ProgressiveImage src={p.imageUrl} alt="" masonry />
                 {/* Photographer attribution — so the manager can verify who it's credited to */}
                 {p.photographer?.name && (
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent px-2 pt-4 pb-1 flex items-center gap-1.5">
@@ -1691,7 +1723,7 @@ function CoordGalleryTab({ user, canUpload = true, L }) {
                   </div>
                 )}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                  <button onClick={() => deletePhoto(p._id)}
+                  <button onClick={e => { e.stopPropagation(); deletePhoto(p._id) }}
                     className="px-3 py-1.5 rounded-lg bg-red-600 text-white font-inter text-[10px] font-semibold">
                     Remove
                   </button>
@@ -1705,6 +1737,18 @@ function CoordGalleryTab({ user, canUpload = true, L }) {
           <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="mb-3 text-gray-500 mx-auto"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           <p className={`font-inter text-sm ${L?'text-gray-500':'text-gray-500'}`}>No gallery photos contributed yet.</p>
         </div>
+      )}
+      {lightboxIdx !== null && (
+        <Lightbox
+          photos={photos.map(p => ({
+            url: p.imageUrl,
+            photographer: p.photographer?.name
+              ? { name: p.photographer.name, photoUrl: p.photographer.userId?.profilePhoto }
+              : undefined
+          }))}
+          startIndex={lightboxIdx}
+          onClose={() => setLightboxIdx(null)}
+        />
       )}
     </div>
   )
@@ -1733,10 +1777,15 @@ const TAB_ICONS = {
       <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
     </svg>
   ),
-  gallery: (a, L) => (
+  mygallery: (a, L) => (
     <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={a?'#dc2626':L?'#9ca3af':'#6b7280'} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="18" height="18" rx="2"/>
       <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+    </svg>
+  ),
+  gallery: (a, L) => (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={a?'#dc2626':L?'#9ca3af':'#6b7280'} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
     </svg>
   ),
   settings: (a, L) => (
@@ -1764,6 +1813,7 @@ const TAB_ICONS = {
 
 const BASE_TABS  = [
   { id:'profile',      label:'My Profile'   },
+  { id:'mygallery',    label:'My Gallery'   },
   { id:'magazine',     label:'Magazine'     },
   { id:'postcards',    label:'Postcards'    },
   { id:'events',       label:'Events'       },
@@ -1803,7 +1853,7 @@ export default function MemberDashboard({ onLogout }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const [loading,  setLoading] = useState(!user)
   // All valid tab ids — used to reject garbage URL values
-  const _allTabIds = ['profile','magazine','postcards','events','competitions','activities','gallery','announce']
+  const _allTabIds = ['profile','mygallery','magazine','postcards','events','competitions','activities','gallery','announce']
   const _rawTab    = searchParams.get('tab')
   const tab        = (_rawTab && _allTabIds.includes(_rawTab)) ? _rawTab : 'profile'
   const setTab     = (tabId) => setSearchParams({ tab: tabId }, { replace: true })
@@ -2044,6 +2094,7 @@ export default function MemberDashboard({ onLogout }) {
         <div className="flex-1 px-3 sm:px-5 lg:px-8 py-4 pb-28 lg:pb-8 overflow-x-hidden">
           <div key={tab} className="tab-panel">
             {tab === 'profile'      && <ProfileTab         user={user} onLogout={handleLogout} L={L} />}
+            {tab === 'mygallery'    && <MyGalleryTab       user={user} L={L} />}
             {tab === 'magazine'     && <MagazineTab        user={user} />}
             {tab === 'postcards'    && <PostcardsUploadTab currentUser={user} canCreateSection={isAdmin || (isPureCoord && coordPerms.canCreatePostcardSection)} L={L} />}
             {tab === 'events'       && <EventsTab          currentUser={user} L={L} />}

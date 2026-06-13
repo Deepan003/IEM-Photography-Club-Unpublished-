@@ -5,6 +5,8 @@ import { useData }    from '../hooks/useData.js'
 import { galleryApi, settingsApi } from '../api/api.js'
 import { useTheme, useAuth }   from '../App.jsx'
 import { isCurrentSession, getItemSession, getPrimaryItemDate } from '../utils/yearCalc.js'
+import { SkeletonCardGrid } from '../components/Skeleton.jsx'
+import ProgressiveImage from '../components/ProgressiveImage.jsx'
 
 // ── Glass neomorphic event card ──────────────────────────────────────────────
 function EventCard({ ev, L, index, dim = false }) {
@@ -74,8 +76,8 @@ function EventCard({ ev, L, index, dim = false }) {
       {/* Banner image */}
       <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
         {banner ? (
-          <img src={banner} alt={ev.name}
-            className="w-full h-full object-cover"
+          <ProgressiveImage src={banner} alt={ev.name}
+            className="absolute inset-0 w-full h-full object-cover"
             style={{
               transform: pressed ? 'scale(1.02)' : hovered ? 'scale(1.08)' : 'scale(1)',
               transition: pressed ? 'transform 120ms ease' : 'transform 520ms cubic-bezier(0.22,1,0.36,1)',
@@ -209,7 +211,7 @@ export default function EventsGalleryPage() {
   const statuses = ['all', ...new Set(currentItems.map(e => e.status).filter(Boolean))]
 
   return (
-    <PageLayout title="Events Gallery" subtitle={resolvedSubtitle}>
+    <PageLayout title="Events Gallery" subtitle={resolvedSubtitle} loading={loading}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-4 pb-16">
 
         {/* Subtitle edit controls — admin/core only */}
@@ -304,15 +306,7 @@ export default function EventsGalleryPage() {
 
         {/* Current session grid */}
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
-            {[1,2,3,4,5,6].map(i => (
-              <div key={i} className="rounded-2xl overflow-hidden animate-pulse"
-                style={{ aspectRatio:'16/9', background: L?'rgba(0,0,0,0.05)':'rgba(255,255,255,0.03)' }}>
-                <div style={{ paddingBottom:'62.5%' }} />
-                <div className={`h-14 ${L?'bg-black/3':'bg-white/2'}`} />
-              </div>
-            ))}
-          </div>
+          <SkeletonCardGrid n={8} ratio="16/9" />
         ) : filtered.length === 0 && !search && activeStatus === 'all' && pastSessions.length === 0 ? (
           <div className="py-24 text-center rounded-3xl"
             style={{
@@ -336,7 +330,7 @@ export default function EventsGalleryPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
+          <div className="pl-section-in grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
             {filtered.map((ev, i) => <EventCard key={ev._id} ev={ev} L={L} index={i} />)}
           </div>
         )}

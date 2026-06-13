@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { heroThemesApi, settingsApi } from '../../api/api.js'
 import { useToast } from './../../components/Toast.jsx'
 
@@ -1101,33 +1102,54 @@ export default function HeroThemesTab({ L }) {
           </div>
         )}
 
-        {/* Floating + button — bottom-left on mobile (expands right), bottom-right on PC (expands left) */}
-        <div className="fixed bottom-8 left-6 lg:left-auto lg:right-8 z-40 flex items-center gap-3 flex-row lg:flex-row-reverse">
-          <button onClick={() => setFabOpen(o => !o)}
-            aria-label={fabOpen ? 'Close' : 'Add theme'}
-            className="w-14 h-14 rounded-full bg-red-600 text-white flex items-center justify-center hover:bg-red-500 active:scale-95 transition-all flex-shrink-0"
-            style={{ boxShadow:'0 4px 24px rgba(220,38,38,0.45),0 2px 8px rgba(0,0,0,0.4)' }}>
-            <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"
-              style={{ transform: fabOpen ? 'rotate(45deg)' : 'none', transition:'transform 0.25s ease' }}>
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-          </button>
-          {/* Create Theme pill — expands from the + */}
-          <button onClick={() => enterStudio('new')}
-            className="rounded-full bg-red-600 text-white font-inter text-sm font-semibold flex items-center whitespace-nowrap overflow-hidden"
-            style={{
-              height: 46,
-              maxWidth: fabOpen ? 180 : 0,
-              opacity: fabOpen ? 1 : 0,
-              paddingLeft: fabOpen ? 20 : 0,
-              paddingRight: fabOpen ? 22 : 0,
-              pointerEvents: fabOpen ? 'auto' : 'none',
-              boxShadow: fabOpen ? '0 4px 22px rgba(220,38,38,0.42),0 2px 8px rgba(0,0,0,0.4)' : 'none',
-              transition: 'max-width 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.22s ease, padding 0.28s ease',
-            }}>
-            Create Theme
-          </button>
-        </div>
+        {/* Floating + button — portaled to body so position:fixed always works */}
+        {createPortal(
+          <div style={{
+            position: 'fixed',
+            bottom: 24,
+            ...(isMobile ? { left: 20 } : { right: 24 }),
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            flexDirection: isMobile ? 'row' : 'row-reverse',
+          }}>
+            <button onClick={() => setFabOpen(o => !o)}
+              aria-label={fabOpen ? 'Close' : 'Add theme'}
+              style={{
+                width: 56, height: 56, borderRadius: '50%',
+                background: 'linear-gradient(135deg,rgba(222,38,38,0.97),rgba(168,16,16,1))',
+                color: 'white', border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                boxShadow: '0 4px 24px rgba(220,38,38,0.45),0 2px 8px rgba(0,0,0,0.4)',
+                transition: 'transform 0.15s ease',
+              }}>
+              <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"
+                style={{ transform: fabOpen ? 'rotate(45deg)' : 'none', transition:'transform 0.25s ease' }}>
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </button>
+            {/* Create Theme pill */}
+            <button onClick={() => { enterStudio('new'); setFabOpen(false) }}
+              style={{
+                height: 46, borderRadius: 99,
+                background: 'linear-gradient(135deg,rgba(222,38,38,0.97),rgba(168,16,16,1))',
+                color: 'white', border: 'none', cursor: 'pointer',
+                fontFamily: 'MADEVoyager, Inter, sans-serif', fontSize: 14, fontWeight: 600,
+                display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', overflow: 'hidden',
+                maxWidth: fabOpen ? 180 : 0,
+                opacity: fabOpen ? 1 : 0,
+                paddingLeft: fabOpen ? 20 : 0,
+                paddingRight: fabOpen ? 22 : 0,
+                pointerEvents: fabOpen ? 'auto' : 'none',
+                boxShadow: fabOpen ? '0 4px 22px rgba(220,38,38,0.42),0 2px 8px rgba(0,0,0,0.4)' : 'none',
+                transition: 'max-width 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.22s ease, padding 0.28s ease',
+              }}>
+              Create Theme
+            </button>
+          </div>,
+          document.body
+        )}
 
         {/* Delete confirm */}
         {delId && (

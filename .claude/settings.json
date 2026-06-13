@@ -22,7 +22,17 @@
       "Bash(grep -v \"//\\\\|transition\\\\|translate-x\\\\|translate-y\\\\|translateX\\\\|translateY\\\\|text-\\\\|border-\\\\|px-\\\\|py-\\\\|rounded\\\\|gap-\\\\|font-\\\\|tracking\\\\|ring-\\\\|animate-\")",
       "Bash(Get-ChildItem \"c:\\\\Users\\\\DEEPAN PRAMANICK\\\\Desktop\\\\IEM PHOTOGRAPHY CLUB UNLEASED\\\\public\")",
       "Bash(Select-Object Name)",
-      "Bash(dir \"c:\\\\Users\\\\DEEPAN PRAMANICK\\\\Desktop\\\\IEM PHOTOGRAPHY CLUB UNLEASED\\\\public\")"
+      "Bash(dir \"c:\\\\Users\\\\DEEPAN PRAMANICK\\\\Desktop\\\\IEM PHOTOGRAPHY CLUB UNLEASED\\\\public\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); const lines=fs.readFileSync\\('src/MainPage.jsx','utf8'\\).split\\('\\\\n'\\); console.log\\(lines.slice\\(1979,2320\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); const lines=fs.readFileSync\\('src/pages/admin/AdminDashboard.jsx','utf8'\\).split\\('\\\\n'\\); console.log\\(lines.slice\\(5939,6115\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(git add *)",
+      "Bash(awk -F: '$2>=1410 && $2<=2350 {print}')",
+      "Bash(grep -n \"CreateFAB\\\\|DownloadingOverlay\\\\|<\\\\/div>\" \"c:/Users/DEEPAN PRAMANICK/Desktop/IEM PHOTOGRAPHY CLUB UNLEASED/src/pages/admin/AdminDashboard.jsx\")",
+      "Bash(awk -F: '$2>=2700 && $2<=2760')",
+      "Bash(awk -F: '$2>=5100 && $2<=5520')",
+      "Bash(xargs grep -l \"EventsTab\\\\|CompetitionsAdminTab\\\\|ActivitiesAdminTab\")",
+      "Bash(grep -v \"//\\\\|Uploading\\\\.\\\\.\\\\.\\\\|uploading ? \\\\|uploading |canUpload\\\\|isUploading\\\\|notUploading\")",
+      "Bash(grep -v \"//\\\\|text-overflow\")"
     ]
   }
 }

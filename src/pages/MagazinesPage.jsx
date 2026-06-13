@@ -6,6 +6,7 @@ import { getTemplateById } from '../components/magazine/templates.js'
 import TemplatePage from '../components/magazine/TemplatePage.jsx'
 import MagazineViewer from '../components/magazine/MagazineViewer.jsx'
 import { useTheme } from '../App.jsx'
+import { SkeletonBookGrid } from '../components/Skeleton.jsx'
 
 const SPINE_W = 11
 const PAGES_W = 4
@@ -187,12 +188,12 @@ export default function MagazinesPage() {
         <div className={'px-5 sm:px-8 pt-3 pb-4 text-center border-b '
           + (L ? 'bg-white border-black/5' : 'bg-[#08080c] border-white/5')}>
 
-          <h1 className={'font-breathing italic font-semibold ' + (L ? 'text-gray-900' : 'text-white')}
+          <h1 className={'pl-heading-in font-breathing italic font-semibold ' + (L ? 'text-gray-900' : 'text-white')}
             style={{ fontSize:'clamp(2.2rem,5vw,3.8rem)', paddingBottom:'2.2rem' }}>
             Magazines
           </h1>
 
-          <p className={'font-inter ' + (L ? 'text-gray-500' : 'text-gray-500')}
+          <p className={'pl-subtitle-in font-inter ' + (L ? 'text-gray-500' : 'text-gray-500')}
             style={{ fontSize:12, marginBottom:10 }}>
             Stories crafted by our community
           </p>
@@ -211,10 +212,7 @@ export default function MagazinesPage() {
         {/* ── Grid — 6 cols PC, 2 cols mobile ── */}
         <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
           {loading ? (
-            <p className={'text-center py-16 font-inter text-sm animate-pulse '
-              + (L ? 'text-gray-400' : 'text-gray-600')}>
-              Loading magazines…
-            </p>
+            <SkeletonBookGrid n={6} className="pl-section-in" />
           ) : error ? (
             <p className="text-center py-16 font-inter text-sm text-red-400">{error}</p>
           ) : filtered.length === 0 ? (
@@ -227,7 +225,7 @@ export default function MagazinesPage() {
             </div>
           ) : (
             <div
-              className="grid grid-cols-2 sm:grid-cols-6"
+              className="pl-section-in grid grid-cols-2 sm:grid-cols-6"
               style={{ gap:'28px 14px' }}>
               {filtered.map(mag => {
                 const tpl = getTemplateById(mag.templateId)

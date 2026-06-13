@@ -1,9 +1,12 @@
 import { useState }     from 'react'
+import { Link }         from 'react-router-dom'
 import PageLayout       from '../components/PageLayout.jsx'
 import { membersApi }   from '../api/api.js'
 import { useTheme }     from '../App.jsx'
 import { useData }      from '../hooks/useData.js'
 import { currentSession } from '../utils/yearCalc.js'
+import { SkeletonPhotoGrid } from '../components/Skeleton.jsx'
+import ProgressiveImage from '../components/ProgressiveImage.jsx'
 
 // Sort: seniors (lowest endYear) first, then alphabetical
 function sortByYearThenName(arr) {
@@ -82,8 +85,8 @@ function MemberPortraitCard({ member, index = 0, L, isAlumni = false }) {
           <BorderBeam speed={beamSpeed} c1={beamC1} c2={beamC2} delay={delay} />
           <div className="group relative rounded-[10px] overflow-hidden" style={{ aspectRatio:'3/4', background: cardBg }}>
             {member.profilePhoto
-              ? <img src={member.profilePhoto} alt={member.name}
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-600" />
+              ? <ProgressiveImage src={member.profilePhoto} alt={member.name}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               : <div className="absolute inset-0 flex items-center justify-center">
                   <span className="font-clash font-black"
                     style={{
@@ -217,7 +220,7 @@ export default function MembersPage() {
           <div className="flex flex-wrap items-end justify-between gap-4">
 
             <div>
-              <h1 className={`font-breathing italic font-semibold leading-[1.05] mb-1 ${L?'text-gray-900':'text-white'}`}
+              <h1 className={`pl-heading-in font-breathing italic font-semibold leading-[1.05] mb-1 ${L?'text-gray-900':'text-white'}`}
                 style={{ fontSize:'clamp(1.6rem,4.5vw,2.8rem)' }}>
                 Club Members
               </h1>
@@ -289,7 +292,7 @@ export default function MembersPage() {
           )}
 
           {(loading || (!isCurrentSess && passoutLoading)) ? (
-            <p className={`py-12 text-center font-inter text-sm animate-pulse ${L?'text-gray-400':'text-gray-600'}`}>Loading…</p>
+            <SkeletonPhotoGrid n={12} ratio="1" className="pl-section-in" />
           ) : filtered.length === 0 ? (
             <div className="py-12 text-center">
               <p className={`font-inter text-sm ${L?'text-gray-400':'text-gray-600'}`}>
@@ -301,12 +304,16 @@ export default function MembersPage() {
               )}
             </div>
           ) : (
-            <div className="space-y-6 sm:space-y-20">
+            <div className="pl-section-in space-y-6 sm:space-y-20">
 
               {core.length > 0 && (
                 <RoleSection label="Core" color="#ef4444" count={core.length} L={L}>
                   <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-4 md:gap-5">
-                    {core.map((m, i) => <MemberPortraitCard key={m._id} member={m} index={i} L={L} isAlumni={!isCurrentSess} />)}
+                    {core.map((m, i) => (
+                      <Link key={m._id} to={`/members/${m._id}`} className="block">
+                        <MemberPortraitCard member={m} index={i} L={L} isAlumni={!isCurrentSess} />
+                      </Link>
+                    ))}
                   </div>
                 </RoleSection>
               )}
@@ -314,7 +321,11 @@ export default function MembersPage() {
               {coordinators.length > 0 && (
                 <RoleSection label="Coordinators" color="#3b82f6" count={coordinators.length} L={L}>
                   <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-4 md:gap-5">
-                    {coordinators.map((m, i) => <MemberPortraitCard key={m._id} member={m} index={coordOffset + i} L={L} isAlumni={!isCurrentSess} />)}
+                    {coordinators.map((m, i) => (
+                      <Link key={m._id} to={`/members/${m._id}`} className="block">
+                        <MemberPortraitCard member={m} index={coordOffset + i} L={L} isAlumni={!isCurrentSess} />
+                      </Link>
+                    ))}
                   </div>
                 </RoleSection>
               )}
@@ -322,7 +333,11 @@ export default function MembersPage() {
               {photographers.length > 0 && (
                 <RoleSection label="Photographers" color={L?'#6b7280':'#9ca3af'} count={photographers.length} L={L}>
                   <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-4 md:gap-5">
-                    {photographers.map((m, i) => <MemberPortraitCard key={m._id} member={m} index={photoOffset + i} L={L} isAlumni={!isCurrentSess} />)}
+                    {photographers.map((m, i) => (
+                      <Link key={m._id} to={`/members/${m._id}`} className="block">
+                        <MemberPortraitCard member={m} index={photoOffset + i} L={L} isAlumni={!isCurrentSess} />
+                      </Link>
+                    ))}
                   </div>
                 </RoleSection>
               )}

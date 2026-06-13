@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar            from './components/Navbar'
 import RevealOnScroll    from './components/RevealOnScroll'
@@ -152,10 +152,20 @@ function SectionHeader({ tag, title, subtitle, href, L, center = false, sectionV
             <SectionToggle visible={sectionVisible} onToggle={onToggleSection} L={L} />
           )}
           {href && (
-            <Link to={href} className="glass-btn glass-pill inline-flex items-center gap-1.5 font-inter text-[10px] uppercase tracking-[0.18em]"
-              style={{ borderRadius:'50px', minHeight:'28px', padding:'0 14px' }}>
-              See more <ArrowRight size={9} />
-            </Link>
+            <>
+              <span className="sm:hidden">
+                <Link to={href} className="glass-btn glass-pill inline-flex items-center gap-1 font-inter text-[8px] uppercase tracking-[0.18em]"
+                  style={{ borderRadius: '50px', minHeight: '22px', padding: '0 10px' }}>
+                  See more <ArrowRight size={7} />
+                </Link>
+              </span>
+              <span className="hidden sm:inline">
+                <Link to={href} className="glass-btn glass-pill inline-flex items-center gap-1.5 font-inter text-[10px] uppercase tracking-[0.18em]"
+                  style={{ borderRadius: '50px', minHeight: '28px', padding: '0 14px' }}>
+                  See more <ArrowRight size={9} />
+                </Link>
+              </span>
+            </>
           )}
         </div>
       </div>
@@ -483,7 +493,7 @@ function MemberRoleCard({ m, accent, index = 0, L }) {
       {/* Float wrapper */}
       <div className="w-full" style={{ animation:`${floatKf} ${floatDur} ease-in-out infinite`, animationDelay:delay }}>
         {/* 1.5px padding = visible "border" area for the beam */}
-        <div className="relative w-full rounded-xl overflow-hidden" style={{ padding:'1.5px', cursor:'default' }}
+        <div className="relative w-full rounded-xl overflow-hidden" style={{ padding:'1.5px', cursor:'pointer' }}
           onMouseEnter={e => { e.currentTarget.style.transform = isRed ? 'scale(1.08) translateY(-4px)' : 'scale(1.06) translateY(-3px)'; e.currentTarget.style.transition = 'transform 280ms cubic-bezier(0.22,1,0.36,1)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = ''; }}>
           <BorderBeam speed={beamSpeed} color1={beamC1} color2={beamC2} delay={delay} />
@@ -1171,48 +1181,105 @@ function EventCinemaGallery({ L, showPast = true }) {
 }
 
 // ── Club gallery 6-cell grid — central state so each cell shows a DIFFERENT photo ─
-function ClubGalleryCells({ photos }) {
-  const n = photos.length
-  const [cellIdx, setCellIdx] = useState(() => [0,1,2,3,4,5].map(i => Math.floor(i * Math.max(1,n) / 6) % Math.max(1,n)))
-  const [fade,    setFade]    = useState([true,true,true,true,true,true])
+// ── Flowing gallery row ────────────────────────────────────────────────────────
+const FlowRow = forwardRef(function FlowRow({ photos, speed = 0.5, pausedRef, className = '' }, ref) {
+  const trackRef = useRef()
+  const posRef   = useRef(0)
+  const dragRef  = useRef(null)
+  const rafRef   = useRef()
 
-  // Smart cycling: each cell picks a photo not shown by others
+  useImperativeHandle(ref, () => ({
+    nudge(delta) { posRef.current += delta }
+  }))
+
   useEffect(() => {
-    if (n <= 1) return
-    const RATES = [3400, 4200, 3800, 5000, 3600, 4600]
-    const timers = RATES.map((ms, ci) =>
-      setInterval(() => {
-        setCellIdx(prev => {
-          const taken   = new Set(prev.filter((_,j)=>j!==ci))
-          let   attempt = (prev[ci]+1) % n
-          for (let k=0; k<n; k++) { if (!taken.has(attempt)) break; attempt=(attempt+1)%n }
-          const next = [...prev]; next[ci]=attempt; return next
-        })
-        setFade(f => { const nf=[...f]; nf[ci]=false; setTimeout(()=>setFade(ff=>{const x=[...ff];x[ci]=true;return x}),350); return nf })
-      }, ms)
-    )
-    return () => timers.forEach(clearInterval)
-  }, [n])
+    const track = trackRef.current
+    if (!track || !photos.length) return
+    const id = requestAnimationFrame(() => {
+      const tick = () => {
+        if (!pausedRef.current && !dragRef.current) {
+          const halfWidth = track.scrollWidth / 2
+          if (halfWidth > 0) {
+            posRef.current += speed
+            if (posRef.current >= halfWidth) posRef.current -= halfWidth
+            track.style.transform = `translateX(-${posRef.current}px)`
+          }
+        }
+        rafRef.current = requestAnimationFrame(tick)
+      }
+      rafRef.current = requestAnimationFrame(tick)
+    })
+    return () => { cancelAnimationFrame(id); cancelAnimationFrame(rafRef.current) }
+  }, [photos, speed, pausedRef])
 
-  if (!n) return null
+  const startDrag = (x) => { dragRef.current = { x, startPos: posRef.current } }
+  const moveDrag  = (x) => {
+    if (!dragRef.current || !trackRef.current) return
+    const halfWidth = trackRef.current.scrollWidth / 2
+    let next = dragRef.current.startPos + (dragRef.current.x - x)
+    if (halfWidth > 0) { while (next >= halfWidth) next -= halfWidth; while (next < 0) next += halfWidth }
+    posRef.current = next
+    trackRef.current.style.transform = `translateX(-${posRef.current}px)`
+  }
+  const endDrag = () => { dragRef.current = null }
+
   return (
-    // Mobile: 2 cols × 3 rows (all 6 visible, fills more screen)
-    // Desktop: 3 cols × 2 rows
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3"
-      style={{ gridAutoRows: 'clamp(130px, 28vw, 200px)' }}>
-      {[0,1,2,3,4,5].map((slot, i) => {
-        const photo = photos[cellIdx[i] % n]
-        return (
-          <div key={slot} className="overflow-hidden"
-            style={{ height:'clamp(130px, 28vw, 200px)' }}>
-            {photo && (
-              <img src={photo.imageUrl} alt=""
-                className="w-full h-full object-cover"
-                style={{ opacity: fade[i] ? 1 : 0, transition: 'opacity 350ms ease' }} />
-            )}
+    <div className={`overflow-hidden cursor-grab active:cursor-grabbing ${className}`}
+      onMouseDown={e => startDrag(e.clientX)} onMouseMove={e => moveDrag(e.clientX)}
+      onMouseUp={endDrag} onMouseLeave={endDrag}
+      onTouchStart={e => startDrag(e.touches[0].clientX)}
+      onTouchMove={e => moveDrag(e.touches[0].clientX)}
+      onTouchEnd={endDrag}>
+      <div ref={trackRef} className="flex gap-2 sm:gap-3" style={{ width: 'max-content', willChange: 'transform' }}>
+        {[...photos, ...photos].map((p, i) => (
+          <div key={i} className="shrink-0 overflow-hidden rounded-xl sm:rounded-2xl"
+            style={{ height: 'clamp(112px, 19vw, 196px)', width: 'clamp(152px, 25.5vw, 264px)' }}>
+            <img src={p.imageUrl} alt="" className="w-full h-full object-cover pointer-events-none" draggable={false} />
           </div>
-        )
-      })}
+        ))}
+      </div>
+    </div>
+  )
+})
+
+// ── Flowing gallery — 2 rows desktop / 3 rows mobile ─────────────────────────
+function FlowingGallery({ photos, L }) {
+  const pausedRef = useRef(false)
+  const r0 = useRef(), r1 = useRef(), r2 = useRef()
+
+  if (photos.length < 3) return null
+
+  const rows = [[], [], []]
+  photos.forEach((p, i) => rows[i % 3].push(p))
+
+  const nudge = (dir) => { const d = dir * 260; r0.current?.nudge(d); r1.current?.nudge(d); r2.current?.nudge(d) }
+
+  const edgeFade = L ? 'rgb(248,249,252)' : 'rgb(6,6,8)'
+
+  return (
+    <div className="relative select-none -mx-5 sm:-mx-8">
+
+      {/* Edge fade */}
+      <div className="absolute inset-y-0 left-0 w-10 sm:w-16 z-10 pointer-events-none"
+        style={{ background: `linear-gradient(to right, ${edgeFade}, transparent)` }} />
+      <div className="absolute inset-y-0 right-0 w-10 sm:w-16 z-10 pointer-events-none"
+        style={{ background: `linear-gradient(to left, ${edgeFade}, transparent)` }} />
+
+      <div className="space-y-2 sm:space-y-3">
+        <FlowRow ref={r0} photos={rows[0]} speed={0.40} pausedRef={pausedRef} />
+        <FlowRow ref={r1} photos={rows[1]} speed={0.32} pausedRef={pausedRef} />
+        <FlowRow ref={r2} photos={rows[2]} speed={0.36} pausedRef={pausedRef} className="sm:hidden" />
+      </div>
+
+      {/* Arrow buttons */}
+      <button onClick={() => nudge(-1)} aria-label="Previous"
+        className={`absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center backdrop-blur-md border transition-all ${L?'bg-white/80 border-black/10 text-gray-700 hover:bg-white shadow-sm':'bg-black/60 border-white/10 text-white hover:bg-black/80'}`}>
+        <ChevronLeft size={15} />
+      </button>
+      <button onClick={() => nudge(1)} aria-label="Next"
+        className={`absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center backdrop-blur-md border transition-all ${L?'bg-white/80 border-black/10 text-gray-700 hover:bg-white shadow-sm':'bg-black/60 border-white/10 text-white hover:bg-black/80'}`}>
+        <ChevronRight size={15} />
+      </button>
     </div>
   )
 }
@@ -1224,7 +1291,7 @@ function HomeSections({ L, onJoin }) {
   const isAdminOrCore = user && ['admin','core'].includes(user.role)
 
   const { data: cardData } = useData(() => postcardsApi.list({ limit: 12 }), 5000)
-  const { data: galData  } = useData(() => galleryApi.getPhotos({ type:'club', limit: 12 }), 5000)
+  const { data: galData  } = useData(() => galleryApi.getPhotos({ type:'club', limit: 24 }), 5000)
   const { data: memData  } = useData(() => membersApi.list(),                5000)
   const { data: coreData } = useData(() => coreApi.list(),                   5000)
   const { data: socData  } = useData(() => socialApi.list(),                 5000)
@@ -1499,7 +1566,7 @@ function HomeSections({ L, onJoin }) {
                 <p className={`font-inter text-sm ${L?'text-gray-600':'text-gray-400'}`}>Gallery coming soon</p>
               </div>
             ) : (
-              <ClubGalleryCells photos={photos} />
+              <FlowingGallery photos={photos} L={L} />
             )}
           </div>
         </div>
@@ -1611,7 +1678,7 @@ function HomeSections({ L, onJoin }) {
                                  : m.role === 'coordinator' ? <MemberRoleCard   m={m} accent="blue" index={i} L={L} />
                                  : <MemberCompactCard m={m} index={i} L={L} />
                       return (
-                        <div key={m._id} className={`reveal-card ${desktopOnly ? 'hidden lg:block' : ''}`}>
+                        <Link key={m._id} to={`/members/${m._id}`} className={`reveal-card block ${desktopOnly ? 'hidden lg:block' : ''}`}>
                           {isMemPast ? (
                             <div>
                               <div style={{ filter:'grayscale(0.82) brightness(0.72)', transition:'filter 300ms ease' }}
@@ -1625,7 +1692,7 @@ function HomeSections({ L, onJoin }) {
                               </p>
                             </div>
                           ) : card}
-                        </div>
+                        </Link>
                       )
                     })}
                     {/* "+N more" only in expanded state when capped */}
@@ -1743,7 +1810,15 @@ function HomeSections({ L, onJoin }) {
                 <div className="min-w-0 flex-1 sm:flex-none">
                   <p className={`font-inter text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider mb-2.5 ${L?'text-gray-500':'text-gray-500'}`}>{year}</p>
                   <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                    {sortCore(byYear[year]).map((m, i) => <CoreCard key={m._id} m={m} isCurr={false} index={i} L={L} />)}
+                    {sortCore(byYear[year]).map((m, i) => {
+                      const userId = m.linkedUser?._id || (typeof m.linkedUser === 'string' ? m.linkedUser : null)
+                      const to = userId ? `/members/${userId}` : `/core-member/${m._id}`
+                      return (
+                        <Link key={m._id} to={to} className="block">
+                          <CoreCard m={m} isCurr={false} index={i} L={L} />
+                        </Link>
+                      )
+                    })}
                   </div>
                 </div>
               </div>
@@ -1762,9 +1837,15 @@ function HomeSections({ L, onJoin }) {
                         <span className={`font-inter text-[9px] px-1.5 py-0.5 rounded-full ${L?'bg-red-50 text-red-600':'bg-red-900/30 text-red-400'}`}>Current</span>
                       </div>
                       <div className="sec-content flex flex-wrap gap-2 sm:gap-2.5">
-                        {sortCore(byYear[currentYear]).map((m, i) => (
-                          <div key={m._id} className="reveal-card"><CoreCard m={m} isCurr={true} index={i} L={L} /></div>
-                        ))}
+                        {sortCore(byYear[currentYear]).map((m, i) => {
+                          const userId = m.linkedUser?._id || (typeof m.linkedUser === 'string' ? m.linkedUser : null)
+                          const to = userId ? `/members/${userId}` : `/core-member/${m._id}`
+                          return (
+                            <Link key={m._id} to={to} className="reveal-card block">
+                              <CoreCard m={m} isCurr={true} index={i} L={L} />
+                            </Link>
+                          )
+                        })}
                       </div>
                     </div>
                   )}
@@ -1972,8 +2053,10 @@ export default function MainPage({ onLoginSuccess }) {
   const [mousePos,      setMousePos]      = useState({ x: 0, y: 0 })
   const [titleRevealed, setTitleRevealed] = useState(false)
   const [mobileGlitch,  setMobileGlitch]  = useState(false)
-  const [deskVideoReady, setDeskVideoReady] = useState(false)
-  const [mobVideoReady,  setMobVideoReady]  = useState(false)
+  // Skip the loader when the hero has already played this session (e.g. back-navigation).
+  const heroShownThisSession = sessionStorage.getItem('iempc_hero_shown') === '1'
+  const [deskVideoReady, setDeskVideoReady] = useState(heroShownThisSession)
+  const [mobVideoReady,  setMobVideoReady]  = useState(heroShownThisSession)
   const [heroReveal,     setHeroReveal]     = useState(false)   // drives navbar + content fade-in (synced)
   const [videoProgress,  setVideoProgress]  = useState(0)       // 0–1, for the bottom intro loader
   const glitchTimer  = useRef(null)
@@ -2048,11 +2131,26 @@ export default function MainPage({ onLoginSuccess }) {
 
   // Reset intro state whenever the active theme changes
   useEffect(() => {
+    if (activeTheme?._id === undefined) return   // skip initial undefined
     clearTimeout(heroIntroTimer.current)
     setAfterPlayBlurOn(false)
     setVideoProgress(0)
     setHeroTextRevealed(themeIntroMode === 'immediate')
-  }, [activeTheme?._id, themeIntroMode])
+  }, [activeTheme?._id, themeIntroMode]) // eslint-disable-line
+
+  // When the admin actually switches to a DIFFERENT theme (not just initial API load),
+  // force the video loader to show once for the new video.
+  // We track the previous ID with a ref so "undefined → real ID on mount" is not treated as a switch.
+  const prevThemeIdRef = useRef(null)
+  useEffect(() => {
+    if (!activeTheme?._id) return
+    if (prevThemeIdRef.current !== null && prevThemeIdRef.current !== activeTheme._id) {
+      sessionStorage.removeItem('iempc_hero_shown')
+      setDeskVideoReady(false)
+      setMobVideoReady(false)
+    }
+    prevThemeIdRef.current = activeTheme._id
+  }, [activeTheme?._id]) // eslint-disable-line
 
   // Track video playback progress (0–1) for the bottom intro loader
   const handleVideoTimeUpdate = (e) => {
@@ -2086,13 +2184,14 @@ export default function MainPage({ onLoginSuccess }) {
     if (saved) {
       try { localStorage.setItem('desktopHeroMode', saved) } catch {}
       setDesktopHeroMode(prev => {
-        if (prev !== saved) { setDeskVideoReady(false); setMobVideoReady(false) }
+        if (prev !== saved) { setDeskVideoReady(false); setMobVideoReady(false); sessionStorage.removeItem('iempc_hero_shown') }
         return saved
       })
     }
   }, [heroSettingData])
 
   const toggleDesktopHero = () => {
+    sessionStorage.removeItem('iempc_hero_shown')
     setDeskVideoReady(false)
     setDesktopHeroMode(m => {
       const next = m === 'classic' ? 'video' : 'classic'
@@ -2149,6 +2248,39 @@ export default function MainPage({ onLoginSuccess }) {
     const t = setTimeout(() => { setDeskVideoReady(true); setMobVideoReady(true) }, 9000)
     return () => clearTimeout(t)
   }, [heroHasVideo, videoReady])
+
+  // Mark hero as seen once it's ready — so back-navigation skips the loader entirely.
+  useEffect(() => {
+    if (videoReady) sessionStorage.setItem('iempc_hero_shown', '1')
+  }, [videoReady])
+
+  // Continuously save scroll position during main-page browsing so back-navigation
+  // can restore the exact spot (SPA nav never fires beforeunload, so App.jsx can't save it).
+  useEffect(() => {
+    let ticking = false
+    const handler = () => {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(() => {
+        sessionStorage.setItem('iempc_scroll_y',    String(window.scrollY))
+        sessionStorage.setItem('iempc_scroll_path', '/')
+        ticking = false
+      })
+    }
+    window.addEventListener('scroll', handler, { passive: true })
+    return () => window.removeEventListener('scroll', handler)
+  }, [])
+
+  // Restore scroll when returning via back-navigation (intro already seen → no lock).
+  useEffect(() => {
+    if (!heroShownThisSession) return          // fresh visit — let intro play, don't scroll
+    const savedPath = sessionStorage.getItem('iempc_scroll_path')
+    const savedY    = parseInt(sessionStorage.getItem('iempc_scroll_y') || '0', 10)
+    if (savedPath === '/' && savedY > 0) {
+      const t = setTimeout(() => window.scrollTo({ top: savedY, behavior: 'instant' }), 80)
+      return () => clearTimeout(t)
+    }
+  }, []) // eslint-disable-line
 
   // Lock scroll/interaction until the intro completes (pre-video load for any mode;
   // and through the full timed / after-first-play sequence until the text arrives).

@@ -11,6 +11,7 @@ import { useTheme, useAuth } from '../App.jsx'
 import { useData }           from '../hooks/useData.js'
 import ContextAnnouncementStudio from '../components/announcement/ContextAnnouncementStudio.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
+import { SkeletonCardGrid } from '../components/Skeleton.jsx'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const statusCfg = {
@@ -181,7 +182,7 @@ function CompCard({ comp, L, delay = 0, userRole = null }) {
       {/* Banner with name overlay */}
       <div className="relative overflow-hidden shrink-0" style={{ height:'clamp(130px,15vw,175px)' }}>
         {comp.bannerUrl
-          ? <img src={comp.bannerUrl} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.07]" />
+          ? <ProgressiveImage src={comp.bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.07]" />
           : <div className="w-full h-full flex items-center justify-center" style={{ background:'linear-gradient(135deg,#1a0010,#0a0a1e)' }}>
               <span className="font-clash font-black text-white/5" style={{ fontSize:'clamp(60px,8vw,100px)' }}>{comp.name[0]}</span>
             </div>}
@@ -255,7 +256,7 @@ function PastCard({ comp, L, delay = 0 }) {
         style={{ background:`linear-gradient(135deg,rgba(255,255,255,${L?'0.15':'0.04'}) 0%,transparent 45%)` }} />
       <div className="relative overflow-hidden" style={{ height:'clamp(120px,13vw,160px)' }}>
         {comp.bannerUrl
-          ? <img src={comp.bannerUrl} alt="" className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-600" />
+          ? <ProgressiveImage src={comp.bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-600" />
           : <div className="w-full h-full flex items-center justify-center" style={{ background: L ? 'linear-gradient(135deg,#e2e6f0,#d8dde8)' : 'linear-gradient(135deg,#111,#1a1a2e)' }}>
               <span className="font-clash text-6xl font-black" style={{ color: L ? 'rgba(163,177,200,0.18)' : 'rgba(255,255,255,0.06)' }}>{comp.name[0]}</span>
             </div>}
@@ -385,6 +386,7 @@ function CompGalleryTab({ comp, setComp, canUpload, canReorder, isPrivileged, L 
   const [photos, setPhotos]         = useState([...(comp.gallery||[])].sort((a,b)=>(a.order||0)-(b.order||0)))
   const [lightbox, setLightbox]     = useState(null)
   const [uploading, setUploading]   = useState(false)
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 })
   const [files, setFiles]           = useState([])
   const [previews, setPreviews]     = useState([])
   const [msg, setMsg]               = useState('')
@@ -402,11 +404,12 @@ function CompGalleryTab({ comp, setComp, canUpload, canReorder, isPrivileged, L 
   const uploadPhotos = async (e) => {
     e.preventDefault()
     if (!files.length) return
-    setUploading(true); setMsg('')
+    setUploading(true); setMsg(''); setUploadProgress({ current: 0, total: files.length })
     let uploaded = 0
     try {
-      for (const file of files) {
-        const { key, publicUrl } = await uploadFileToS3(file, 'competitions')
+      for (let i = 0; i < files.length; i++) {
+        setUploadProgress({ current: i + 1, total: files.length })
+        const { key, publicUrl } = await uploadFileToS3(files[i], 'competitions')
         const d = await competitionsApi.addGalleryPhoto(comp._id, { imageUrl: publicUrl, s3Key: key })
         const newPhoto = d.competition?.gallery?.slice(-1)[0]
         if (newPhoto) setPhotos(p => [...p, newPhoto])
@@ -415,7 +418,7 @@ function CompGalleryTab({ comp, setComp, canUpload, canReorder, isPrivileged, L 
       setFiles([]); setPreviews([])
       setMsg('Uploaded ' + uploaded + ' photo' + (uploaded>1?'s':'') + '!')
     } catch (err) { setMsg(err.message) }
-    finally { setUploading(false) }
+    finally { setUploading(false); setUploadProgress({ current: 0, total: 0 }) }
   }
 
   const handleDragStart = (i) => setDragIdx(i)
@@ -499,6 +502,18 @@ function CompGalleryTab({ comp, setComp, canUpload, canReorder, isPrivileged, L 
               </label>
             )}
             {msg && <p className={'font-inter text-xs ' + (msg.startsWith('Upload')?'text-green-400':'text-red-400')}>{msg}</p>}
+            {uploading && (
+              <div className="flex items-center gap-2.5">
+                <div className="w-3.5 h-3.5 border-2 border-red-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                <span className="font-inter text-xs text-gray-400">
+                  Uploading {uploadProgress.current} of {uploadProgress.total}…
+                </span>
+                <div className="flex-1 h-1 bg-white/8 rounded-full overflow-hidden">
+                  <div className="h-full bg-red-500 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress.total ? Math.round(uploadProgress.current / uploadProgress.total * 100) : 0}%` }} />
+                </div>
+              </div>
+            )}
             <GlassButton type="submit" variant="red" disabled={uploading || !files.length}
               className="w-full font-inter text-sm" style={{ borderRadius:'12px', minHeight:'42px' }}>
               {uploading ? 'Uploading...' : 'Upload ' + (files.length > 0 ? files.length + ' Photo' + (files.length>1?'s':'') : 'Photos')}
@@ -912,9 +927,29 @@ function CompetitionDetailPage({ id }) {
 
 
   if (loading) return (
-    <PageLayout><div className="min-h-screen flex items-center justify-center">
-      <p className="font-inter text-sm text-gray-500 animate-pulse">Loading competition...</p>
-    </div></PageLayout>
+    <PageLayout title={null}>
+      <div className={`min-h-screen ${L ? 'bg-gray-50' : 'bg-[#060608]'}`}>
+        <div className="relative overflow-hidden" style={{ minHeight:'clamp(100px,18vw,190px)', background:'#060814' }}>
+          <div className="px-4 sm:px-8 pt-4 pb-4 max-w-5xl mx-auto flex items-start gap-3 sm:gap-4">
+            <div className="skeleton-shimmer rounded-xl shrink-0" style={{ width:'clamp(64px,9vw,80px)', height:'clamp(64px,9vw,80px)' }} />
+            <div className="flex-1 space-y-2 pt-1">
+              <div className="skeleton-shimmer rounded-full" style={{ width:64, height:18 }} />
+              <div className="skeleton-shimmer rounded-lg" style={{ width:'58%', height:26 }} />
+              <div className="skeleton-shimmer rounded" style={{ width:'38%', height:13 }} />
+            </div>
+          </div>
+        </div>
+        <div className={`border-b ${L ? 'border-black/5 bg-white' : 'border-white/5 bg-[#060608]'}`}>
+          <div className="max-w-5xl mx-auto px-4 sm:px-8 flex gap-6 py-3.5">
+            {[58, 48, 62, 70].map((w, i) => <div key={i} className="skeleton-shimmer rounded" style={{ width:w, height:13 }} />)}
+          </div>
+        </div>
+        <div className="max-w-5xl mx-auto px-4 sm:px-8 py-6 space-y-4">
+          <div className="skeleton-shimmer rounded-2xl" style={{ height:200 }} />
+          <div className="skeleton-shimmer rounded-2xl" style={{ height:120 }} />
+        </div>
+      </div>
+    </PageLayout>
   )
   if (!comp) return (
     <PageLayout><div className="min-h-screen flex items-center justify-center">
@@ -997,8 +1032,8 @@ function CompetitionDetailPage({ id }) {
             {/* Row 1: Logo + Title */}
             <div className="flex items-start gap-3 sm:gap-4">
               {comp.bannerUrl && (
-                <div className="shrink-0 rounded-xl overflow-hidden border border-white/20 shadow-lg" style={{ width:'clamp(44px,8vw,64px)', height:'clamp(44px,8vw,64px)' }}>
-                  <img src={comp.bannerUrl} alt={comp.name} className="w-full h-full object-cover" />
+                <div className="relative shrink-0 rounded-xl overflow-hidden border border-white/20 shadow-lg" style={{ width:'clamp(44px,8vw,64px)', height:'clamp(44px,8vw,64px)' }}>
+                  <ProgressiveImage src={comp.bannerUrl} alt={comp.name} className="absolute inset-0 w-full h-full object-cover" />
                 </div>
               )}
               <div className="min-w-0 flex-1">
@@ -1400,11 +1435,11 @@ export default function CompetitionsPage() {
         {/* ── Header ── */}
         <div className={`border-b px-5 sm:px-8 pt-1 sm:pt-5 pb-3 sm:pb-6 ${L?'bg-white border-black/5':'bg-[#08080c] border-white/5'}`}>
           <div className="max-w-6xl mx-auto text-center">
-            <h1 className={`font-inter font-bold leading-none ${L?'text-gray-900':'text-white'}`}
+            <h1 className={`pl-heading-in font-inter font-bold leading-none ${L?'text-gray-900':'text-white'}`}
               style={{ fontSize:'clamp(2.2rem,5.5vw,3.6rem)' }}>
               Competitions
             </h1>
-            <p className={`font-inter text-xs sm:text-sm mt-2 sm:mt-5 ${L?'text-gray-400':'text-gray-500'}`}>Showcase your craft. Compete. Win recognition.</p>
+            <p className={`pl-subtitle-in font-inter text-xs sm:text-sm mt-2 sm:mt-5 ${L?'text-gray-400':'text-gray-500'}`}>Showcase your craft. Compete. Win recognition.</p>
             {active.length > 0 && (
               <div className="mt-2 sm:mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-green-700/40 bg-green-900/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
@@ -1455,7 +1490,7 @@ export default function CompetitionsPage() {
             })}
           </div>
 
-          {loading && <p className={`text-center py-12 font-inter text-sm animate-pulse ${L?'text-gray-400':'text-gray-600'}`}>Loading competitions…</p>}
+          {loading && <SkeletonCardGrid n={6} ratio="16/9" className="pl-section-in" />}
 
           {!loading && isPastSession && (
             <div className="mb-4">
@@ -1476,7 +1511,7 @@ export default function CompetitionsPage() {
 
           {/* All view: live + past sections */}
           {filter === 'all' && !loading && (
-            <>
+            <div className="pl-section-in space-y-3 sm:space-y-4">
               {live.length > 0 && (
                 <section>
                   <div className="flex items-center gap-2 mb-2.5">
@@ -1498,12 +1533,12 @@ export default function CompetitionsPage() {
                   </div>
                 </section>
               )}
-            </>
+            </div>
           )}
 
           {/* Filtered view */}
           {filter !== 'all' && !loading && displayed.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="pl-section-in grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {displayed.map((c,i) => filter==='past'
                 ? <PastCard key={c._id} comp={c} L={L} delay={i*70}/>
                 : <CompCard key={c._id} comp={c} L={L} delay={i*70} userRole={getUserRole(c)}/>
