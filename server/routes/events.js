@@ -5,6 +5,7 @@ import Announcement from '../models/Announcement.js'
 import User         from '../models/User.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { deleteObject }             from '../utils/s3.js'
+import GalleryPhoto                from '../models/GalleryPhoto.js'
 
 const router = Router()
 const senior = [requireAuth, requireRole('admin', 'core')]
@@ -223,7 +224,13 @@ router.delete('/:id', [requireAuth, requireRole('admin','core')], async (req, re
   try {
     const event = await Event.findById(req.params.id)
     if (!event) return res.status(404).json({ error: 'Not found.' })
-    await deleteObject(event.logoS3Key)
+    // Delete all gallery photos for this event (separate collection)
+    const galleryPhotos = await GalleryPhoto.find({ event: event._id })
+    const galleryKeys = galleryPhotos.flatMap(p => [p.s3Key, p.mobileS3Key].filter(Boolean))
+    await Promise.all(galleryKeys.map(k => deleteObject(k).catch(() => {})))
+    await GalleryPhoto.deleteMany({ event: event._id })
+
+    if (event.logoS3Key) await deleteObject(event.logoS3Key).catch(() => {})
     await event.deleteOne()
     res.json({ message: 'Event deleted.' })
   } catch (e) { res.status(500).json({ error: e.message }) }

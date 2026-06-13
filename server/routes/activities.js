@@ -160,7 +160,12 @@ router.delete('/:id', admin, async (req, res) => {
   try {
     const act = await Activity.findById(req.params.id)
     if (!act) return res.status(404).json({ error: 'Not found.' })
-    const keys = [act.bannerS3Key, act.activityBannerS3Key, ...act.gallery.map(g => g.s3Key)].filter(Boolean)
+    const keys = [
+      act.bannerS3Key,
+      act.activityBannerS3Key,
+      ...act.gallery.map(g => g.s3Key),
+      ...act.gallery.map(g => g.mobileKey),
+    ].filter(Boolean)
     await Promise.all(keys.map(k => deleteObject(k)))
     await act.deleteOne()
     res.json({ message: 'Activity deleted.' })

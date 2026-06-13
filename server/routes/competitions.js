@@ -141,11 +141,16 @@ router.delete('/:id', [requireAuth, requireRole('admin','core')], async (req, re
     const comp = await Competition.findById(req.params.id)
     if (!comp) return res.status(404).json({ error: 'Not found.' })
     const keys = [
-      comp.bannerS3Key, comp.competitionBannerS3Key,
+      comp.bannerS3Key,
+      comp.competitionBannerS3Key,
       ...comp.gallery.map(g => g.s3Key),
       ...comp.gallery.map(g => g.mobileKey),
+      ...comp.winners.map(w => w.photoS3Key),
+      ...comp.winners.map(w => w.winningPhotoS3Key),
+      ...comp.judges.map(j => j.s3Key),
+      ...comp.submissions.map(s => s.s3Key),
     ].filter(Boolean)
-    await Promise.all(keys.map(k => deleteObject(k)))
+    await Promise.all(keys.map(k => deleteObject(k).catch(() => {})))
     await comp.deleteOne()
     res.json({ message: 'Competition deleted.' })
   } catch (e) { res.status(500).json({ error: e.message }) }

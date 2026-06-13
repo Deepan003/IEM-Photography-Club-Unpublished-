@@ -5,6 +5,8 @@ import CoreMember    from '../models/CoreMember.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { sendApprovalEmail, sendRejectionEmail } from '../utils/email.js'
 import { deleteObject } from '../utils/s3.js'
+import Competition      from '../models/Competition.js'
+import GalleryPhoto     from '../models/GalleryPhoto.js'
 
 // 60 admin API calls per minute — prevents scraping / enumeration
 const adminLimiter = rateLimit({
@@ -223,7 +225,7 @@ router.delete('/delete/:id', [requireAuth, requireRole('admin')], async (req, re
     if (user.role === 'admin') return res.status(400).json({ error: 'Cannot delete the admin account.' })
     const name = user.name
 
-    // Clean up all S3 objects before removing the document
+    // Personal files: profile photo, cover photo, personal gallery
     const s3Keys = [
       user.profilePhotoS3Key,
       user.coverPhotoS3Key,
@@ -231,6 +233,24 @@ router.delete('/delete/:id', [requireAuth, requireRole('admin')], async (req, re
       ...(user.gallery || []).map(p => p.mobileKey),
     ].filter(Boolean)
     await Promise.all(s3Keys.map(k => deleteObject(k).catch(() => {})))
+
+    // Competition submission photos across all competitions
+    const compsWithSubmissions = await Competition.find({ 'submissions.user': user._id })
+    const submissionKeys = compsWithSubmissions
+      .flatMap(c => c.submissions.filter(s => s.user?.toString() === user._id.toString()))
+      .map(s => s.s3Key)
+      .filter(Boolean)
+    await Promise.all(submissionKeys.map(k => deleteObject(k).catch(() => {})))
+    await Competition.updateMany(
+      { 'submissions.user': user._id },
+      { $pull: { submissions: { user: user._id } } }
+    )
+
+    // Nullify addedBy on club gallery photos (keep photos; they are club property)
+    await GalleryPhoto.updateMany(
+      { addedBy: user._id },
+      { $unset: { addedBy: 1 }, $set: { 'photographer.userId': null } }
+    )
 
     await User.deleteOne({ _id: req.params.id })
     res.json({ message: `${name}'s account and all data have been permanently deleted.` })
