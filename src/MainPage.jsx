@@ -1101,6 +1101,8 @@ function EventCinemaGallery({ L, showPast = true }) {
   }
   const cellAttr = (ci) => ci === 0 ? null : photos[cellIdx[ci] % photos.length]?.photographer
 
+  const touchStartX = useRef(0)
+
   const neoArrow = { background: L ? '#eef1f7' : '#181820', boxShadow: L ? '-3px -3px 8px rgba(255,255,255,0.90), 4px 4px 10px rgba(163,177,200,0.45), inset 0 1px 0 rgba(255,255,255,0.80)' : '-2px -2px 5px rgba(255,255,255,0.025),3px 3px 8px rgba(0,0,0,0.85)' }
 
   const GAP = 'clamp(5px, 0.9vw, 9px)'
@@ -1154,7 +1156,12 @@ function EventCinemaGallery({ L, showPast = true }) {
       </div>
 
       {/* ── MOBILE: 2-column 3-row grid — fills more of the screen ── */}
-      <div className="sm:hidden">
+      <div className="sm:hidden"
+        onTouchStart={e => { touchStartX.current = e.touches[0].clientX }}
+        onTouchEnd={e => {
+          const dx = e.changedTouches[0].clientX - touchStartX.current
+          if (Math.abs(dx) > 48 && events.length > 1) goEvent(dx < 0 ? 1 : -1)
+        }}>
         {(() => {
           const mSH = 'clamp(120px, 36vw, 170px)'   // taller cells on mobile
           const mGAP = 'clamp(4px, 1.5vw, 7px)'
