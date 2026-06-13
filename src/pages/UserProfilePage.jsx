@@ -445,11 +445,12 @@ export default function UserProfilePage() {
               </div>
 
               {/* Masonry grid */}
-              <div className="columns-2 sm:columns-3 gap-3">
+              <div className="columns-2 sm:columns-3" style={{ gap: '3px' }}>
                 {gallery.map((photo, i) => (
                   <div
                     key={photo._id || i}
-                    className="break-inside-avoid mb-3 rounded-xl overflow-hidden cursor-pointer group relative"
+                    className="break-inside-avoid overflow-hidden cursor-pointer group relative"
+                    style={{ marginBottom: '3px' }}
                     onClick={() => setLightboxIndex(i)}>
                     <ProgressiveImage
                       src={photo.url} mobileSrc={photo.mobileUrl}
