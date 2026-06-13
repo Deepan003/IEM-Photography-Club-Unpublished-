@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Link }       from 'react-router-dom'
 import PageLayout     from '../components/PageLayout.jsx'
 import { useData }    from '../hooks/useData.js'
@@ -74,7 +74,7 @@ function EventCard({ ev, L, index, dim = false }) {
       )}
 
       {/* Banner image */}
-      <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
+      <div className="relative overflow-hidden aspect-[4/3] sm:aspect-video">
         {banner ? (
           <ProgressiveImage src={banner} alt={ev.name}
             className="absolute inset-0 w-full h-full object-cover"
@@ -154,6 +154,58 @@ function EventCard({ ev, L, index, dim = false }) {
           transition:'background 400ms ease',
         }} />
     </Link>
+  )
+}
+
+// ── Swipeable paginated carousel for event cards ──────────────────────────────
+const PER_PAGE = 8
+
+function EventsCarousel({ events, L, dim = false }) {
+  const n = events.length
+  const pages = Math.ceil(n / PER_PAGE)
+  const [page, setPage] = useState(0)
+  const dragRef = useRef({ x: 0, on: false })
+
+  const go = (next) => {
+    const p = ((next % pages) + pages) % pages
+    setPage(p)
+  }
+
+  const onStart = (e) => {
+    dragRef.current = { x: e.clientX ?? e.touches?.[0]?.clientX ?? 0, on: true }
+  }
+  const onEnd = (e) => {
+    if (!dragRef.current.on) return
+    dragRef.current.on = false
+    const ex = e.clientX ?? e.changedTouches?.[0]?.clientX ?? dragRef.current.x
+    const dx = dragRef.current.x - ex
+    if (Math.abs(dx) > 40) go(page + (dx > 0 ? 1 : -1))
+  }
+  const onCancel = () => { dragRef.current.on = false }
+
+  const slice = events.slice(page * PER_PAGE, (page + 1) * PER_PAGE)
+
+  return (
+    <div>
+      <div
+        key={page}
+        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5 select-none"
+        style={{ cursor: pages > 1 ? 'grab' : 'default' }}
+        onMouseDown={onStart} onMouseUp={onEnd} onMouseLeave={onCancel}
+        onTouchStart={onStart} onTouchEnd={onEnd}>
+        {slice.map((ev, i) => <EventCard key={ev._id} ev={ev} L={L} index={i} dim={dim} />)}
+      </div>
+
+      {pages > 1 && (
+        <div className="flex justify-center items-center gap-1.5 mt-6">
+          {Array.from({ length: pages }).map((_, i) => (
+            <button key={i} onClick={() => go(i)}
+              className="rounded-full transition-all duration-300"
+              style={{ height: 5, width: i === page ? 22 : 5, background: i === page ? '#dc2626' : 'rgba(150,150,160,0.4)' }} />
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -330,9 +382,7 @@ export default function EventsGalleryPage() {
             </p>
           </div>
         ) : (
-          <div className="pl-section-in grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
-            {filtered.map((ev, i) => <EventCard key={ev._id} ev={ev} L={L} index={i} />)}
-          </div>
+          <EventsCarousel events={filtered} L={L} />
         )}
 
         {/* Past sessions — collapsed, respects showPast toggle */}
@@ -352,11 +402,7 @@ export default function EventsGalleryPage() {
                 {pastSessions.map(session => (
                   <div key={session} className="space-y-4">
                     <SessionDivider session={session} count={pastBySession[session].length} L={L} />
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
-                      {pastBySession[session].map((ev, i) => (
-                        <EventCard key={ev._id} ev={ev} L={L} index={i} dim />
-                      ))}
-                    </div>
+                    <EventsCarousel events={pastBySession[session]} L={L} dim />
                   </div>
                 ))}
               </div>

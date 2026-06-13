@@ -32,7 +32,16 @@
       "Bash(awk -F: '$2>=5100 && $2<=5520')",
       "Bash(xargs grep -l \"EventsTab\\\\|CompetitionsAdminTab\\\\|ActivitiesAdminTab\")",
       "Bash(grep -v \"//\\\\|Uploading\\\\.\\\\.\\\\.\\\\|uploading ? \\\\|uploading |canUpload\\\\|isUploading\\\\|notUploading\")",
-      "Bash(grep -v \"//\\\\|text-overflow\")"
+      "Bash(grep -v \"//\\\\|text-overflow\")",
+      "Bash(echo \"EXIT:$?\")",
+      "PowerShell(Get-Process | Where-Object { $_.Name -match \"node|npm\" } | Select-Object Id, Name, CPU)",
+      "PowerShell(Get-Process -Id 9984)",
+      "PowerShell($proc = Get-Process -Id 9984 -ErrorAction SilentlyContinue; if \\($proc\\) { Write-Host \"Still running...\"; $proc.WaitForExit\\(120000\\); Write-Host \"Done\" } else { Write-Host \"Already finished\" }; cd \"c:\\\\Users\\\\DEEPAN PRAMANICK\\\\Desktop\\\\IEM PHOTOGRAPHY CLUB UNLEASED\\\\server\"; node -e \"import\\('sharp'\\).then\\(s => console.log\\('sharp OK:', s.default.versions.sharp\\)\\).catch\\(e => console.log\\('FAIL:', e.message\\)\\)\")",
+      "PowerShell(Get-Content \"c:\\\\Users\\\\DEEPAN PRAMANICK\\\\Desktop\\\\IEM PHOTOGRAPHY CLUB UNLEASED\\\\server\\\\.env\" | ForEach-Object { \\($_ -split '='\\)[0] })",
+      "PowerShell(Get-Process -Name node -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Date; $p = Get-Process -Id 24764 -ErrorAction SilentlyContinue; if \\($p\\) { \"Migration process running. CPU time: $\\($p.CPU\\)s, Memory: $\\([math]::Round\\($p.WorkingSet/1MB, 1\\)\\) MB\" } else { \"Process ended\" })",
+      "PowerShell(Stop-Process -Id 24764 -Force)",
+      "Bash(node -e \"const { jsPDF } = require\\('./node_modules/jspdf/dist/jspdf.node.js'\\); const doc = new jsPDF\\(\\); console.log\\('version:', doc.version, 'GState:', typeof doc.GState\\)\")"
     ]
   }
 }

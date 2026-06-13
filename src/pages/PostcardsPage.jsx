@@ -94,7 +94,7 @@ function Lightbox({ postcards, startIdx, onClose }) {
   const [pcIdx,    setPcIdx]    = useState(startIdx)
   const [photoIdx, setPhotoIdx] = useState(0)
   const [entered,  setEntered]  = useState(false)
-  const touchStartX = useRef(null)
+  const dragStartX = useRef(null)
 
   const p    = postcards[pcIdx]
   const imgs = getImages(p)
@@ -117,16 +117,16 @@ function Lightbox({ postcards, startIdx, onClose }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [total, onClose])
 
-  // Swipe left/right = navigate between POSTCARDS
-  const onTouchStart = e => { touchStartX.current = e.touches[0].clientX }
-  const onTouchEnd   = e => {
-    if (touchStartX.current === null) return
-    const dx = e.changedTouches[0].clientX - touchStartX.current
-    if (Math.abs(dx) > 45) {
-      setPcIdx(i => dx < 0 ? (i + 1) % total : (i - 1 + total) % total)
-    }
-    touchStartX.current = null
+  // Shared swipe logic — works for both touch and mouse drag
+  const onDragStart = e => { dragStartX.current = e.clientX ?? e.touches?.[0]?.clientX ?? null }
+  const onDragEnd   = e => {
+    if (dragStartX.current === null) return
+    const ex = e.clientX ?? e.changedTouches?.[0]?.clientX ?? dragStartX.current
+    const dx = ex - dragStartX.current
+    if (Math.abs(dx) > 45) setPcIdx(i => dx < 0 ? (i + 1) % total : (i - 1 + total) % total)
+    dragStartX.current = null
   }
+  const onDragCancel = () => { dragStartX.current = null }
 
   const prevPhoto    = () => setPhotoIdx(i => (i - 1 + imgs.length) % imgs.length)
   const nextPhoto    = () => setPhotoIdx(i => (i + 1) % imgs.length)
@@ -170,9 +170,11 @@ function Lightbox({ postcards, startIdx, onClose }) {
       )}
 
       {/* ── Card ── */}
-      <div className="relative w-full px-8 sm:px-12 max-w-xs sm:max-w-md"
+      <div className="relative w-full px-8 sm:px-12 max-w-xs sm:max-w-md select-none"
         onClick={e => e.stopPropagation()}
-        onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+        onMouseDown={onDragStart} onMouseUp={onDragEnd} onMouseLeave={onDragCancel}
+        onTouchStart={onDragStart} onTouchEnd={onDragEnd}
+        style={{ cursor: total > 1 ? 'grab' : 'default' }}>
 
         <div style={{
           opacity: entered ? 1 : 0,

@@ -1557,8 +1557,8 @@ html.light .dash-section {
     inset 0 1px 0 rgba(255,255,255,0.96);
 }
 
-/* ── Postcard card image — shorter on desktop, very slightly shorter mobile ── */
-.pc-postcard-img { padding-bottom: 115%; }
+/* ── Postcard card image — taller on mobile, square on desktop ── */
+.pc-postcard-img { padding-bottom: 132%; }
 @media (min-width: 640px) {
   .pc-postcard-img { padding-bottom: 100%; }
 }

@@ -711,7 +711,7 @@ function ActivityCard({ act, L, delay = 0, userRole = null }) {
       <div className="absolute inset-0 pointer-events-none z-10 rounded-[12px]"
         style={{ background:`linear-gradient(135deg,rgba(255,255,255,${L?'0.18':'0.05'}) 0%,transparent 45%)` }} />
       <div className={`h-[1.5px] w-full bg-gradient-to-r from-transparent ${cfg.stripe} to-transparent shrink-0 relative z-10`} />
-      <div className="relative overflow-hidden shrink-0" style={{ height:'clamp(95px,15vw,175px)' }}>
+      <div className="relative overflow-hidden shrink-0" style={{ height:'clamp(72px,15vw,175px)' }}>
         {act.bannerUrl
           ? <ProgressiveImage src={act.bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.07]" />
           : <div className="w-full h-full flex items-center justify-center" style={{ background: L ? 'linear-gradient(135deg,#e2e6f0,#d8dde8)' : 'linear-gradient(135deg,#0d0720,#0a0a1e)' }}>
@@ -727,7 +727,7 @@ function ActivityCard({ act, L, delay = 0, userRole = null }) {
           {act.subject && <p className="font-inter text-[9px] text-white/55 mt-0.5 truncate">{act.subject}</p>}
         </div>
       </div>
-      <div className={`flex-1 px-3 py-2 space-y-0.5 relative z-10`}>
+      <div className={`flex-1 px-3 py-2.5 sm:py-2 space-y-1 sm:space-y-0.5 relative z-10`}>
         {act.venue    && <p className={`font-inter text-xs flex items-center gap-1.5 ${L?'text-gray-600':'text-gray-400'}`}>📍 {act.venue}</p>}
         {(act.eventDates?.[0] || act.eventDate) && act.status !== 'past' && <p className={`font-inter text-xs flex items-center gap-1.5 ${L?'text-gray-600':'text-gray-400'}`}>📅 {fmt(act.eventDates?.[0] || act.eventDate)}</p>}
         {act.status !== 'past' && act.formPublished && act.googleFormUrl && (

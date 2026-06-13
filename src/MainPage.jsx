@@ -791,6 +791,7 @@ function PostcardCarousel({ postcards, L }) {
 
   const [mobileIdx, setMobileIdx] = useState(0)
   const [mobileVis, setMobileVis] = useState(true)
+  const mobileDragRef = useRef({ x: 0, on: false })
 
   // Mobile auto-advance every 5s
   useEffect(() => {
@@ -802,14 +803,22 @@ function PostcardCarousel({ postcards, L }) {
     return () => clearInterval(t)
   }, [total])
 
-  function mobilePrev() {
+  function goMobile(next) {
     setMobileVis(false)
-    setTimeout(() => { setMobileIdx(i => (i - 1 + total) % total); setMobileVis(true) }, 260)
+    setTimeout(() => { setMobileIdx(((next % total) + total) % total); setMobileVis(true) }, 260)
   }
-  function mobileNext() {
-    setMobileVis(false)
-    setTimeout(() => { setMobileIdx(i => (i + 1) % total); setMobileVis(true) }, 260)
+
+  const onMobileStart = (e) => {
+    mobileDragRef.current = { x: e.clientX ?? e.touches?.[0]?.clientX ?? 0, on: true }
   }
+  const onMobileEnd = (e) => {
+    if (!mobileDragRef.current.on) return
+    mobileDragRef.current.on = false
+    const ex = e.clientX ?? e.changedTouches?.[0]?.clientX ?? mobileDragRef.current.x
+    const dx = mobileDragRef.current.x - ex
+    if (Math.abs(dx) > 40) goMobile(mobileIdx + (dx > 0 ? 1 : -1))
+  }
+  const onMobileCancel = () => { mobileDragRef.current.on = false }
 
   if (!total) return (
     <p className={`font-inter text-sm text-center py-16 ${L?'text-gray-400':'text-gray-500'}`}>
@@ -830,24 +839,26 @@ function PostcardCarousel({ postcards, L }) {
 
   return (
     <>
-      {/* ── Mobile: 1 card + minimal side arrows ── */}
+      {/* ── Mobile: full-width card, swipeable, dots only (no arrows) ── */}
       <div className="sm:hidden w-full">
-        <div className="flex items-center gap-2.5">
-          <NeoArrow onClick={mobilePrev} dir="left" L={L} />
-          <div className="flex-1" style={{
+        <div
+          className="w-full select-none"
+          style={{ cursor: total > 1 ? 'grab' : 'default', touchAction: 'pan-y' }}
+          onMouseDown={onMobileStart} onMouseUp={onMobileEnd} onMouseLeave={onMobileCancel}
+          onTouchStart={onMobileStart} onTouchEnd={onMobileEnd}>
+          <div style={{
             opacity: mobileVis ? 1 : 0,
             transform: mobileVis ? 'scale(1)' : 'scale(0.97)',
             transition: 'opacity 260ms ease, transform 260ms ease',
           }}>
             <PostcardCard key={postcards[mobileIdx]?._id ?? mobileIdx} p={postcards[mobileIdx]} L={L} />
           </div>
-          <NeoArrow onClick={mobileNext} dir="right" L={L} />
         </div>
         {total > 1 && (
           <div className="flex justify-center gap-1.5 mt-3">
             {Array.from({ length: Math.min(total, 8) }).map((_, i) => (
               <button key={i} style={dotStyle(i === mobileIdx)}
-                onClick={() => { setMobileVis(false); setTimeout(() => { setMobileIdx(i); setMobileVis(true) }, 260) }} />
+                onClick={() => goMobile(i)} />
             ))}
           </div>
         )}
