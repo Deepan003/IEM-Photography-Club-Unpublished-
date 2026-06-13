@@ -3,7 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "engines": { "node": ">=18.0.0" },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "concurrently -n FE,BE -c cyan,red \"vite\" \"node --watch server/index.js\"",
     "build": "vite build",
@@ -36,6 +38,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.16.0",
+    "sharp": "^0.35.1",
     "three": "^0.167.0",
     "xlsx": "^0.18.5"
   },
