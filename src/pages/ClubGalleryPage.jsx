@@ -588,7 +588,7 @@ export default function ClubGalleryPage() {
             {canManage&&filterSect==='all'&&<button onClick={()=>setDialog({mode:'upload'})} className="mt-4 font-inter text-sm text-red-400 hover:text-red-300">Upload the first photo →</button>}
           </div>
         ) : (
-          <div className="pl-section-in" style={{columns:'3 auto',columnGap:3,width:'100%'}}>
+          <div className="pl-section-in columns-2 sm:columns-3" style={{columnGap:3,width:'100%'}}>
             {displayed.map((p,i)=><PhotoCell key={p._id} p={p} i={i}/>)}
           </div>
         )}
