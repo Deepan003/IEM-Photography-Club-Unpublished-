@@ -283,8 +283,8 @@ export default function UserProfilePage() {
     <>
       <div className={`min-h-screen ${L ? 'bg-[#e8ecf3]' : 'bg-[#06060a]'}`}>
 
-        {/* ── Back button (floating) ── */}
-        <div className="fixed top-4 left-4 z-50">
+        {/* ── Back button (floating) — bottom-left on mobile, top-left on desktop ── */}
+        <div className="fixed bottom-6 left-4 z-50 sm:bottom-auto sm:top-4">
           <button onClick={() => navigate(-1)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-inter text-xs font-semibold backdrop-blur-md text-white transition-all active:scale-95"
             style={{ background: 'rgba(0,0,0,0.58)', border: '1px solid rgba(255,255,255,0.15)' }}>
@@ -450,7 +450,7 @@ export default function UserProfilePage() {
                   <div
                     key={photo._id || i}
                     className="break-inside-avoid mb-3 rounded-xl overflow-hidden cursor-pointer group relative"
-                    onClick={() => !isAdmin && setLightboxIndex(i)}>
+                    onClick={() => setLightboxIndex(i)}>
                     <ProgressiveImage
                       src={photo.url} mobileSrc={photo.mobileUrl}
                       alt={photo.caption || ''}
@@ -470,8 +470,7 @@ export default function UserProfilePage() {
                       </button>
                     ) : (
                       <div className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                        style={{ background: 'rgba(0,0,0,0.65)' }}
-                        onClick={() => setLightboxIndex(i)}>
+                        style={{ background: 'rgba(0,0,0,0.65)' }}>
                         <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2}><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
                       </div>
                     )}
