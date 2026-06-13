@@ -15,6 +15,10 @@ export async function requireAuth(req, res, next) {
     if (user.status !== 'approved') {
       return res.status(403).json({ error: 'Account not yet approved' })
     }
+    // Reject tokens issued before a ban or logout (tokenVersion mismatch)
+    if ((payload.tokenVersion ?? 0) !== user.tokenVersion) {
+      return res.status(401).json({ error: 'Token has been invalidated. Please sign in again.' })
+    }
     req.user = user
     next()
   } catch {
@@ -34,8 +38,8 @@ export function requireRole(...roles) {
 }
 
 /** Issue a signed JWT for a user */
-export function signToken(userId) {
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+export function signToken(userId, tokenVersion = 0) {
+  return jwt.sign({ id: userId, tokenVersion }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   })
 }

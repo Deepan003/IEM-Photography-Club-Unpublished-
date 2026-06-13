@@ -203,7 +203,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       await user.save()
     }
 
-    const token = signToken(user._id)
+    const token = signToken(user._id, user.tokenVersion)
     res.json({ token, user: user.toSafeObject() })
   } catch (err) {
     console.error('[login]', err)
@@ -275,12 +275,25 @@ router.post('/reset-password', loginLimiter, async (req, res) => {
 
     user.password = newPassword // will be hashed by pre-save hook
     user.clearOTP()
+    user.tokenVersion = (user.tokenVersion || 0) + 1 // invalidate all existing tokens
     await user.save()
 
     res.json({ message: 'Password reset successfully. Please log in.' })
   } catch (err) {
     console.error('[reset-password]', err)
     res.status(500).json({ error: 'Password reset failed.' })
+  }
+})
+
+// ── LOGOUT ────────────────────────────────────────────────────────────────
+// POST /api/auth/logout  — invalidates the current JWT by bumping tokenVersion
+router.post('/logout', requireAuth, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user._id, { $inc: { tokenVersion: 1 } })
+    res.json({ message: 'Logged out.' })
+  } catch (err) {
+    console.error('[logout]', err)
+    res.status(500).json({ error: 'Logout failed.' })
   }
 })
 

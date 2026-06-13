@@ -4,6 +4,7 @@ import User          from '../models/User.js'
 import CoreMember    from '../models/CoreMember.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { sendApprovalEmail, sendRejectionEmail } from '../utils/email.js'
+import { deleteObject } from '../utils/s3.js'
 
 // 60 admin API calls per minute — prevents scraping / enumeration
 const adminLimiter = rateLimit({
@@ -89,11 +90,10 @@ router.post('/reject/:id', guard, async (req, res) => {
     const user = await User.findById(req.params.id)
     if (!user) return res.status(404).json({ error: 'User not found.' })
 
-    user.status = 'rejected'
-    await user.save()
-
+    // Email first — we need user.email/name before the document is gone
     await sendRejectionEmail(user.email, user.name, reason).catch(console.error)
-    res.json({ message: `${user.name}'s application rejected.` })
+    await User.findByIdAndDelete(req.params.id)
+    res.json({ message: `${user.name}'s application rejected and removed.` })
   } catch (err) {
     res.status(500).json({ error: 'Rejection failed.' })
   }
@@ -191,6 +191,7 @@ router.post('/ban/:id', guard, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found.' })
     if (user.role === 'admin') return res.status(400).json({ error: 'Cannot ban the admin account.' })
     user.status = 'banned'
+    user.tokenVersion = (user.tokenVersion || 0) + 1 // invalidate existing JWTs immediately
     await user.save()
     res.json({ message: `${user.name} has been banned.` })
   } catch (err) {
@@ -221,6 +222,16 @@ router.delete('/delete/:id', [requireAuth, requireRole('admin')], async (req, re
     if (!user) return res.status(404).json({ error: 'User not found.' })
     if (user.role === 'admin') return res.status(400).json({ error: 'Cannot delete the admin account.' })
     const name = user.name
+
+    // Clean up all S3 objects before removing the document
+    const s3Keys = [
+      user.profilePhotoS3Key,
+      user.coverPhotoS3Key,
+      ...(user.gallery || []).map(p => p.s3Key),
+      ...(user.gallery || []).map(p => p.mobileKey),
+    ].filter(Boolean)
+    await Promise.all(s3Keys.map(k => deleteObject(k).catch(() => {})))
+
     await User.deleteOne({ _id: req.params.id })
     res.json({ message: `${name}'s account and all data have been permanently deleted.` })
   } catch (err) {

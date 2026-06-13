@@ -375,7 +375,7 @@ export default function EventDetailPage() {
     let alive = true
     const load = (silent) => Promise.all([
       eventsApi.get(id),
-      galleryApi.getPhotos({ type:'event', event: id }),
+      galleryApi.getPhotos({ type:'event', event: id, limit: 500 }),
     ]).then(([ev, gal]) => {
       if (!alive) return
       setEvent(ev.event)

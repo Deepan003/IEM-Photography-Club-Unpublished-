@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
 import PageLayout    from '../components/PageLayout.jsx'
 import { socialApi } from '../api/api.js'
 import { useTheme }  from '../App.jsx'
+import { useData }   from '../hooks/useData.js'
 
 const PLATFORM_META = {
   instagram: { color: 'from-purple-500 to-pink-500', label: 'Instagram' },
@@ -13,14 +13,11 @@ const PLATFORM_META = {
 }
 
 export default function JoinUsPage() {
-  const { theme }              = useTheme()
-  const [links,   setLinks]    = useState([])
-  const [loading, setLoading]  = useState(true)
+  const { theme } = useTheme()
   const L = theme === 'light'
 
-  useEffect(() => {
-    socialApi.list().then(d => setLinks(d.links)).finally(() => setLoading(false))
-  }, [])
+  const { data, loading } = useData(() => socialApi.list(), 30000)
+  const links = data?.links || []
 
   return (
     <PageLayout

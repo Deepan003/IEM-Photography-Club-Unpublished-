@@ -1892,7 +1892,11 @@ export default function MemberDashboard({ onLogout }) {
       .finally(() => setLoading(false))
   }, [user, setUser])
 
-  const handleLogout = () => { clearToken(); onLogout?.() }
+  const handleLogout = async () => {
+    await authApi.logout().catch(() => {})
+    clearToken()
+    onLogout?.()
+  }
 
   if (loading) return (
     <div className={`min-h-screen flex items-center justify-center ${L?'bg-gray-50':'bg-[#050505]'}`}>
@@ -2078,14 +2082,14 @@ export default function MemberDashboard({ onLogout }) {
                 </Link>
               )}
               {/* Theme toggle icon */}
-              <button onClick={toggleTheme}
+              <button onClick={toggleTheme} aria-label={L ? 'Switch to dark mode' : 'Switch to light mode'}
                 className="flex items-center justify-center p-2 rounded-xl transition-all active:scale-90"
                 style={{background:L?'rgba(0,0,0,0.05)':'rgba(255,255,255,0.07)',boxShadow:L?'-1px -1px 3px rgba(255,255,255,0.8),2px 2px 4px rgba(0,0,0,0.07)':'-1px -1px 2px rgba(255,255,255,0.02),2px 2px 4px rgba(0,0,0,0.6)',color:L?'#6b7280':'#9ca3af'}}>
                 {L
                   ? <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                   : <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2}><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>}
               </button>
-              <button onClick={() => setMenuOpen(v => !v)}
+              <button onClick={() => setMenuOpen(v => !v)} aria-label="Open navigation menu"
                 className="flex flex-col items-center justify-center gap-[3px] p-2 rounded-xl transition-all active:scale-90"
                 style={{
                   background: L ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.07)',
@@ -2156,7 +2160,7 @@ export default function MemberDashboard({ onLogout }) {
               <p className={`font-inter text-sm font-bold ${L?'text-gray-900':'text-white'}`}>{user.name}</p>
               <p className="font-inter text-[10px] text-gray-500 uppercase tracking-wider">{role.label}</p>
             </div>
-            <button onClick={() => setMenuOpen(false)} className="ml-auto text-gray-500 p-2">
+            <button onClick={() => setMenuOpen(false)} aria-label="Close menu" className="ml-auto text-gray-500 p-2">
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>

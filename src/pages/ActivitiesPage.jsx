@@ -355,7 +355,7 @@ function ActivityDetailPage({ id }) {
   useEffect(() => {
     activitiesApi.get(id)
       .then(d => { setAct(d.activity); setCoreMembers(d.coreMembers || []) })
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false))
     const t = setTimeout(() => setHeroIn(true), 200)
     return () => clearTimeout(t)

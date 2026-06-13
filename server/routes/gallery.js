@@ -88,17 +88,25 @@ router.delete('/sections/:id', [requireAuth, requireRole('admin','core')], async
 // ── Photos ────────────────────────────────────────────────────────────────────
 router.get('/photos', async (req, res) => {
   const filter = {}
-  if (req.query.type)    filter.type    = req.query.type
-  if (req.query.section) filter.section = req.query.section
-  if (req.query.event)   filter.event   = req.query.event
+  if (req.query.type)              filter.type    = req.query.type
+  if (req.query.section)           filter.section = req.query.section
+  if (req.query.event)             filter.event   = req.query.event
+  if (req.query.noSection === 'true') filter.section = { $exists: false }
+
+  const page  = Math.max(1, Number(req.query.page) || 1)
+  const limit = Math.min(500, Number(req.query.limit) || 200)
+  const skip  = (page - 1) * limit
+
   const photos = await GalleryPhoto.find(filter)
     .populate('addedBy', 'name')
     .populate('section', 'name')
     .populate('photographer.userId', 'name profilePhoto')
     .sort({ order: 1, createdAt: -1 })
-    .limit(Number(req.query.limit) || 200)
+    .skip(skip)
+    .limit(limit)
     .lean()
-  res.json({ photos })
+
+  res.json({ photos, page, hasMore: photos.length === limit })
 })
 
 router.post('/photos', requireAuth, async (req, res) => {
@@ -168,7 +176,8 @@ router.delete('/photos/:id', canEdit, async (req, res) => {
   const isOwner = photo.addedBy?.toString() === req.user?._id?.toString()
   const isPriv  = ['admin','core'].includes(req.user.role)
   if (!isOwner && !isPriv) return res.status(403).json({ error: 'Not allowed.' })
-  if (photo.s3Key) await deleteObject(photo.s3Key).catch(() => {})
+  if (photo.s3Key)      await deleteObject(photo.s3Key).catch(() => {})
+  if (photo.mobileS3Key) await deleteObject(photo.mobileS3Key).catch(() => {})
   await photo.deleteOne()
   res.json({ message: 'Photo deleted.' })
 })

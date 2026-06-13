@@ -73,18 +73,9 @@ async function adminOrCompVolunteer(req, res, next) {
   } catch (e) { return res.status(500).json({ error: e.message }) }
 }
 
-async function refreshStatuses() {
-  const comps = await Competition.find({ manualStatus: false })
-  for (const c of comps) {
-    const computed = c.computeStatus()
-    if (c.status !== computed) { c.status = computed; await c.save() }
-  }
-}
-
 // ── LIST ──────────────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
-    await refreshStatuses()
     const filter = {}
     if (req.query.status) filter.status = req.query.status
     const comps = await Competition.find(filter)
@@ -149,7 +140,11 @@ router.delete('/:id', [requireAuth, requireRole('admin','core')], async (req, re
   try {
     const comp = await Competition.findById(req.params.id)
     if (!comp) return res.status(404).json({ error: 'Not found.' })
-    const keys = [comp.bannerS3Key, comp.competitionBannerS3Key, ...comp.gallery.map(g=>g.s3Key)].filter(Boolean)
+    const keys = [
+      comp.bannerS3Key, comp.competitionBannerS3Key,
+      ...comp.gallery.map(g => g.s3Key),
+      ...comp.gallery.map(g => g.mobileKey),
+    ].filter(Boolean)
     await Promise.all(keys.map(k => deleteObject(k)))
     await comp.deleteOne()
     res.json({ message: 'Competition deleted.' })
@@ -211,7 +206,8 @@ router.delete('/:id/gallery/:photoId', [requireAuth, adminOrCompVolunteer], asyn
     const comp = await Competition.findById(req.params.id)
     if (!comp) return res.status(404).json({ error: 'Not found.' })
     const photo = comp.gallery.id(req.params.photoId)
-    if (photo?.s3Key) await deleteObject(photo.s3Key)
+    if (photo?.s3Key)    await deleteObject(photo.s3Key).catch(() => {})
+    if (photo?.mobileKey) await deleteObject(photo.mobileKey).catch(() => {})
     comp.gallery.pull({ _id: req.params.photoId })
     await comp.save()
     res.json({ competition: comp })

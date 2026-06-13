@@ -681,13 +681,14 @@ function UserProfileModal({ user, onClose, onAction, currentUserRole }) {
 
               {rejectOpen && (
                 <div className="space-y-2 p-3 auth-glass rounded-xl border border-red-900/30">
+                  <p className="font-inter text-[10px] text-red-400/80">Account will be permanently deleted — the email will be free to re-apply.</p>
                   <input value={rejectMsg} onChange={e => setRejectMsg(e.target.value)}
                     placeholder="Reason for rejection (optional)"
                     className="glass-input w-full text-sm" style={{ borderRadius:'9px' }} />
                   <div className="flex gap-2">
                     <GlassButton onClick={() => act(() => adminApi.reject(user._id, rejectMsg), 'Rejected')} disabled={busy}
                       className="flex-1 font-inter text-xs text-red-400" style={{ borderRadius:'9px', minHeight:'32px' }}>
-                      Confirm Reject
+                      Reject &amp; Delete
                     </GlassButton>
                     <GlassButton onClick={() => setRejectOpen(false)}
                       className="flex-1 font-inter text-xs" style={{ borderRadius:'9px', minHeight:'32px' }}>
@@ -1906,7 +1907,7 @@ function EventManager({ event: initialEvent, onBack, currentUser, L }) {
   useEffect(() => {
     eventsApi.get(event._id).then(d => setEvent(d.event)).catch(() => {})
     membersApi.list().then(d => setAllMembers(d.members || [])).catch(() => {})
-    galleryApi.getPhotos({ type:'event', event: event._id }).then(d => setPhotos(d.photos || [])).catch(() => {})
+    galleryApi.getPhotos({ type:'event', event: event._id, limit: 500 }).then(d => setPhotos(d.photos || [])).catch(() => {})
   }, [event._id])
 
 
@@ -1992,10 +1993,16 @@ function EventManager({ event: initialEvent, onBack, currentUser, L }) {
   const setEventRole = async (uid, role) => { try{await eventsApi.setMemberRole(event._id,uid,{eventRole:role})}catch(e){console.error(e)} refreshEvent() }
 
   // ── Gallery ───────────────────────────────────────────────────────────────────
-  const uploadPhoto = async (file) => {
+  const uploadPhoto = async (fileList) => {
     setUploading(true)
-    try { const r=await uploadFileToS3(file,'event-gallery'); const {photo}=await galleryApi.addPhoto({imageUrl:r.publicUrl,s3Key:r.key,mobileUrl:r.mobileUrl,mobileS3Key:r.mobileKey,event:event._id,type:'event',order:photos.length}); setPhotos(p=>[...p,photo]) }
-    catch(e){setMsg(e.message)} finally{setUploading(false)}
+    try {
+      for (const file of Array.from(fileList)) {
+        const r = await uploadFileToS3(file, 'event-gallery')
+        const { photo } = await galleryApi.addPhoto({ imageUrl: r.publicUrl, s3Key: r.key, mobileUrl: r.mobileUrl, mobileS3Key: r.mobileKey, event: event._id, type: 'event', order: photos.length })
+        setPhotos(p => [...p, photo])
+      }
+    } catch(e) { setMsg(e.message) }
+    finally { setUploading(false) }
   }
   const deletePhoto = async id => { await galleryApi.deletePhoto(id).catch(()=>{}); setPhotos(p=>p.filter(x=>x._id!==id)) }
   const handleDragStart = i => setPhotoDragIdx(i)
@@ -2336,7 +2343,7 @@ function EventManager({ event: initialEvent, onBack, currentUser, L }) {
               <label className="glass-btn glass-btn-light inline-flex items-center gap-2 px-4 font-inter text-xs cursor-pointer" style={{borderRadius:'10px',minHeight:'36px'}}>
                 {uploading && <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin shrink-0" />}
                 {uploading?'Uploading…':'+ Upload'}
-                <input type="file" accept="image/*" className="hidden" onChange={e=>uploadPhoto(e.target.files[0])} disabled={uploading}/>
+                <input type="file" accept="image/*" multiple className="hidden" onChange={e=>uploadPhoto(e.target.files)} disabled={uploading}/>
               </label>
             </div>
           </div>
@@ -2934,11 +2941,13 @@ function CompetitionManager({ comp: initial, onBack, currentUser, L }) {
   }
 
   const [uploadingGallery, setUploadingGallery] = useState(false)
-  const uploadGalleryPhoto = async (file) => {
+  const uploadGalleryPhoto = async (fileList) => {
     setUploadingGallery(true)
     try {
-      const { key, publicUrl } = await uploadFileToS3(file, 'competitions')
-      await competitionsApi.addGalleryPhoto(comp._id, { imageUrl:publicUrl, s3Key:key })
+      for (const file of Array.from(fileList)) {
+        const r = await uploadFileToS3(file, 'competitions')
+        await competitionsApi.addGalleryPhoto(comp._id, { imageUrl: r.publicUrl, s3Key: r.key, mobileUrl: r.mobileUrl, mobileS3Key: r.mobileKey })
+      }
       refresh()
     } catch(e) { setMsg(e.message) }
     finally { setUploadingGallery(false) }
@@ -3366,7 +3375,7 @@ function CompetitionManager({ comp: initial, onBack, currentUser, L }) {
             <label className="glass-btn glass-btn-light inline-flex items-center gap-2 px-4 font-inter text-xs cursor-pointer" style={{ borderRadius:'10px', minHeight:'36px' }}>
               {uploadingGallery && <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin shrink-0" />}
               {uploadingGallery ? 'Uploading…' : '+ Upload'}
-              <input type="file" accept="image/*" className="hidden" onChange={e => uploadGalleryPhoto(e.target.files[0])} disabled={uploadingGallery} />
+              <input type="file" accept="image/*" multiple className="hidden" onChange={e => uploadGalleryPhoto(e.target.files)} disabled={uploadingGallery} />
             </label>
           </div>
           {!comp.gallery?.length
@@ -3830,7 +3839,7 @@ function GalleryTab({ L }) {
   const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [s, p] = await Promise.all([galleryApi.getSections(), galleryApi.getPhotos({ type: 'club' })])
+      const [s, p] = await Promise.all([galleryApi.getSections(), galleryApi.getPhotos({ type: 'club', limit: 500 })])
       setSections(s.sections || []); setPhotos(p.photos || [])
     } catch (e) { setMsg(e.message) } finally { setLoading(false) }
   }, [])

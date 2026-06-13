@@ -73,6 +73,10 @@ const userSchema = new mongoose.Schema({
   approvedAt:  { type: Date },
   promotedBy:  { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   promotedAt:  { type: Date },
+
+  // ── Token invalidation ────────────────────────────────────────────────────
+  // Incremented on logout and ban. JWTs embed this value; mismatches are rejected.
+  tokenVersion: { type: Number, default: 0 },
 }, { timestamps: true })
 
 // ── Virtual: computed academic year (never stored) ─────────────────────────

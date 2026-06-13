@@ -98,10 +98,11 @@ router.delete('/me/gallery/:photoId', requireAuth, async (req, res) => {
     const user = await User.findById(req.user._id).select('gallery')
     const photo = user.gallery.id(req.params.photoId)
     if (!photo) return res.status(404).json({ error: 'Photo not found' })
-    const s3Key = photo.s3Key
+    const { s3Key, mobileKey } = photo
     user.gallery.pull(req.params.photoId)
     await user.save()
-    if (s3Key) await deleteObject(s3Key).catch(() => {})
+    if (s3Key)    await deleteObject(s3Key).catch(() => {})
+    if (mobileKey) await deleteObject(mobileKey).catch(() => {})
     res.json({ ok: true })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
@@ -169,7 +170,8 @@ router.delete('/:id/gallery/:photoId', adminOrCore, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found.' })
     const photo = user.gallery.id(req.params.photoId)
     if (!photo) return res.status(404).json({ error: 'Photo not found.' })
-    if (photo.s3Key) deleteObject(photo.s3Key).catch(() => {})
+    if (photo.s3Key)    deleteObject(photo.s3Key).catch(() => {})
+    if (photo.mobileKey) deleteObject(photo.mobileKey).catch(() => {})
     user.gallery.pull(req.params.photoId)
     await user.save()
     res.json({ ok: true })

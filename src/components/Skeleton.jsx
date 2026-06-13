@@ -131,6 +131,33 @@ export function SkeletonBookGrid({ n = 6, className = '' }) {
   )
 }
 
+// ── Feed post skeleton (social post card shape) ───────────────────────────────
+export function SkeletonFeedPost({ n = 3, L = false, className = '' }) {
+  return (
+    <div className={`space-y-4 ${className}`}>
+      {Array.from({ length: n }).map((_, i) => (
+        <div key={i} className={`auth-glass rounded-3xl overflow-hidden border ${L ? 'border-black/8' : 'border-white/8'}`}>
+          {/* Header: avatar + name/time */}
+          <div className="p-3 flex gap-2.5">
+            <Sk w={36} h={36} r={18} style={{ flexShrink: 0 }} />
+            <div className="flex-1 space-y-1.5 pt-0.5">
+              <Sk w="40%" h={11} r={5} />
+              <Sk w="25%" h={9} r={4} />
+            </div>
+          </div>
+          {/* Square image placeholder */}
+          <Sk w="100%" h={280} r={0} />
+          {/* Footer: likes + caption */}
+          <div className="p-4 space-y-2">
+            <Sk w="18%" h={11} r={5} />
+            <Sk w="65%" h={10} r={4} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ── Table skeleton ────────────────────────────────────────────────────────────
 export function SkeletonTable({ rows = 5, cols = 4, className = '' }) {
   return (

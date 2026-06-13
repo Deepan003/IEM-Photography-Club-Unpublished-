@@ -53,14 +53,17 @@ function PhotoDialog({ mode, photo, sections, onClose, onDone, L }) {
           section: section || undefined,
         })
       } else {
-        const r = await uploadFileToS3(files[0], 'gallery')
-        await galleryApi.addPhoto({
-          imageUrl: r.publicUrl, s3Key: r.key, mobileUrl: r.mobileUrl, mobileS3Key: r.mobileKey, type: 'club',
-          caption: caption.trim() || undefined,
-          photographer: attribution,
-          section: section || undefined,
-          order: 0,
-        })
+        for (let i = 0; i < files.length; i++) {
+          setMsg(`Uploading ${i + 1}/${files.length}…`)
+          const r = await uploadFileToS3(files[i], 'gallery')
+          await galleryApi.addPhoto({
+            imageUrl: r.publicUrl, s3Key: r.key, mobileUrl: r.mobileUrl, mobileS3Key: r.mobileKey, type: 'club',
+            caption: caption.trim() || undefined,
+            photographer: attribution,
+            section: section || undefined,
+            order: 0,
+          })
+        }
       }
       onDone()
     } catch(e) { setMsg(e.message) }
@@ -80,28 +83,42 @@ function PhotoDialog({ mode, photo, sections, onClose, onDone, L }) {
         <div className="px-3 sm:px-5 pb-4 sm:pb-5 pt-1 sm:pt-5 space-y-2.5 sm:space-y-4" style={{overflowY:'auto'}}>
           <div className="flex items-center justify-between">
             <p className={`font-inter font-bold text-sm sm:text-base ${L?'text-gray-900':'text-white'}`}>
-              {mode==='upload' ? 'Upload Photo' : 'Edit Photo'}
+              {mode==='upload' ? 'Upload Photos' : 'Edit Photo'}
             </p>
-            <button onClick={onClose} className="text-gray-500 hover:text-white w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/8 transition-all hidden sm:flex">✕</button>
+            <button onClick={onClose} aria-label="Close" className="text-gray-500 hover:text-white w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/8 transition-all hidden sm:flex">✕</button>
           </div>
 
           {/* Photo picker — upload mode only */}
           {mode === 'upload' && (
             previews.length > 0 ? (
-              <div className="relative overflow-hidden rounded-lg" style={{maxHeight:160}}>
-                <img src={previews[0]} alt="" className="w-full object-cover" style={{maxHeight:160}}/>
-                <button onClick={()=>removeFile(0)}
-                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center font-bold">✕</button>
-                <div className="absolute bottom-1.5 left-1.5 font-inter text-[8px] text-white/70 px-2 py-0.5 rounded-full" style={{background:'rgba(0,0,0,0.55)'}}>1 photo selected</div>
-              </div>
+              <>
+                <div className="grid grid-cols-3 gap-1.5 overflow-y-auto" style={{maxHeight:210}}>
+                  {previews.map((src, i) => (
+                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden"
+                      draggable onDragStart={()=>setDragIdx(i)} onDragOver={e=>onDragOver(e,i)} onDragEnd={()=>setDragIdx(null)}>
+                      <img src={src} alt="" className="w-full h-full object-cover"/>
+                      <button onClick={()=>removeFile(i)} aria-label="Remove"
+                        className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-600 text-white text-[9px] flex items-center justify-center font-bold">✕</button>
+                    </div>
+                  ))}
+                  {files.length < 20 && (
+                    <label className={`aspect-square rounded-lg border-2 border-dashed cursor-pointer flex flex-col items-center justify-center gap-1 transition-colors ${L?'border-black/10 hover:border-red-500/30 text-gray-400':'border-white/12 hover:border-red-500/25 text-gray-600'}`}>
+                      <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      <span className="font-inter text-[8px]">Add more</span>
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={e=>pickFiles(e.target.files)}/>
+                    </label>
+                  )}
+                </div>
+                <p className={`font-inter text-[10px] ${L?'text-gray-500':'text-gray-500'}`}>{files.length} photo{files.length!==1?'s':''} selected · drag to reorder</p>
+              </>
             ) : (
               <label className={`block cursor-pointer rounded-xl border-2 border-dashed transition-colors ${L?'border-black/10 hover:border-red-500/40':'border-white/10 hover:border-red-500/30'}`}>
                 <div className={`flex flex-col items-center justify-center py-10 gap-2 ${L?'text-gray-400':'text-gray-600'}`}>
                   <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                  <p className="font-inter text-sm font-medium">Click to select a photo</p>
-                  <p className="font-inter text-[10px] opacity-60">One photo per upload</p>
+                  <p className="font-inter text-sm font-medium">Click to select photos</p>
+                  <p className="font-inter text-[10px] opacity-60">Up to 20 photos at once</p>
                 </div>
-                <input type="file" accept="image/*" className="hidden" onChange={e=>{ const f=e.target.files[0]; if(f){setFiles([f]);setPreviews([URL.createObjectURL(f)])} }}/>
+                <input type="file" accept="image/*" multiple className="hidden" onChange={e=>pickFiles(e.target.files)}/>
               </label>
             )
           )}
@@ -143,13 +160,13 @@ function PhotoDialog({ mode, photo, sections, onClose, onDone, L }) {
             </select>
           </div>
 
-          {msg && <p className="font-inter text-[10px] text-red-400">{msg}</p>}
+          {msg && !busy && <p className="font-inter text-[10px] text-red-400">{msg}</p>}
 
           <GlassButton type="button" variant="red" onClick={submit} disabled={busy}
             className="w-full font-inter text-xs sm:text-sm font-semibold" style={{borderRadius:12,minHeight:40}}>
             {busy
-              ? (mode==='upload' ? 'Uploading…' : 'Saving…')
-              : (mode==='upload' ? (files.length ? 'Upload Photo' : 'Select a Photo First') : 'Save Changes')}
+              ? (mode==='upload' ? (msg || 'Uploading…') : 'Saving…')
+              : (mode==='upload' ? (files.length ? `Upload ${files.length} Photo${files.length!==1?'s':''}` : 'Select Photos First') : 'Save Changes')}
           </GlassButton>
         </div>
       </div>
@@ -275,7 +292,7 @@ function PhotoLightbox({ photos, startIdx, onClose, onDelete, onEdit, canManage,
               <p className="font-inter text-sm font-bold text-white leading-tight truncate">{attr.name}</p>
               <p className="font-inter text-[10px] text-white/45 uppercase tracking-[0.15em]">Photographer</p>
             </div>
-            <button onClick={onClose}
+            <button onClick={onClose} aria-label="Close"
               className="w-7 h-7 rounded-full flex items-center justify-center text-white/40 hover:text-white transition-colors ml-auto shrink-0"
               style={{background:'rgba(255,255,255,0.08)'}}>
               <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -286,7 +303,7 @@ function PhotoLightbox({ photos, startIdx, onClose, onDelete, onEdit, canManage,
         {/* Close button when no photographer */}
         {!attr?.name && (
           <div className="flex justify-end pb-2">
-            <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center text-white/40 hover:text-white" style={{background:'rgba(255,255,255,0.08)'}}>
+            <button onClick={onClose} aria-label="Close" className="w-7 h-7 rounded-full flex items-center justify-center text-white/40 hover:text-white" style={{background:'rgba(255,255,255,0.08)'}}>
               <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
@@ -301,12 +318,12 @@ function PhotoLightbox({ photos, startIdx, onClose, onDelete, onEdit, canManage,
             {/* Navigation */}
             {photos.length>1 && (
               <>
-                <button onClick={e=>{e.stopPropagation();setIdx(i=>(i-1+photos.length)%photos.length)}}
+                <button onClick={e=>{e.stopPropagation();setIdx(i=>(i-1+photos.length)%photos.length)}} aria-label="Previous photo"
                   className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center"
                   style={{background:'rgba(0,0,0,0.55)',backdropFilter:'blur(6px)'}}>
                   <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5}><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
-                <button onClick={e=>{e.stopPropagation();setIdx(i=>(i+1)%photos.length)}}
+                <button onClick={e=>{e.stopPropagation();setIdx(i=>(i+1)%photos.length)}} aria-label="Next photo"
                   className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center"
                   style={{background:'rgba(0,0,0,0.55)',backdropFilter:'blur(6px)'}}>
                   <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5}><polyline points="9 18 15 12 9 6"/></svg>
@@ -398,7 +415,7 @@ function CoordinatorPanel({ onClose, L }) {
               <p className={`font-inter font-bold ${L?'text-gray-900':'text-white'}`}>Gallery Coordinators</p>
               <p className="font-inter text-[10px] text-gray-500 mt-0.5">Toggle who can upload &amp; manage gallery</p>
             </div>
-            <button onClick={onClose} className="text-gray-500 hover:text-white">✕</button>
+            <button onClick={onClose} aria-label="Close" className="text-gray-500 hover:text-white">✕</button>
           </div>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search members…" className="glass-input w-full text-sm" style={{borderRadius:10}}/>
           <div className="overflow-y-auto space-y-2" style={{maxHeight:'50vh'}}>
@@ -448,31 +465,90 @@ export default function ClubGalleryPage() {
   const [filterSect, setFilterSect] = useState('all')
   const [showCoord,  setShowCoord]  = useState(false)
   const [dragFrom,   setDragFrom]   = useState(null)
+  const [page,       setPage]       = useState(1)
+  const [hasMore,    setHasMore]    = useState(false)
+  const [loadingMore,setLoadingMore]= useState(false)
+
+  // Refs so fetchPhotos (stable useCallback) can read current filter/page without staleness
+  const filterSectRef = useRef('all')
+  const pageRef       = useRef(1)
+  useEffect(() => { filterSectRef.current = filterSect }, [filterSect])
+  useEffect(() => { pageRef.current = page }, [page])
 
   const canManage = user && ['admin','core','coordinator'].includes(user.role)
   const isAdminOrCore = user && ['admin','core'].includes(user.role)
 
-  const fetchPhotos = useCallback(async(silent)=>{
-    try{
-      const[sd,pd]=await Promise.all([galleryApi.getSections({type:'club'}),galleryApi.getPhotos({type:'club',limit:300})])
-      setSections(sd.sections||[])
-      setPhotos(pd.photos||[])
-    }catch{}finally{ if(!silent) setLoading(false) }
-  },[])
+  const PAGE_SIZE = 48
 
-  useEffect(()=>{ fetchPhotos(false) },[fetchPhotos])
+  const fetchPhotos = useCallback(async ({ silent = false, reset = false, pg = 1, sect } = {}) => {
+    const activeSect = sect ?? filterSectRef.current
+    try {
+      // 'all' view: paginate 48 at a time. Section/general views: load all (sections stay small).
+      const photoParams = activeSect === 'all'
+        ? { type: 'club', page: pg, limit: PAGE_SIZE }
+        : activeSect === 'general'
+          ? { type: 'club', noSection: 'true', limit: 500 }
+          : { type: 'club', section: activeSect, limit: 500 }
 
-  // Live refresh — skip while the user is actively editing/reordering/dragging to avoid clobbering in-progress changes
-  useEffect(()=>{
-    const poll = setInterval(()=>{
-      if(!editGrid && dragFrom===null && !dialog) fetchPhotos(true)
+      const [sd, pd] = await Promise.all([
+        galleryApi.getSections({ type: 'club' }),
+        galleryApi.getPhotos(photoParams),
+      ])
+      setSections(sd.sections || [])
+      setHasMore(pd.hasMore ?? false)
+      setPage(pg)
+      if (reset || pg === 1) setPhotos(pd.photos || [])
+      else                   setPhotos(prev => [...prev, ...(pd.photos || [])])
+    } catch {}
+    finally {
+      if (!silent) setLoading(false)
+      setLoadingMore(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchPhotos({ pg: 1, sect: 'all' }) }, [fetchPhotos])
+
+  // Reset when section filter changes
+  useEffect(() => {
+    setLoading(true)
+    fetchPhotos({ reset: true, pg: 1, sect: filterSect })
+  }, [filterSect]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Silent refresh — only on page 1 of 'all' view, skip while editing/dragging
+  useEffect(() => {
+    const poll = setInterval(() => {
+      if (!editGrid && dragFrom === null && !dialog &&
+          pageRef.current === 1 && filterSectRef.current === 'all') {
+        fetchPhotos({ silent: true, reset: true, pg: 1, sect: 'all' })
+      }
     }, 15000)
-    return ()=>clearInterval(poll)
-  },[fetchPhotos, editGrid, dragFrom, dialog])
+    return () => clearInterval(poll)
+  }, [fetchPhotos, editGrid, dragFrom, dialog])
 
-  const deletePhoto=async(id)=>{
-    await galleryApi.deletePhoto(id).catch(()=>{})
-    setPhotos(p=>p.filter(ph=>ph._id!==id)); setLightbox(null)
+  const loadMore = () => {
+    if (!hasMore || loadingMore) return
+    setLoadingMore(true)
+    fetchPhotos({ silent: true, pg: page + 1, sect: filterSectRef.current })
+  }
+
+  // If admin opens Edit Grid while more pages exist, load everything first
+  const openEditGrid = async () => {
+    if (hasMore) {
+      setLoadingMore(true)
+      try {
+        const pd = await galleryApi.getPhotos({ type: 'club', limit: 1000 })
+        setPhotos(pd.photos || [])
+        setHasMore(false)
+      } catch {}
+      finally { setLoadingMore(false) }
+    }
+    setEditGrid(true)
+  }
+
+  const deletePhoto = async (id) => {
+    await galleryApi.deletePhoto(id).catch(() => {})
+    setPhotos(p => p.filter(ph => ph._id !== id))
+    setLightbox(null)
   }
 
   const handleDragOver=(e,i)=>{
@@ -482,13 +558,8 @@ export default function ClubGalleryPage() {
   }
   const handleDragEnd=async()=>{setDragFrom(null);await galleryApi.reorderPhotos(photos.map(p=>p._id)).catch(()=>{})}
 
-  // Filter photos by section; 'general' = photos with no section assigned
-  const generalCount = photos.filter(p => !p.section?._id && !p.section).length
-  const displayed = filterSect==='all'
-    ? photos
-    : filterSect==='general'
-      ? photos.filter(p => !p.section?._id && !p.section)
-      : photos.filter(p => (p.section?._id||p.section)===filterSect)
+  // Section filtering is server-side; displayed === photos
+  const displayed = photos
 
   // Photo cell
   const PhotoCell=({p,i})=>(
@@ -531,7 +602,7 @@ export default function ClubGalleryPage() {
         {/* Action bar */}
         <div className="flex items-center gap-2 mb-5 flex-wrap">
           <p className={`font-inter text-[10px] text-gray-500 uppercase tracking-[0.18em] flex-1`}>
-            {displayed.length} photo{displayed.length!==1?'s':''}
+            {photos.length}{hasMore ? '+' : ''} photo{photos.length!==1?'s':''}
           </p>
 
           {/* Filter button — show if any named sections exist */}
@@ -545,10 +616,10 @@ export default function ClubGalleryPage() {
 
           {canManage && (
             <>
-              <button onClick={()=>setEditGrid(true)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-inter text-[10px] uppercase tracking-wider border transition-all text-gray-400 border-white/8 hover:border-white/20`}>
+              <button onClick={openEditGrid} disabled={loadingMore}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-inter text-[10px] uppercase tracking-wider border transition-all text-gray-400 border-white/8 hover:border-white/20 disabled:opacity-50`}>
                 <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                Edit Grid
+                {loadingMore ? 'Loading…' : 'Edit Grid'}
               </button>
               {isAdminOrCore && (
                 <button onClick={()=>setShowCoord(true)}
@@ -588,16 +659,38 @@ export default function ClubGalleryPage() {
             {canManage&&filterSect==='all'&&<button onClick={()=>setDialog({mode:'upload'})} className="mt-4 font-inter text-sm text-red-400 hover:text-red-300">Upload the first photo →</button>}
           </div>
         ) : (
-          <div className="pl-section-in columns-2 sm:columns-3" style={{columnGap:3,width:'100%'}}>
-            {displayed.map((p,i)=><PhotoCell key={p._id} p={p} i={i}/>)}
-          </div>
+          <>
+            <div className="pl-section-in columns-2 sm:columns-3" style={{columnGap:3,width:'100%'}}>
+              {displayed.map((p,i)=><PhotoCell key={p._id} p={p} i={i}/>)}
+            </div>
+
+            {/* Load more — only shown in 'all' view when more pages exist */}
+            {hasMore && filterSect === 'all' && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className={`w-full sm:w-auto px-8 py-3 rounded-2xl font-inter text-sm font-semibold border transition-all active:scale-95
+                    ${L
+                      ? 'border-black/10 text-gray-600 hover:border-black/20 hover:bg-black/4 disabled:opacity-40'
+                      : 'border-white/10 text-gray-300 hover:border-white/22 hover:bg-white/4 disabled:opacity-40'}`}>
+                  {loadingMore
+                    ? <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                        Loading…
+                      </span>
+                    : 'Load more photos'}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {/* Dialogs */}
       {dialog && (
         <PhotoDialog mode={dialog.mode} photo={dialog.photo} sections={sections}
-          onClose={()=>setDialog(null)} onDone={()=>{setDialog(null);fetchPhotos()}} L={L}/>
+          onClose={()=>setDialog(null)} onDone={()=>{setDialog(null);fetchPhotos({reset:true,pg:1})}} L={L}/>
       )}
       {lightbox!==null && (
         <PhotoLightbox photos={displayed} startIdx={lightbox} onClose={()=>setLightbox(null)}

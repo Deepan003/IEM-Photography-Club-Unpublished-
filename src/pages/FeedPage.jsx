@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link }              from 'react-router-dom'
 import PageLayout            from '../components/PageLayout.jsx'
+import { SkeletonFeedPost } from '../components/Skeleton.jsx'
 import GlassButton           from '../components/GlassButton.jsx'
 import ImageUpload           from '../components/ImageUpload.jsx'
 import { postsApi, uploadFileToS3 } from '../api/api.js'
@@ -57,7 +58,7 @@ function PostCard({ post, currentUser, onDeleted, L }) {
       const { comment } = await postsApi.comment(post._id, newComment)
       setComments(c => [...c, comment])
       setNewComment('')
-    } catch (e) { console.error(e) }
+    } catch { /* comment failed silently */ }
     finally { setPosting(false) }
   }
 
@@ -298,15 +299,7 @@ export default function FeedPage() {
         {/* Feed */}
         <div className="max-w-lg mx-auto px-4 py-5">
           {loading ? (
-            <div className="space-y-4">
-              {[1,2,3].map(i => (
-                <div key={i} className={`auth-glass rounded-3xl overflow-hidden border animate-pulse ${L?'border-black/8':'border-white/8'}`}>
-                  <div className="p-3 flex gap-2.5"><div className="w-9 h-9 rounded-full bg-white/10" /><div className="space-y-1.5 flex-1"><div className="h-3 w-24 bg-white/10 rounded" /><div className="h-2 w-16 bg-white/8 rounded" /></div></div>
-                  <div className={`aspect-square ${L?'bg-gray-200':'bg-white/5'}`} />
-                  <div className="p-4 space-y-2"><div className="h-3 w-16 bg-white/10 rounded" /><div className="h-3 w-48 bg-white/8 rounded" /></div>
-                </div>
-              ))}
-            </div>
+            <SkeletonFeedPost n={3} L={L} />
           ) : posts.length === 0 ? (
             <div className={`py-24 text-center auth-glass rounded-3xl border ${L?'border-black/7':'border-white/7'}`}>
               <p className="text-5xl mb-4">📸</p>

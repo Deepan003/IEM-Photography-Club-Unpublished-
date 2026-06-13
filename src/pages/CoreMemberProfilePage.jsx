@@ -121,6 +121,16 @@ export default function CoreMemberProfilePage() {
       .finally(() => setLoading(false))
   }, [id])
 
+  // Silent background refresh every 30s — skips if user is uploading or reordering
+  useEffect(() => {
+    const poll = setInterval(() => {
+      if (!galleryUploading && !coverUploading && !reordering && dragIndexRef.current === null) {
+        coreApi.get(id).then(d => setMember(d.member)).catch(() => {})
+      }
+    }, 30000)
+    return () => clearInterval(poll)
+  }, [id]) // eslint-disable-line
+
   const canReposition = isAdmin && !!member?.coverPhoto
 
   const startDrag = useCallback((clientY) => {

@@ -637,7 +637,7 @@ function WinnersTab({ comp, setComp, canManage, L }) {
   const downloadPDF = async () => {
     setPdfBusy(true)
     try { await generateWinnersPDF(comp) }
-    catch (e) { console.error('PDF error:', e) }
+    catch { /* PDF error — user sees no spinner after failure */ }
     finally { setPdfBusy(false) }
   }
 
@@ -945,7 +945,7 @@ function CompetitionDetailPage({ id }) {
   useEffect(() => {
     competitionsApi.get(id)
       .then(d => { setComp(d.competition); setCoreMembers(d.coreMembers || []) })
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false))
     const t = setTimeout(() => setHeroIn(true), 200)
     return () => clearTimeout(t)

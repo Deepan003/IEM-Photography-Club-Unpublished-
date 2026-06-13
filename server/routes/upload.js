@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto'
 import rateLimit      from 'express-rate-limit'
 import { requireAuth } from '../middleware/auth.js'
 import { getPresignedUploadUrl, putBuffer, getPublicUrl } from '../utils/s3.js'
+import { fileTypeFromBuffer } from 'file-type'
 
 // 20 file uploads per minute per IP — prevents runaway loops & storage abuse
 const uploadLimiter = rateLimit({
@@ -52,6 +53,12 @@ const uploadAttachment = multer({
 router.post('/file', uploadLimiter, requireAuth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded.' })
+
+    // Verify actual file type via magic bytes — the Content-Type header is spoofable
+    const fileType = await fileTypeFromBuffer(req.file.buffer)
+    if (!fileType || !fileType.mime.startsWith('image/')) {
+      return res.status(400).json({ error: 'File is not a valid image.' })
+    }
 
     const folder = ALLOWED_FOLDERS.includes(req.body?.folder) ? req.body.folder : 'uploads'
     const uuid   = randomUUID()

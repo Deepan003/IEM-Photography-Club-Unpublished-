@@ -25,6 +25,7 @@ export const authApi = {
   forgotPassword:  body => req('POST', '/forgot-password',  body),
   verifyResetOtp:  body => req('POST', '/verify-reset-otp', body),
   resetPassword:   body => req('POST', '/reset-password',   body),
+  logout:          ()   => req('POST', '/logout'),
   getMe:           ()   => req('GET',  '/me'),
   getCores:        ()   => req('GET',  '/cores'),
 }

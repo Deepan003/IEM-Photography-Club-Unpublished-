@@ -133,6 +133,16 @@ export default function UserProfilePage() {
       .finally(() => setLoading(false))
   }, [id])
 
+  // Silent background refresh every 30s — skips if user is actively editing
+  useEffect(() => {
+    const poll = setInterval(() => {
+      if (!deletingPhoto && !deletingCover && !isDraggingRef.current) {
+        membersApi.get(id).then(d => setProfile(d.user)).catch(() => {})
+      }
+    }, 30000)
+    return () => clearInterval(poll)
+  }, [id]) // eslint-disable-line
+
   // isOwner: logged-in user viewing their own profile
   const isOwner       = authUser && profile && String(authUser._id || authUser.id) === String(profile._id)
   const canReposition = (isOwner || isAdmin) && !!profile?.coverPhoto

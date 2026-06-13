@@ -47,6 +47,7 @@ const AdminDashboard       = lazy(() => import('./pages/admin/AdminDashboard'))
 const CoordinatorDashboard = lazy(() => import('./pages/CoordinatorDashboard'))
 const UserProfilePage      = lazy(() => import('./pages/UserProfilePage'))
 const CoreMemberProfilePage = lazy(() => import('./pages/CoreMemberProfilePage'))
+const NotFoundPage          = lazy(() => import('./pages/NotFoundPage'))
 
 // ── Theme context ─────────────────────────────────────────────────────────────
 export const ThemeCtx = createContext({ theme: 'dark', toggleTheme: () => {} })
@@ -228,7 +229,7 @@ export default function App() {
                   : <Navigate to="/" replace />
               } />
 
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
             </div>
           </Suspense>

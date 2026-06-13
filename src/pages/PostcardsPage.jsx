@@ -155,14 +155,14 @@ function Lightbox({ postcards, startIdx, onClose }) {
 
       {/* ── Postcard prev/next — far sides of overlay ── */}
       {total > 1 && (
-        <button onClick={e => { e.stopPropagation(); setPcIdx(i => (i - 1 + total) % total) }}
+        <button onClick={e => { e.stopPropagation(); setPcIdx(i => (i - 1 + total) % total) }} aria-label="Previous postcard"
           className="absolute left-1 sm:left-3 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95"
           style={{ width:28, height:28, background:'rgba(255,255,255,0.1)', backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.15)' }}>
           <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5}><polyline points="15 18 9 12 15 6"/></svg>
         </button>
       )}
       {total > 1 && (
-        <button onClick={e => { e.stopPropagation(); setPcIdx(i => (i + 1) % total) }}
+        <button onClick={e => { e.stopPropagation(); setPcIdx(i => (i + 1) % total) }} aria-label="Next postcard"
           className="absolute right-1 sm:right-3 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95"
           style={{ width:28, height:28, background:'rgba(255,255,255,0.1)', backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.15)' }}>
           <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5}><polyline points="9 18 15 12 9 6"/></svg>
@@ -199,7 +199,7 @@ function Lightbox({ postcards, startIdx, onClose }) {
             {total > 1 && (
               <span className="font-inter text-[10px] text-white/40 shrink-0">{pcIdx + 1}/{total}</span>
             )}
-            <button onClick={onClose}
+            <button onClick={onClose} aria-label="Close"
               className="w-8 h-8 rounded-full flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
               style={{ background:'rgba(255,255,255,0.08)', backdropFilter:'blur(6px)' }}>
               <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>

@@ -30,6 +30,7 @@ import imageProxyRoutes  from './routes/imageProxy.js'
 import heroThemesRoutes  from './routes/heroThemes.js'
 import { ensureDefaultTheme } from './models/HeroTheme.js'
 import { checkAndFlagPassouts, syncCurrentCoreMembers } from './utils/passout.js'
+import { startCompetitionStatusJob } from './jobs/competitionStatusJob.js'
 
 const app    = express()
 app.set('trust proxy', 1)   // read real client IP from X-Forwarded-For (needed behind Nginx/Render/Railway)
@@ -122,6 +123,7 @@ mongoose
     await ensureDefaultTheme().catch(e => console.error('⚠️  Hero theme init failed:', e.message))
     await checkAndFlagPassouts().catch(e => console.error('⚠️  Passout check failed:', e.message))
     await syncCurrentCoreMembers().catch(e => console.error('⚠️  Core sync failed:', e.message))
+    await startCompetitionStatusJob()
     // Then schedule daily at 00:05 so June 1 transition fires automatically
     scheduleDailyPassoutCheck()
     app.listen(PORT, () => console.log(`🚀  Server → http://localhost:${PORT}`))
