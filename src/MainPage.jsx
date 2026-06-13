@@ -1320,7 +1320,7 @@ function HomeSections({ L, onJoin }) {
   // Gallery carousel speed — persisted in AppSettings, visible to all via getContent()
   const [localSpeedMult, setLocalSpeedMult] = useState(null)
   const speedSaveRef = useRef(null)
-  const gallerySpeedMult = localSpeedMult ?? (content['gallery-speed'] != null ? parseFloat(content['gallery-speed']) : 1) || 1
+  const gallerySpeedMult = localSpeedMult ?? (parseFloat(content['gallery-speed']) || 1)
   const speedLabel = (v) => v < 0.6 ? 'Slow' : v < 1.4 ? 'Normal' : v < 2.2 ? 'Fast' : 'Very Fast'
   const handleSpeedChange = (v) => {
     setLocalSpeedMult(v)
