@@ -1254,7 +1254,7 @@ const FlowRow = forwardRef(function FlowRow({ photos, speed = 0.5, pausedRef, cl
 })
 
 // ── Flowing gallery — 2 rows desktop / 3 rows mobile ─────────────────────────
-function FlowingGallery({ photos, L }) {
+function FlowingGallery({ photos, L, speedMult = 1 }) {
   const pausedRef = useRef(false)
   const r0 = useRef(), r1 = useRef(), r2 = useRef()
 
@@ -1277,9 +1277,9 @@ function FlowingGallery({ photos, L }) {
         style={{ background: `linear-gradient(to left, ${edgeFade}, transparent)` }} />
 
       <div className="space-y-2 sm:space-y-3">
-        <FlowRow ref={r0} photos={rows[0]} speed={0.40} pausedRef={pausedRef} />
-        <FlowRow ref={r1} photos={rows[1]} speed={0.32} pausedRef={pausedRef} />
-        <FlowRow ref={r2} photos={rows[2]} speed={0.36} pausedRef={pausedRef} className="hidden" />
+        <FlowRow ref={r0} photos={rows[0]} speed={0.40 * speedMult} pausedRef={pausedRef} />
+        <FlowRow ref={r1} photos={rows[1]} speed={0.32 * speedMult} pausedRef={pausedRef} />
+        <FlowRow ref={r2} photos={rows[2]} speed={0.36 * speedMult} pausedRef={pausedRef} className="hidden" />
       </div>
 
       {/* Arrow buttons */}
@@ -1316,6 +1316,17 @@ function HomeSections({ L, onJoin }) {
   const [contentLocal, setContentLocal] = useState({})
   const sub    = (key, fb) => contentLocal[key] ?? content[key] ?? fb
   const saveSub = (key)    => (val) => setContentLocal(prev => ({ ...prev, [key]: val }))
+
+  // Gallery carousel speed — persisted in AppSettings, visible to all via getContent()
+  const [localSpeedMult, setLocalSpeedMult] = useState(null)
+  const speedSaveRef = useRef(null)
+  const gallerySpeedMult = localSpeedMult ?? (content['gallery-speed'] != null ? parseFloat(content['gallery-speed']) : 1) || 1
+  const speedLabel = (v) => v < 0.6 ? 'Slow' : v < 1.4 ? 'Normal' : v < 2.2 ? 'Fast' : 'Very Fast'
+  const handleSpeedChange = (v) => {
+    setLocalSpeedMult(v)
+    clearTimeout(speedSaveRef.current)
+    speedSaveRef.current = setTimeout(() => settingsApi.patch('gallery-speed', v).catch(() => {}), 500)
+  }
 
   const postcards   = cardData?.postcards    || []
   const photos      = galData?.photos        || []
@@ -1570,6 +1581,23 @@ function HomeSections({ L, onJoin }) {
             sectionVisible={isOn('gallery')} onToggleSection={isAdminOrCore ? () => toggleSec('gallery') : undefined}
             settingKey="subtitle-gallery" isEditable={isAdminOrCore} onSave={saveSub('subtitle-gallery')} />
 
+          {isAdminOrCore && (
+            <div className={`flex items-center gap-3 mb-5 px-1 py-2.5 rounded-2xl border ${L?'bg-black/3 border-black/6':'bg-white/3 border-white/6'}`}>
+              <span className={`font-inter text-[11px] uppercase tracking-[0.14em] shrink-0 pl-2 ${L?'text-gray-500':'text-gray-400'}`}>
+                Carousel Speed
+              </span>
+              <input
+                type="range" min={0.25} max={3} step={0.05}
+                value={gallerySpeedMult}
+                onChange={e => handleSpeedChange(parseFloat(e.target.value))}
+                className="flex-1 h-1 cursor-pointer accent-red-500"
+              />
+              <span className={`font-inter text-[11px] shrink-0 pr-2 w-16 text-right tabular-nums ${L?'text-gray-500':'text-gray-400'}`}>
+                {speedLabel(gallerySpeedMult)}
+              </span>
+            </div>
+          )}
+
           <div className="sec-content">
             {photos.length === 0 ? (
               <div className={`rounded-3xl p-16 text-center auth-glass border ${L?'border-black/7':'border-white/7'}`}>
@@ -1577,7 +1605,7 @@ function HomeSections({ L, onJoin }) {
                 <p className={`font-inter text-sm ${L?'text-gray-600':'text-gray-400'}`}>Gallery coming soon</p>
               </div>
             ) : (
-              <FlowingGallery photos={photos} L={L} />
+              <FlowingGallery photos={photos} L={L} speedMult={gallerySpeedMult} />
             )}
           </div>
         </div>

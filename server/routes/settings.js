@@ -61,7 +61,7 @@ const DEFAULTS = {
 // GET public subtitle / join content (no auth required — used by all visitors)
 router.get('/content', async (req, res) => {
   try {
-    const stored = await AppSettings.find({ key: /^(subtitle-|join-|connect-|desktopHeroMode$)/ })
+    const stored = await AppSettings.find({ key: /^(subtitle-|join-|connect-|desktopHeroMode$|gallery-speed$)/ })
     const content = {}
     stored.forEach(s => { content[s.key] = s.value })
     res.json({ content })
