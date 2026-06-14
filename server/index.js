@@ -52,10 +52,11 @@ app.use(helmet({
                     'https://api.fontshare.com'],
       imgSrc:      ["'self'", 'data:', 'blob:', 'https:'],  // S3 images
       connectSrc:  ["'self'", 'https:'],
-      // Google Fonts static files + FontShare font binaries
+      // Google Fonts static files + FontShare font binaries (css: api, files: cdn)
       fontSrc:     ["'self'", 'data:',
                     'https://fonts.gstatic.com',
-                    'https://api.fontshare.com'],
+                    'https://api.fontshare.com',
+                    'https://cdn.fontshare.com'],
       // S3 videos — without this, falls back to default-src 'self' and blocks all external media
       mediaSrc:    ["'self'", 'https:'],
       objectSrc:   ["'none'"],
