@@ -213,6 +213,7 @@ export const settingsApi = {
   coordPermissions:  ()              => authGet('/api/settings/coord-permissions'),
   getContent:        ()              => get('/api/settings/content'),
   getGallerySettings:()              => authGet('/api/settings/gallery'),
+  getAuthConfig:     ()              => get('/api/settings/auth-config'),
 }
 
 // ── Posts (member feed) ───────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { authApi, saveToken }          from '../../api/auth.js'
+import { settingsApi }                 from '../../api/api.js'
 import { computeAcademicYear }         from '../../utils/yearCalc.js'
 import { searchCameras, searchLenses } from '../../data/cameras.js'
 
@@ -177,10 +178,11 @@ function StepDots({ total, current }) {
 //  REGISTER FLOW
 // ─────────────────────────────────────────────────────────────────────────────
 function RegisterFlow({ onBack, onSuccess }) {
-  const [step,    setStep]    = useState(1)
-  const [err,     setErr]     = useState('')
-  const [loading, setLoading] = useState(false)
-  const [cores,   setCores]   = useState([])
+  const [step,        setStep]       = useState(1)
+  const [err,         setErr]        = useState('')
+  const [loading,     setLoading]    = useState(false)
+  const [cores,       setCores]      = useState([])
+  const [otpRequired, setOtpRequired]= useState(true)
 
   const [form, setForm] = useState({
     name: '', department: 'BTECH', departmentOther: '',
@@ -193,6 +195,10 @@ function RegisterFlow({ onBack, onSuccess }) {
   const [otp,     setOtp]     = useState('')
   const [countdown,setCountdown]=useState(0)
   const [devices, setDevices] = useState([])
+
+  useEffect(() => {
+    settingsApi.getAuthConfig().then(d => setOtpRequired(d.otpRequired !== false)).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!countdown) return
@@ -222,11 +228,12 @@ function RegisterFlow({ onBack, onSuccess }) {
     if (pass !== confirm)        return setErr('Passwords do not match.')
     setLoading(true)
     try {
-      await authApi.register({
+      const data = await authApi.register({
         ...form, startYear: Number(form.startYear), endYear: Number(form.endYear),
         email, password: pass, devices,
       })
-      setCountdown(60); setStep(3)
+      if (data.skipOtp) { setCores([]); setStep(4) }
+      else { setCountdown(60); setStep(3) }
     } catch (e) { setErr(e.message) } finally { setLoading(false) }
   }
 
@@ -245,9 +252,13 @@ function RegisterFlow({ onBack, onSuccess }) {
     catch (e) { setErr(e.message) }
   }
 
+  // When OTP is skipped, step 3 is removed so steps go 1→2→4→5, remap for dots
+  const dotStep = !otpRequired && step >= 4 ? step - 1 : step
+  const dotTotal = otpRequired ? 4 : 3
+
   return (
     <div>
-      <StepDots total={4} current={step} />
+      <StepDots total={dotTotal} current={dotStep} />
 
       {/* Step 1 — Info */}
       {step === 1 && (
@@ -306,7 +317,7 @@ function RegisterFlow({ onBack, onSuccess }) {
           </div>
           <GlassInput label="Confirm Password" type={showP ? 'text' : 'password'} value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" required />
           <Err msg={err} />
-          <FormBtn type="submit" loading={loading}>Send OTP →</FormBtn>
+          <FormBtn type="submit" loading={loading}>{otpRequired ? 'Send OTP →' : 'Create Account →'}</FormBtn>
           <button type="button" onClick={() => setStep(1)} className="w-full text-center text-xs font-inter text-gray-600 hover:text-gray-400 transition-colors mt-1">← Back</button>
         </form>
       )}
@@ -559,9 +570,9 @@ export default function AuthModal({ onClose, onAuthSuccess }) {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Sheet / Modal */}
-      <div className={`relative auth-glass w-full sm:max-w-md flex flex-col
+      <div className={`relative auth-glass w-full sm:max-w-[420px] flex flex-col
         rounded-t-3xl sm:rounded-2xl
-        max-h-[92vh] sm:max-h-[88vh]
+        max-h-[88vh] sm:max-h-[84vh]
         ${isMobile ? 'auth-sheet-mobile' : 'auth-modal-desktop'}`}>
 
         {/* Drag handle (mobile only) */}
@@ -570,10 +581,10 @@ export default function AuthModal({ onClose, onAuthSuccess }) {
         </div>
 
         {/* Header */}
-        <div className="px-5 sm:px-6 pt-3 sm:pt-5 pb-4 border-b border-white/6 flex items-start justify-between shrink-0">
+        <div className="px-4 sm:px-5 pt-2.5 sm:pt-4 pb-3 border-b border-white/6 flex items-start justify-between shrink-0">
           <div>
-            <h2 className="font-cine text-lg sm:text-xl text-white uppercase tracking-widest">{titles[view]}</h2>
-            <p className="font-inter text-xs text-gray-500 mt-1">IEM Photography Club</p>
+            <h2 className="font-cine text-base sm:text-lg text-white uppercase tracking-widest">{titles[view]}</h2>
+            <p className="font-inter text-[11px] text-gray-500 mt-0.5">IEM Photography Club</p>
           </div>
           <button onClick={onClose}
             className="glass-btn glass-btn-light p-2 shrink-0 -mt-1 -mr-1"
@@ -587,7 +598,7 @@ export default function AuthModal({ onClose, onAuthSuccess }) {
           <div
             ref={scrollRef}
             onScroll={checkScroll}
-            className="h-full overflow-y-auto no-scrollbar px-5 sm:px-6 py-5"
+            className="h-full overflow-y-auto no-scrollbar px-4 sm:px-5 py-4"
           >
             {view === 'login'    && <LoginFlow    onSuccess={handleLogin} onForgot={() => setView('forgot')} />}
             {view === 'register' && <RegisterFlow onBack={() => setView('login')} onSuccess={onClose} />}
@@ -620,7 +631,7 @@ export default function AuthModal({ onClose, onAuthSuccess }) {
 
         {/* Footer toggle — only on login view; register has its own Back to Login link */}
         {view === 'login' && (
-          <div className="px-5 sm:px-6 pt-4 border-t border-white/5 text-center shrink-0" style={{ paddingBottom: 'max(28px, env(safe-area-inset-bottom, 28px))' }}>
+          <div className="px-4 sm:px-5 pt-3 border-t border-white/5 text-center shrink-0" style={{ paddingBottom: 'max(20px, env(safe-area-inset-bottom, 20px))' }}>
             <p className="font-inter text-sm text-gray-500">
               New here? <button onClick={() => setView('register')} className="text-white hover:text-red-400 transition-colors font-medium ml-1">Create account</button>
             </p>

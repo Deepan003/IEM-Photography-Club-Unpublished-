@@ -1,6 +1,7 @@
 import { Router }        from 'express'
 import rateLimit         from 'express-rate-limit'
 import User              from '../models/User.js'
+import AppSettings       from '../models/AppSettings.js'
 import { signToken, requireAuth } from '../middleware/auth.js'
 import { sendOTPEmail }  from '../utils/email.js'
 import { isPassout }     from '../utils/yearCalc.js'
@@ -62,6 +63,23 @@ router.post('/register', otpLimiter, async (req, res) => {
     // Check passout before saving
     if (isPassout(Number(startYear), Number(endYear))) {
       return res.status(400).json({ error: 'Your programme end year has already passed. Cannot register.' })
+    }
+
+    // Check if OTP is required
+    const otpSetting = await AppSettings.findOne({ key: 'auth.otpRequired' })
+    const otpRequired = otpSetting != null ? otpSetting.value : true
+
+    if (!otpRequired) {
+      // Skip email verification — go straight to pending admin approval
+      const user = new User({
+        name, department, departmentOther,
+        enrollmentNumber, rollNumber,
+        startYear: Number(startYear), endYear: Number(endYear),
+        email, password, devices,
+        status: 'pending_approval',
+      })
+      await user.save()
+      return res.status(201).json({ message: 'Account created! Awaiting admin approval.', skipOtp: true })
     }
 
     // Create user (status = pending_email)

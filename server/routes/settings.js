@@ -56,7 +56,18 @@ const DEFAULTS = {
   // Member gallery controls
   'member.gallery.enabled':   { value: true, label: 'Enable My Gallery for Members' },
   'member.gallery.maxPhotos': { value: 0,    label: 'Maximum Photos per Member (0 = No Limit)' },
+  // Auth controls
+  'auth.otpRequired': { value: true, label: 'Require Email OTP for Registration' },
 }
+
+// GET auth config (no auth required — register form needs to know if OTP is required)
+router.get('/auth-config', async (req, res) => {
+  try {
+    const stored = await AppSettings.findOne({ key: 'auth.otpRequired' })
+    const otpRequired = stored != null ? stored.value : DEFAULTS['auth.otpRequired'].value
+    res.json({ otpRequired })
+  } catch (e) { res.status(500).json({ error: e.message }) }
+})
 
 // GET public subtitle / join content (no auth required — used by all visitors)
 router.get('/content', async (req, res) => {

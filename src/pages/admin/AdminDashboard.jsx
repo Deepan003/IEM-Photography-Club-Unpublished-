@@ -4791,6 +4791,7 @@ function PermissionsTab({ L }) {
   }
 
   const coordinatorSettings = settings.filter(s => s.key.startsWith('coordinator.'))
+  const authSettings        = settings.filter(s => s.key.startsWith('auth.'))
 
   return (
     <div className="space-y-6">
@@ -4807,6 +4808,35 @@ function PermissionsTab({ L }) {
             <div key={r.role} className={`flex gap-3 items-start py-2.5 border-b last:border-0 ${L?'border-black/5':'border-white/5'}`}>
               <span className={`font-clash font-bold w-28 shrink-0 ${r.color}`}>{r.role}</span>
               <span className={L?'text-gray-600':'text-gray-400'}>{r.perms}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Authentication settings */}
+      <div className={`auth-glass rounded-2xl border overflow-hidden ${L?'border-black/8':'border-white/8'}`}>
+        <div className={`px-5 py-4 border-b ${L?'border-black/5':'border-white/5'}`}>
+          <p className="font-clash font-semibold text-red-400 uppercase tracking-wider text-sm">Registration</p>
+          <p className={`font-inter text-xs mt-1 ${L?'text-gray-500':'text-gray-500'}`}>
+            Control how new members sign up. Disable OTP when email delivery is unavailable.
+          </p>
+        </div>
+        <div className="divide-y divide-white/5">
+          {loading ? (
+            <div className="p-5"><SkeletonList n={1} /></div>
+          ) : authSettings.map(s => (
+            <div key={s.key} className="flex items-center justify-between px-5 py-4 gap-4">
+              <div className="flex-1 min-w-0">
+                <p className={`font-inter text-sm font-medium ${L?'text-gray-900':'text-white'}`}>{s.label}</p>
+                <p className={`font-inter text-[10px] mt-0.5 ${L?'text-gray-400':'text-gray-600'}`}>
+                  {s.value ? 'New users must verify email via OTP before joining.' : 'Users skip OTP — account goes straight to admin approval.'}
+                </p>
+              </div>
+              <div
+                onClick={() => !saving[s.key] && toggle(s.key, !s.value)}
+                className={`toggle-track shrink-0 ${s.value ? 'on' : 'off'} ${saving[s.key] ? 'opacity-50 pointer-events-none' : ''}`}>
+                <div className="toggle-thumb" />
+              </div>
             </div>
           ))}
         </div>
