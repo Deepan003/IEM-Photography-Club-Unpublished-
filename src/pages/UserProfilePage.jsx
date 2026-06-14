@@ -4,6 +4,8 @@ import { membersApi, userGalleryApi } from '../api/api.js'
 import { useTheme, useAuth } from '../App.jsx'
 import ProgressiveImage from '../components/ProgressiveImage.jsx'
 import PageLayout from '../components/PageLayout.jsx'
+import ConfirmDialog from '../components/ConfirmDialog.jsx'
+import { useToast } from '../components/Toast.jsx'
 import { SkeletonMasonryGrid } from '../components/Skeleton.jsx'
 
 const ROLE_META = {
@@ -102,6 +104,7 @@ export default function UserProfilePage() {
   const navigate     = useNavigate()
   const { theme }    = useTheme()
   const { user: authUser } = useAuth()
+  const { toast }    = useToast()
   const L            = theme === 'light'
   const isAdmin      = authUser && ['admin', 'core'].includes(authUser.role)
 
@@ -111,6 +114,7 @@ export default function UserProfilePage() {
   const [lightboxIndex, setLightboxIndex] = useState(null)
   const [deletingPhoto, setDeletingPhoto] = useState(null)
   const [deletingCover, setDeletingCover] = useState(false)
+  const [coverConfirm,  setCoverConfirm]  = useState(false)
 
   useEffect(() => { window.scrollTo(0, 0) }, [])
 
@@ -199,17 +203,16 @@ export default function UserProfilePage() {
     try {
       await membersApi.adminDeletePhoto(id, photoId)
       setProfile(p => ({ ...p, gallery: p.gallery.filter(ph => ph._id !== photoId) }))
-    } catch (e) { alert(e.message) }
+    } catch (e) { toast.error('Error', e.message) }
     finally { setDeletingPhoto(null) }
   }
 
   const handleDeleteCover = async () => {
-    if (!confirm('Remove this member\'s cover photo?')) return
     setDeletingCover(true)
     try {
       await membersApi.adminDeleteCover(id)
       setProfile(p => ({ ...p, coverPhoto: null }))
-    } catch (e) { alert(e.message) }
+    } catch (e) { toast.error('Error', e.message) }
     finally { setDeletingCover(false) }
   }
 
@@ -331,7 +334,7 @@ export default function UserProfilePage() {
             style={{ height: '65%', background: L ? 'linear-gradient(to top,#e8ecf3 30%,transparent)' : 'linear-gradient(to top,#06060a 30%,transparent)' }} />
           {/* Admin: delete cover */}
           {isAdmin && profile.coverPhoto && (
-            <button onClick={handleDeleteCover} disabled={deletingCover}
+            <button onClick={() => setCoverConfirm(true)} disabled={deletingCover}
               className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl font-inter text-xs font-medium text-white backdrop-blur-md transition-all disabled:opacity-50"
               style={{ background: 'rgba(220,38,38,0.75)', border: '1px solid rgba(255,255,255,0.2)' }}>
               <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
@@ -505,6 +508,15 @@ export default function UserProfilePage() {
           onNext={() => setLightboxIndex(i => (i < gallery.length - 1 ? i + 1 : 0))}
         />
       )}
+
+      <ConfirmDialog
+        open={coverConfirm}
+        title="Remove cover photo?"
+        message="The cover photo will be permanently removed."
+        confirmLabel="Yes, Remove"
+        onConfirm={() => { setCoverConfirm(false); handleDeleteCover() }}
+        onCancel={() => setCoverConfirm(false)}
+      />
     </>
   )
 }

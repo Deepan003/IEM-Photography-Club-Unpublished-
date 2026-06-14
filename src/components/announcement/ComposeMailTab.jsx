@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Ic } from './_icons.jsx'
 import { SectionLabel, PaneTabs, Empty, SendBtn, SaveDraftBtn, SentItem, DraftItem, MailSendOverlay, PreviewRecipientsModal, RateLimitNotice } from './_shared.jsx'
+import ConfirmDialog from '../ConfirmDialog.jsx'
 import RecipientField from './RecipientField.jsx'
 import ComposeArea from './ComposeArea.jsx'
 import CsvImporter from './CsvImporter.jsx'
@@ -74,6 +75,7 @@ export default function ComposeMailTab({ L }) {
   const [history,    setHistory]    = useState([])
   const [drafts,     setDrafts]     = useState([])
   const [folders,    setFolders]    = useState([])
+  const [binConfirm, setBinConfirm] = useState(null)
   const [showImport,       setShowImport]       = useState(false)
   const [showFolderPicker, setShowFolderPicker] = useState(false)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
@@ -323,7 +325,7 @@ export default function ComposeMailTab({ L }) {
             ? <Empty Icon={Ic.Sent} text="No emails sent yet." L={L} />
             : history.filter(a=>a.kind==='compose').map(a=>(
                 <SentItem key={a._id} a={a} L={L} onReuse={a2=>{setSubject(a2.subject);setContent(a2.content);setPane('compose')}}
-                  onDelete={async id=>{ if(!confirm('Move this email to bin?')) return; await announceApi.binItem(id); fetchHistory() }} />
+                  onDelete={id => setBinConfirm(id)} />
               ))
           }
         </div>
@@ -348,6 +350,16 @@ export default function ComposeMailTab({ L }) {
             setPane('compose')
           }} />
       )}
+
+      <ConfirmDialog
+        open={!!binConfirm}
+        title="Move to bin?"
+        message="This sent email will be moved to the bin."
+        confirmLabel="Move to Bin"
+        danger={false}
+        onConfirm={async () => { await announceApi.binItem(binConfirm); setBinConfirm(null); fetchHistory() }}
+        onCancel={() => setBinConfirm(null)}
+      />
     </div>
   )
 }

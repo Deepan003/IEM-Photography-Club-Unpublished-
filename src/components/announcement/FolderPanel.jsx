@@ -3,6 +3,7 @@ import { Ic } from './_icons.jsx'
 import { FOLDER_COLORS, isEmail } from './_tokens.js'
 import { Avatar, Empty } from './_shared.jsx'
 import CsvImporter from './CsvImporter.jsx'
+import ConfirmDialog from '../ConfirmDialog.jsx'
 import { announceApi } from '../../api/api.js'
 
 const innerStyle = (L) => ({
@@ -37,6 +38,7 @@ export default function FolderPanel({ folders, onRefresh, onUseFolderContacts, L
   const [editColor,  setEditColor]  = useState(FOLDER_COLORS[0])
 
   // Manual add contact
+  const [delFolderConfirm, setDelFolderConfirm] = useState(null)
   const [addingId,  setAddingId]  = useState(null)
   const [addName,   setAddName]   = useState('')
   const [addEmail,  setAddEmail]  = useState('')
@@ -56,10 +58,7 @@ export default function FolderPanel({ folders, onRefresh, onUseFolderContacts, L
     setCreating(false); setNewName(''); setNewDesc(''); onRefresh()
   }
 
-  const del = async id => {
-    if (!confirm('Delete this folder and all its contacts?')) return
-    await announceApi.deleteFolder(id); onRefresh()
-  }
+  const del = id => setDelFolderConfirm(id)
 
   const startEdit = f => {
     setEditingId(f._id); setEditName(f.name); setEditDesc(f.description || ''); setEditColor(f.color || FOLDER_COLORS[0])
@@ -346,6 +345,15 @@ export default function FolderPanel({ folders, onRefresh, onUseFolderContacts, L
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={!!delFolderConfirm}
+        title="Delete folder?"
+        message="This folder and all its contacts will be permanently deleted."
+        confirmLabel="Yes, Delete"
+        onConfirm={async () => { await announceApi.deleteFolder(delFolderConfirm); setDelFolderConfirm(null); onRefresh() }}
+        onCancel={() => setDelFolderConfirm(null)}
+      />
     </div>
   )
 }

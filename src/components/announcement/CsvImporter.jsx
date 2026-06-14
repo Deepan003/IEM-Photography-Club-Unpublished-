@@ -82,7 +82,7 @@ export default function CsvImporter({ onImport, L }) {
         }
       }
       reader.readAsArrayBuffer(file)
-    } else alert('Supported: .csv · .xlsx · .xls · .ods')
+    } else setUrlErr('Unsupported file type. Use .csv, .xlsx, .xls, or .ods.')
   }
 
   const handleSheetsUrl = async () => {

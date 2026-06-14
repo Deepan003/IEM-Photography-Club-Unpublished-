@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const IcCamera = () => (
   <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
@@ -43,14 +43,16 @@ const bullets = [
 export default function WelcomeOverlay({ user, onClose }) {
   const [out, setOut] = useState(false)
 
+  const dismissRef = useRef(null)
   const dismiss = () => {
     localStorage.setItem(`welcome_seen_${user._id}`, '1')
     setOut(true)
     setTimeout(onClose, 380)
   }
+  dismissRef.current = dismiss
 
   useEffect(() => {
-    const h = e => { if (e.key === 'Escape') dismiss() }
+    const h = e => { if (e.key === 'Escape') dismissRef.current?.() }
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
   }, [])

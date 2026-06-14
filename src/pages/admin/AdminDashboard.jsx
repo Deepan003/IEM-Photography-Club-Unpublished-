@@ -476,7 +476,13 @@ function UserProfileModal({ user, onClose, onAction, currentUserRole }) {
 
   const act = async (fn, label) => {
     setBusy(true); setFeedback('')
-    try { await fn(); setFeedback(`✓ ${label}`); onAction() }
+    try {
+      await fn()
+      setDelConfirm(false)
+      setRejectOpen(false)
+      setFeedback(`✓ ${label}`)
+      onAction()
+    }
     catch (e) { setFeedback(`✗ ${e.message}`) }
     finally { setBusy(false) }
   }
@@ -4078,6 +4084,7 @@ const MAG_PAGE_W  = 420
 const MAG_PAGE_H  = 560
 
 function MagazinesAdminTab({ currentUser, L }) {
+  const { toast } = useToast()
   const [magazines,     setMagazines]     = useState([])
   const [loading,       setLoading]       = useState(true)
   const [filter,        setFilter]        = useState('all')
@@ -4131,9 +4138,9 @@ function MagazinesAdminTab({ currentUser, L }) {
 
   const downloadPDF = async (mag) => {
     const pages = mag.pages || []
-    if (pages.length === 0) return alert('This magazine has no pages.')
+    if (pages.length === 0) { toast.error('Empty magazine', 'This magazine has no pages.'); return }
     const tpl = getTemplateById(mag.templateId)
-    if (!tpl) return alert('Template not found.')
+    if (!tpl) { toast.error('Missing template', 'Template not found.'); return }
 
     setDownloadingId(mag._id)
 
@@ -4207,12 +4214,12 @@ function MagazinesAdminTab({ currentUser, L }) {
         added++
       }
 
-      if (added === 0) return alert('No pages captured.')
+      if (added === 0) { toast.error('No pages', 'No pages could be captured.'); return }
       const fname = (mag.name || 'magazine').replace(/[^a-zA-Z0-9 _-]/g, '').trim() || 'magazine'
       pdf.save(`${fname}.pdf`)
     } catch(e) {
       console.error('PDF error:', e)
-      alert('PDF generation failed: ' + e.message)
+      toast.error('PDF failed', e.message)
     } finally {
       setDownloadingId(null)
       setPdfMag(null)

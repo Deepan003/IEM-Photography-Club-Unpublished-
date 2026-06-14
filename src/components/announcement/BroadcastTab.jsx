@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Ic } from './_icons.jsx'
 import { SectionLabel, PaneTabs, Empty, SendBtn, SaveDraftBtn, SentItem, DraftItem, MailSendOverlay, PreviewRecipientsModal, RateLimitNotice } from './_shared.jsx'
+import ConfirmDialog from '../ConfirmDialog.jsx'
 import RecipientField, { PresetButtons, STREAMS } from './RecipientField.jsx'
 import ComposeArea from './ComposeArea.jsx'
 import { announceApi } from '../../api/api.js'
@@ -83,6 +84,7 @@ export default function BroadcastTab({ L }) {
   const [confirmedSet,      setConfirmedSet]      = useState(null)
   const [folders,           setFolders]           = useState([])
   const [showFolderPicker,  setShowFolderPicker]  = useState(false)
+  const [binConfirm,        setBinConfirm]        = useState(null)
 
   // Keep draftId in a ref for the auto-save hook (avoids stale closures)
   const draftIdRef = useRef(null)
@@ -301,7 +303,7 @@ export default function BroadcastTab({ L }) {
             ? <Empty Icon={Ic.Sent} text="No broadcasts sent yet." L={L} />
             : history.filter(a=>a.kind==='broadcast').map(a => (
                 <SentItem key={a._id} a={a} L={L} onReuse={a2=>{setSubject(a2.subject);setContent(a2.content);setPane('compose')}}
-                  onDelete={async id=>{ if(!confirm('Move this email to bin?')) return; await announceApi.binItem(id); fetchHistory() }} />
+                  onDelete={id => setBinConfirm(id)} />
               ))
           }
         </div>
@@ -318,6 +320,16 @@ export default function BroadcastTab({ L }) {
           }
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!binConfirm}
+        title="Move to bin?"
+        message="This sent email will be moved to the bin."
+        confirmLabel="Move to Bin"
+        danger={false}
+        onConfirm={async () => { await announceApi.binItem(binConfirm); setBinConfirm(null); fetchHistory() }}
+        onCancel={() => setBinConfirm(null)}
+      />
     </div>
   )
 }

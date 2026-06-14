@@ -4,6 +4,7 @@ import PageLayout            from '../components/PageLayout.jsx'
 import { SkeletonFeedPost } from '../components/Skeleton.jsx'
 import GlassButton           from '../components/GlassButton.jsx'
 import ImageUpload           from '../components/ImageUpload.jsx'
+import ConfirmDialog         from '../components/ConfirmDialog.jsx'
 import { postsApi, uploadFileToS3 } from '../api/api.js'
 import { useTheme, useAuth } from '../App.jsx'
 import { useData }           from '../hooks/useData.js'
@@ -39,6 +40,7 @@ function PostCard({ post, currentUser, onDeleted, L }) {
   const [newComment,setNewComment]= useState('')
   const [posting,   setPosting]   = useState(false)
   const [lightbox,  setLightbox]  = useState(false)
+  const [delConfirm, setDelConfirm] = useState(false)
   const isOwner = currentUser?._id === (post.author?._id || post.author)
   const isAdmin = currentUser && ['admin','core'].includes(currentUser.role)
 
@@ -68,7 +70,6 @@ function PostCard({ post, currentUser, onDeleted, L }) {
   }
 
   const deletePost = async () => {
-    if (!confirm('Delete this post?')) return
     await postsApi.delete(post._id).catch(() => {})
     onDeleted?.(post._id)
   }
@@ -94,7 +95,7 @@ function PostCard({ post, currentUser, onDeleted, L }) {
           </div>
         </div>
         {(isOwner || isAdmin) && (
-          <button onClick={deletePost} className="text-gray-600 hover:text-red-400 transition-colors text-sm px-2">
+          <button onClick={() => setDelConfirm(true)} className="text-gray-600 hover:text-red-400 transition-colors text-sm px-2">
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
           </button>
         )}
@@ -185,6 +186,15 @@ function PostCard({ post, currentUser, onDeleted, L }) {
           <button onClick={() => setLightbox(false)} className="absolute top-6 right-6 text-white/60 hover:text-white">✕</button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={delConfirm}
+        title="Delete this post?"
+        message="This post will be permanently deleted and cannot be recovered."
+        confirmLabel="Delete"
+        onConfirm={() => { setDelConfirm(false); deletePost() }}
+        onCancel={() => setDelConfirm(false)}
+      />
     </div>
   )
 }

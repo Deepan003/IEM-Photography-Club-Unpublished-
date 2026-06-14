@@ -159,7 +159,7 @@ router.post('/resend-otp', otpLimiter, async (req, res) => {
 
     const otp = await user.setOTP(purpose || 'email_verify')
     await user.save()
-    await sendOTPEmail(email, user.name, otp, purpose || 'email_verify')
+    sendOTPEmail(email, user.name, otp, purpose || 'email_verify')
     res.json({ message: 'OTP resent.' })
   } catch (err) {
     console.error('[resend-otp]', err)
@@ -247,7 +247,7 @@ router.post('/forgot-password', otpLimiter, async (req, res) => {
 
     const otp = await user.setOTP('password_reset')
     await user.save()
-    await sendOTPEmail(email, user.name, otp, 'password_reset')
+    sendOTPEmail(email, user.name, otp, 'password_reset')
     res.json({ message: 'OTP sent to your email.' })
   } catch (err) {
     console.error('[forgot-password]', err)

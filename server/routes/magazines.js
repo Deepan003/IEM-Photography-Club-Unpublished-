@@ -197,14 +197,14 @@ router.post('/:id/send-publish-email', requireAuth, async (req, res) => {
     const user = await User.findById(req.user._id).select('name email')
     if (!user?.email) return res.status(400).json({ error: 'No email on file.' })
 
-    // Fire-and-forget — don't block the response on SMTP
+    // Fire-and-forget — enqueued with auto-retry, returns void
     sendMagazinePublishedEmail({
       to:           user.email,
       name:         user.name || 'there',
       magazineName: mag.name || 'Your Magazine',
       isRepublish:  !!isRepublish,
       pdfBase64,
-    }).catch(e => console.error('Magazine email failed:', e.message))
+    })
 
     res.json({ ok: true })
   } catch (e) { res.status(500).json({ error: e.message }) }

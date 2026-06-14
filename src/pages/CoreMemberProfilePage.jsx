@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { coreApi, uploadFileToS3 } from '../api/api.js'
 import { useTheme, useAuth } from '../App.jsx'
 import ProgressiveImage from '../components/ProgressiveImage.jsx'
+import ConfirmDialog from '../components/ConfirmDialog.jsx'
+import { useToast } from '../components/Toast.jsx'
 import { SkeletonMasonryGrid } from '../components/Skeleton.jsx'
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
@@ -83,6 +85,7 @@ export default function CoreMemberProfilePage() {
   const navigate  = useNavigate()
   const { theme } = useTheme()
   const { user: authUser } = useAuth()
+  const { toast } = useToast()
   const L         = theme === 'light'
   const isAdmin   = authUser && ['admin', 'core'].includes(authUser.role)
 
@@ -91,6 +94,7 @@ export default function CoreMemberProfilePage() {
   const [error,         setError]         = useState(null)
   const [lightboxIndex, setLightboxIndex] = useState(null)
   const [deletingPhoto, setDeletingPhoto] = useState(null)
+  const [coverConfirm,  setCoverConfirm]  = useState(false)
 
   useEffect(() => { window.scrollTo(0, 0) }, [])
   const [deletingCover, setDeletingCover] = useState(false)
@@ -194,17 +198,16 @@ export default function CoreMemberProfilePage() {
     try {
       await coreApi.deleteGalleryPhoto(id, photoId)
       setMember(m => ({ ...m, gallery: m.gallery.filter(p => p._id !== photoId) }))
-    } catch (e) { alert(e.message) }
+    } catch (e) { toast.error('Error', e.message) }
     finally { setDeletingPhoto(null) }
   }
 
   const handleDeleteCover = async () => {
-    if (!confirm('Remove cover photo?')) return
     setDeletingCover(true)
     try {
       await coreApi.deleteCover(id)
       setMember(m => ({ ...m, coverPhoto: null, coverPhotoS3Key: null }))
-    } catch (e) { alert(e.message) }
+    } catch (e) { toast.error('Error', e.message) }
     finally { setDeletingCover(false) }
   }
 
@@ -218,7 +221,7 @@ export default function CoreMemberProfilePage() {
       }
       const d = await coreApi.addGalleryPhotos(id, { photos: results })
       setMember(m => ({ ...m, gallery: d.gallery || [] }))
-    } catch (e) { alert(e.message) }
+    } catch (e) { toast.error('Error', e.message) }
     finally { setGalleryUploading(false); if (galleryFileRef.current) galleryFileRef.current.value = '' }
   }
 
@@ -228,7 +231,7 @@ export default function CoreMemberProfilePage() {
       const r = await uploadFileToS3(file, 'core-covers')
       await coreApi.setCover(id, { coverPhoto: r.publicUrl, coverPhotoS3Key: r.key })
       setMember(m => ({ ...m, coverPhoto: r.publicUrl, coverPhotoS3Key: r.key }))
-    } catch (e) { alert(e.message) }
+    } catch (e) { toast.error('Error', e.message) }
     finally { setCoverUploading(false); if (coverFileRef.current) coverFileRef.current.value = '' }
   }
 
@@ -342,7 +345,7 @@ export default function CoreMemberProfilePage() {
           {isAdmin && (
             <div className="absolute top-3 right-3 flex gap-2 z-10">
               {member.coverPhoto && (
-                <button onClick={handleDeleteCover} disabled={deletingCover}
+                <button onClick={() => setCoverConfirm(true)} disabled={deletingCover}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl font-inter text-xs font-medium text-white backdrop-blur-md transition-all disabled:opacity-50"
                   style={{ background: 'rgba(220,38,38,0.75)', border: '1px solid rgba(255,255,255,0.2)' }}>
                   <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
@@ -552,6 +555,15 @@ export default function CoreMemberProfilePage() {
           onNext={() => setLightboxIndex(i => (i < gallery.length - 1 ? i + 1 : 0))}
         />
       )}
+
+      <ConfirmDialog
+        open={coverConfirm}
+        title="Remove cover photo?"
+        message="The cover photo will be permanently removed."
+        confirmLabel="Yes, Remove"
+        onConfirm={() => { setCoverConfirm(false); handleDeleteCover() }}
+        onCancel={() => setCoverConfirm(false)}
+      />
     </>
   )
 }

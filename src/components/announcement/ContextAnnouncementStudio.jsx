@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Ic } from './_icons.jsx'
 import { SectionLabel, PaneTabs, Empty, SendBtn, SaveDraftBtn, SentItem, DraftItem, MailSendOverlay, RateLimitNotice } from './_shared.jsx'
+import ConfirmDialog from '../ConfirmDialog.jsx'
 import ComposeArea from './ComposeArea.jsx'
 import { announceApi } from '../../api/api.js'
 import { useAutoSaveDraft } from './_useAutoSave.js'
@@ -43,6 +44,7 @@ export default function ContextAnnouncementStudio({
   const [history,     setHistory]     = useState([])
   const [drafts,      setDrafts]      = useState([])
   const [recipientCount, setRecipientCount] = useState(null)
+  const [binConfirm,     setBinConfirm]     = useState(null)
 
   const draftIdRef = useRef(null)
   useEffect(() => { draftIdRef.current = draftId }, [draftId])
@@ -248,11 +250,7 @@ export default function ContextAnnouncementStudio({
             : history.map(a => (
                 <SentItem key={a._id} a={a} L={L}
                   onReuse={canAnnounce ? a2 => { setSubject(a2.subject); setContent(a2.content); setPane('compose') } : undefined}
-                  onDelete={canAnnounce ? async id => {
-                    if (!confirm('Move this to bin?')) return
-                    await announceApi.binItem(id)
-                    fetchHistory()
-                  } : undefined}
+                  onDelete={canAnnounce ? id => setBinConfirm(id) : undefined}
                 />
               ))
           }
@@ -276,6 +274,16 @@ export default function ContextAnnouncementStudio({
           }
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!binConfirm}
+        title="Move to bin?"
+        message="This announcement will be moved to the bin."
+        confirmLabel="Move to Bin"
+        danger={false}
+        onConfirm={async () => { await announceApi.binItem(binConfirm); setBinConfirm(null); fetchHistory() }}
+        onCancel={() => setBinConfirm(null)}
+      />
     </div>
   )
 }
