@@ -108,7 +108,11 @@ router.post('/register', otpLimiter, async (req, res) => {
     res.status(201).json({ message: 'OTP sent to your email. Please verify to continue.' })
   } catch (err) {
     console.error('[register]', err)
-    res.status(500).json({ error: 'Registration failed. Please try again.' })
+    // Temporary debug: expose actual error so we can diagnose via frontend
+    res.status(500).json({
+      error: `[debug] ${err.name}: ${err.message}`,
+      _code: err.code,
+    })
   }
 })
 
