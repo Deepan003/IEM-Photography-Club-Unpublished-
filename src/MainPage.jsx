@@ -1085,6 +1085,9 @@ function EventCinemaGallery({ L, showPast = true }) {
     return () => clearInterval(t)
   }, [events.length, evIdx]) // eslint-disable-line
 
+  // Must be declared before any early return — hooks must always run in the same order
+  const touchStartX = useRef(0)
+
   if (!events.length) return (
     <div className={`rounded-3xl p-12 text-center auth-glass border ${L?'border-black/7':'border-white/7'}`}>
       <p className="text-3xl mb-3">📸</p>
@@ -1100,8 +1103,6 @@ function EventCinemaGallery({ L, showPast = true }) {
     return photos[cellIdx[ci] % photos.length]?.imageUrl || null
   }
   const cellAttr = (ci) => ci === 0 ? null : photos[cellIdx[ci] % photos.length]?.photographer
-
-  const touchStartX = useRef(0)
 
   const neoArrow = { background: L ? '#eef1f7' : '#181820', boxShadow: L ? '-3px -3px 8px rgba(255,255,255,0.90), 4px 4px 10px rgba(163,177,200,0.45), inset 0 1px 0 rgba(255,255,255,0.80)' : '-2px -2px 5px rgba(255,255,255,0.025),3px 3px 8px rgba(0,0,0,0.85)' }
 
