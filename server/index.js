@@ -46,10 +46,18 @@ app.use(helmet({
     directives: {
       defaultSrc:  ["'self'"],
       scriptSrc:   ["'self'"],
-      styleSrc:    ["'self'", "'unsafe-inline'"],   // React inline style props
+      // React inline style props + Google Fonts / FontShare CSS
+      styleSrc:    ["'self'", "'unsafe-inline'",
+                    'https://fonts.googleapis.com',
+                    'https://api.fontshare.com'],
       imgSrc:      ["'self'", 'data:', 'blob:', 'https:'],  // S3 images
-      connectSrc:  ["'self'", 'https:'],            // API + any server-side fetches
-      fontSrc:     ["'self'", 'data:'],
+      connectSrc:  ["'self'", 'https:'],
+      // Google Fonts static files + FontShare font binaries
+      fontSrc:     ["'self'", 'data:',
+                    'https://fonts.gstatic.com',
+                    'https://api.fontshare.com'],
+      // S3 videos — without this, falls back to default-src 'self' and blocks all external media
+      mediaSrc:    ["'self'", 'https:'],
       objectSrc:   ["'none'"],
       baseUri:     ["'self'"],
       formAction:  ["'self'"],
