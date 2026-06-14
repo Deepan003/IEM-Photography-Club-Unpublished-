@@ -8,13 +8,13 @@ import { enqueueEmail } from './emailQueue.js'
 // Creating it inside each function guarantees we read the real values.
 function transport() {
   return nodemailer.createTransport({
-    host:   process.env.EMAIL_HOST   || 'smtp.gmail.com',
-    port:   Number(process.env.EMAIL_PORT) || 587,
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
+    host:              process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port:              Number(process.env.EMAIL_PORT) || 587,
+    secure:            false,
+    auth:              { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+    connectionTimeout: 15_000,
+    greetingTimeout:   10_000,
+    socketTimeout:     30_000,
   })
 }
 

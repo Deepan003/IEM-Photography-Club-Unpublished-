@@ -1601,11 +1601,13 @@ function EventsTab({ currentUser, L }) {
       onMouseEnter={dim ? ev => { ev.currentTarget.style.filter = 'grayscale(0.2) brightness(0.95)' } : undefined}
       onMouseLeave={dim ? ev => { ev.currentTarget.style.filter = 'grayscale(0.72) brightness(0.82)' } : undefined}>
       <div className="cursor-pointer" onClick={() => setSelected(e)}>
-        {e.logoUrl
-          ? <img src={e.logoUrl} alt="" className="w-full h-28 sm:h-32 object-cover group-hover:opacity-90 transition-opacity" />
-          : <div className="w-full h-28 sm:h-32 flex items-center justify-center" style={{ background: L ? 'linear-gradient(135deg,#e2e6f0,#d8dde8)' : 'linear-gradient(135deg,#0a1628,#1a2040)' }}>
-              <span className="font-clash text-4xl font-black" style={{ color: L ? 'rgba(163,177,200,0.22)' : 'rgba(255,255,255,0.10)' }}>{e.name[0]}</span>
-            </div>}
+        <div className={`aspect-square w-full overflow-hidden ${L?'bg-gray-100':'bg-[#0a0a0a]'}`}>
+          {e.logoUrl
+            ? <img src={e.logoUrl} alt="" className="w-full h-full object-contain group-hover:opacity-90 transition-opacity" />
+            : <div className="w-full h-full flex items-center justify-center" style={{ background: L ? 'linear-gradient(135deg,#e2e6f0,#d8dde8)' : 'linear-gradient(135deg,#0a1628,#1a2040)' }}>
+                <span className="font-clash text-4xl font-black" style={{ color: L ? 'rgba(163,177,200,0.22)' : 'rgba(255,255,255,0.10)' }}>{e.name[0]}</span>
+              </div>}
+        </div>
         <div className="p-3 sm:p-3.5">
           <div className="flex items-start justify-between gap-2 mb-1">
             <p className={`font-clash font-semibold text-sm ${L?'text-gray-900':'text-white'} truncate min-w-0`}>{e.name}</p>
@@ -1821,7 +1823,7 @@ function EventsTab({ currentUser, L }) {
           <p className={`font-clash font-semibold text-lg ${L?'text-gray-900':'text-white'}`}>No {eventFilter} events</p>
         </div>
       ) : (
-        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4${isPastSession ? ' opacity-80' : ''}`}>
+        <div className={`grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4${isPastSession ? ' opacity-80' : ''}`}>
           {filtered.map(e => <EventCard key={e._id} e={e} dim={isPastSession} />)}
         </div>
       )}
@@ -2559,11 +2561,13 @@ function CompetitionsAdminTab({ currentUser, L }) {
       onMouseEnter={dim ? ev => { ev.currentTarget.style.filter = 'grayscale(0.2) brightness(0.95)' } : undefined}
       onMouseLeave={dim ? ev => { ev.currentTarget.style.filter = 'grayscale(0.72) brightness(0.82)' } : undefined}>
       <div className="cursor-pointer" onClick={() => setSelected(c)}>
-        {c.bannerUrl
-          ? <img src={c.bannerUrl} alt="" className="w-full h-32 sm:h-36 object-cover group-hover:opacity-90 transition-opacity" />
-          : <div className="w-full h-32 sm:h-36 flex items-center justify-center" style={{ background:'linear-gradient(135deg,#1a0010,#3a0020)' }}>
-              <span className="font-clash text-5xl font-black text-white opacity-10">{c.name[0]}</span>
-            </div>}
+        <div className={`aspect-square w-full overflow-hidden ${L?'bg-gray-100':'bg-[#0a0a0a]'}`}>
+          {c.bannerUrl
+            ? <img src={c.bannerUrl} alt="" className="w-full h-full object-contain group-hover:opacity-90 transition-opacity" />
+            : <div className="w-full h-full flex items-center justify-center" style={{ background:'linear-gradient(135deg,#1a0010,#3a0020)' }}>
+                <span className="font-clash text-5xl font-black text-white opacity-10">{c.name[0]}</span>
+              </div>}
+        </div>
         <div className="p-3 sm:p-4">
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="min-w-0">
@@ -2804,7 +2808,7 @@ function CompetitionsAdminTab({ currentUser, L }) {
           <p className={`font-clash font-semibold text-lg ${L?'text-gray-900':'text-white'}`}>No {compFilter} competitions</p>
         </div>
       ) : (
-        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4${compIsPast ? ' opacity-80' : ''}`}>
+        <div className={`grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4${compIsPast ? ' opacity-80' : ''}`}>
           {compFiltered.map(c => <CompCard key={c._id} c={c} dim={compIsPast} />)}
         </div>
       )}
@@ -5438,11 +5442,13 @@ function ActivitiesAdminTab({ currentUser, L }) {
       onMouseEnter={dim ? ev => { ev.currentTarget.style.filter = 'grayscale(0.2) brightness(0.95)' } : undefined}
       onMouseLeave={dim ? ev => { ev.currentTarget.style.filter = 'grayscale(0.72) brightness(0.82)' } : undefined}>
       <div className="cursor-pointer" onClick={() => setSelected(a)}>
-        {a.bannerUrl
-          ? <img src={a.bannerUrl} alt="" className="w-full h-28 sm:h-32 object-cover group-hover:opacity-90 transition-opacity" />
-          : <div className="w-full h-28 sm:h-32 flex items-center justify-center" style={{ background: L ? 'linear-gradient(135deg,#e2e6f0,#d8dde8)' : 'linear-gradient(135deg,#0d0720,#0a0a1e)' }}>
-              <span className="font-clash text-5xl font-black" style={{ color: L ? 'rgba(163,177,200,0.22)' : 'rgba(255,255,255,0.10)' }}>{a.name?.[0]}</span>
-            </div>}
+        <div className={`aspect-square w-full overflow-hidden ${L?'bg-gray-100':'bg-[#0a0a0a]'}`}>
+          {a.bannerUrl
+            ? <img src={a.bannerUrl} alt="" className="w-full h-full object-contain group-hover:opacity-90 transition-opacity" />
+            : <div className="w-full h-full flex items-center justify-center" style={{ background: L ? 'linear-gradient(135deg,#e2e6f0,#d8dde8)' : 'linear-gradient(135deg,#0d0720,#0a0a1e)' }}>
+                <span className="font-clash text-5xl font-black" style={{ color: L ? 'rgba(163,177,200,0.22)' : 'rgba(255,255,255,0.10)' }}>{a.name?.[0]}</span>
+              </div>}
+        </div>
         <div className="p-3 sm:p-3.5">
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="min-w-0">
@@ -5651,7 +5657,7 @@ function ActivitiesAdminTab({ currentUser, L }) {
           <p className={`font-clash font-semibold text-lg ${L?'text-gray-900':'text-white'}`}>No {actFilter} activities</p>
         </div>
       ) : actFiltered.length > 0 ? (
-        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4${actIsPast ? ' opacity-80' : ''}`}>
+        <div className={`grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4${actIsPast ? ' opacity-80' : ''}`}>
           {actFiltered.map(a => <ActCard key={a._id} a={a} dim={actIsPast} />)}
         </div>
       ) : null}

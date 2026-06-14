@@ -707,7 +707,7 @@ function EventsTab({ currentUser, L }) {
               <div className={`flex-1 h-px ${L ? 'bg-black/8' : 'bg-white/8'}`} />
             </div>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             {filtered.map(e => {
               const myRole    = getEventRole(e)
               const enrolled  = !!myRole
@@ -720,38 +720,29 @@ function EventsTab({ currentUser, L }) {
 
               const card = (
                 <div key={e._id}
-                  className={`group relative rounded-2xl overflow-hidden border transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 flex flex-col h-[256px]
-                    ${L?'border-black/8':'border-white/8'}
+                  className={`group relative rounded-2xl overflow-hidden border transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 aspect-square
+                    ${L?'bg-gray-100 border-black/8':'bg-[#0a0a0a] border-white/8'}
                     ${enrolled ? 'shadow-[0_0_0_1px_rgba(220,38,38,0.25),0_4px_20px_rgba(220,38,38,0.1)]' : ''}`}
                   style={{ filter: isPastSession ? 'grayscale(0.72) brightness(0.82)' : undefined, transition:'filter 300ms' }}
                   onMouseEnter={isPastSession ? evt => { evt.currentTarget.style.filter = 'grayscale(0.2) brightness(0.95)' } : undefined}
                   onMouseLeave={isPastSession ? evt => { evt.currentTarget.style.filter = 'grayscale(0.72) brightness(0.82)' } : undefined}>
-                  <div className="relative overflow-hidden flex-shrink-0" style={{ height:'156px' }}>
-                    {e.logoUrl
-                      ? <img src={e.logoUrl} alt={e.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      : <div className="w-full h-full flex items-center justify-center" style={{ background:'linear-gradient(135deg,#1a1a2e,#16213e)' }}>
-                          <span className="font-clash text-5xl font-bold text-white opacity-15">{e.name[0]}</span>
-                        </div>}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    <div className={`absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full font-inter text-[9px] font-bold uppercase tracking-wider border ${
-                      roleLabel ? roleCls : 'bg-black/50 text-gray-400 border-white/15'
-                    }`} style={{ backdropFilter:'blur(8px)' }}>
-                      {roleLabel ? <><svg width={8} height={8} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><polyline points="20 6 9 17 4 12"/></svg>{roleLabel}</> : 'Not Enrolled'}
-                    </div>
-                    <div className={`absolute bottom-2 left-2 font-inter text-[9px] px-2 py-0.5 rounded-full border uppercase tracking-wider font-semibold ${sc}`}>
-                      {e.status}
-                    </div>
+                  {e.logoUrl
+                    ? <img src={e.logoUrl} alt={e.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" />
+                    : <div className="w-full h-full flex items-center justify-center" style={{ background:'linear-gradient(135deg,#1a1a2e,#16213e)' }}>
+                        <span className="font-clash text-5xl font-bold text-white opacity-15">{e.name[0]}</span>
+                      </div>}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+                  <div className={`absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full font-inter text-[8px] font-bold uppercase tracking-wider border ${
+                    roleLabel ? roleCls : 'bg-black/50 text-gray-400 border-white/15'
+                  }`} style={{ backdropFilter:'blur(8px)' }}>
+                    {roleLabel ? <><svg width={7} height={7} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><polyline points="20 6 9 17 4 12"/></svg>{roleLabel}</> : 'Not Enrolled'}
                   </div>
-                  <div className={`p-3 flex-1 overflow-hidden ${L?'bg-white':'bg-[#0d0d0d]'}`}>
-                    <p className={`font-clash font-semibold text-sm leading-tight mb-1.5 ${L?'text-gray-900':'text-white'}`}>{e.name}</p>
-                    {dates && <p className={`font-inter text-xs flex items-center gap-1 ${L?'text-gray-500':'text-gray-500'}`}>
-                      <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                      {dates}
-                    </p>}
-                    {e.venue && <p className={`font-inter text-xs flex items-center gap-1 mt-0.5 ${L?'text-gray-500':'text-gray-500'}`}>
-                      <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                      {e.venue}
-                    </p>}
+                  <div className="absolute bottom-0 left-0 right-0 p-2">
+                    <p className="font-clash font-semibold text-xs leading-tight text-white truncate">{e.name}</p>
+                    <div className="flex items-center justify-between gap-1 mt-0.5">
+                      {dates && <p className="font-inter text-[8px] text-white/60 truncate">{dates}</p>}
+                      <span className={`font-inter text-[8px] px-1.5 py-0.5 rounded-full border uppercase tracking-wider font-semibold shrink-0 ${sc}`}>{e.status}</span>
+                    </div>
                   </div>
                 </div>
               )
@@ -898,7 +889,7 @@ function CompetitionsTab({ currentUser, L }) {
               <div className={`flex-1 h-px ${L ? 'bg-black/8' : 'bg-white/8'}`} />
             </div>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             {filtered.map(c => {
               const enrolled = enrolledIds.has(c._id)
               const canView  = enrolled || c.isOpenToAll || isAdminOrCore || isPastSession
@@ -909,45 +900,35 @@ function CompetitionsTab({ currentUser, L }) {
               const myRole = currentUser?.role === 'core' ? 'coordinator' : (volEntry?.role || null)
 
               const card = (
-                <div className={`group relative rounded-2xl overflow-hidden border transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 flex flex-col h-[256px]
-                  ${L?'border-black/8':'border-white/8'}
+                <div className={`group relative rounded-2xl overflow-hidden border transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 aspect-square
+                  ${L?'bg-gray-100 border-black/8':'bg-[#0a0a0a] border-white/8'}
                   ${enrolled ? 'shadow-[0_0_0_1px_rgba(220,38,38,0.25),0_4px_20px_rgba(220,38,38,0.1)]' : ''}`}
                   style={{ filter: isPastSession ? 'grayscale(0.72) brightness(0.82)' : undefined, transition:'filter 300ms' }}
                   onMouseEnter={isPastSession ? evt => { evt.currentTarget.style.filter = 'grayscale(0.2) brightness(0.95)' } : undefined}
                   onMouseLeave={isPastSession ? evt => { evt.currentTarget.style.filter = 'grayscale(0.72) brightness(0.82)' } : undefined}>
-                  <div className="relative overflow-hidden flex-shrink-0" style={{ height:'156px' }}>
-                    {c.bannerUrl
-                      ? <img src={c.bannerUrl} alt={c.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      : <div className="w-full h-full flex items-center justify-center" style={{ background:'linear-gradient(135deg,#1a0010,#0a0a1e)' }}>
-                          <span className="font-clash text-5xl font-bold text-white opacity-10">{c.name[0]}</span>
-                        </div>}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
-                    <div className={`absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full font-inter text-[9px] font-bold uppercase tracking-wider border ${
-                      myRole === 'coordinator' ? 'bg-red-900/80 text-red-300 border-red-600/50'
-                      : enrolled ? 'bg-emerald-900/80 text-emerald-300 border-emerald-600/50'
-                      : 'bg-black/50 text-gray-400 border-white/15'
-                    }`} style={{ backdropFilter:'blur(8px)' }}>
-                      {enrolled
-                        ? <><svg width={8} height={8} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><polyline points="20 6 9 17 4 12"/></svg>
-                            {myRole === 'coordinator' ? 'Coordinator' : myRole === 'volunteer' ? 'Volunteer' : 'Enrolled'}
-                          </>
-                        : 'Not Enrolled'}
-                    </div>
-                    <div className={`absolute bottom-2 left-2 font-inter text-[9px] px-2 py-0.5 rounded-full border uppercase tracking-wider font-semibold ${STATUS_CLS[c.status]||''}`}>
-                      {c.status}
-                    </div>
+                  {c.bannerUrl
+                    ? <img src={c.bannerUrl} alt={c.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" />
+                    : <div className="w-full h-full flex items-center justify-center" style={{ background:'linear-gradient(135deg,#1a0010,#0a0a1e)' }}>
+                        <span className="font-clash text-5xl font-bold text-white opacity-10">{c.name[0]}</span>
+                      </div>}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+                  <div className={`absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full font-inter text-[8px] font-bold uppercase tracking-wider border ${
+                    myRole === 'coordinator' ? 'bg-red-900/80 text-red-300 border-red-600/50'
+                    : enrolled ? 'bg-emerald-900/80 text-emerald-300 border-emerald-600/50'
+                    : 'bg-black/50 text-gray-400 border-white/15'
+                  }`} style={{ backdropFilter:'blur(8px)' }}>
+                    {enrolled
+                      ? <><svg width={7} height={7} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><polyline points="20 6 9 17 4 12"/></svg>
+                          {myRole === 'coordinator' ? 'Coordinator' : myRole === 'volunteer' ? 'Volunteer' : 'Enrolled'}
+                        </>
+                      : 'Not Enrolled'}
                   </div>
-                  <div className={`p-3 flex-1 overflow-hidden ${L?'bg-white':'bg-[#0d0d0d]'}`}>
-                    <p className={`font-clash font-semibold text-sm leading-tight mb-1.5 ${L?'text-gray-900':'text-white'}`}>{c.name}</p>
-                    {c.prizeEnabled !== false && c.details?.prize && (
-                      <p className={`font-inter text-xs flex items-center gap-1 ${L?'text-gray-500':'text-gray-500'}`}>🏅 {c.details.prize}</p>
-                    )}
-                    {(c.eventDate || c.startDate) && (
-                      <p className={`font-inter text-xs flex items-center gap-1 mt-0.5 ${L?'text-gray-500':'text-gray-500'}`}>
-                        <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        {new Date(c.eventDate || c.startDate).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}
-                      </p>
-                    )}
+                  <div className="absolute bottom-0 left-0 right-0 p-2">
+                    <p className="font-clash font-semibold text-xs leading-tight text-white truncate">{c.name}</p>
+                    <div className="flex items-center justify-between gap-1 mt-0.5">
+                      {(c.eventDate || c.startDate) && <p className="font-inter text-[8px] text-white/60 truncate">{new Date(c.eventDate || c.startDate).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</p>}
+                      <span className={`font-inter text-[8px] px-1.5 py-0.5 rounded-full border uppercase tracking-wider font-semibold shrink-0 ${STATUS_CLS[c.status]||''}`}>{c.status}</span>
+                    </div>
                   </div>
                 </div>
               )
@@ -1497,7 +1478,7 @@ function ActivitiesTab({ currentUser, L }) {
               <div className={`flex-1 h-px ${L ? 'bg-black/8' : 'bg-white/8'}`} />
             </div>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             {filtered.map(a => {
               const enrolled = enrolledIds.has(a._id)
               const volEntry = a.volunteers?.find(v => {
@@ -1507,42 +1488,37 @@ function ActivitiesTab({ currentUser, L }) {
               const myRole = currentUser?.role==='core' ? 'coordinator' : (volEntry?.role||null)
               return (
                 <Link key={a._id} to={`/activities/${a._id}`}
-                  className={`group relative rounded-2xl overflow-hidden border transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 flex flex-col h-[256px]
-                    ${L?'border-black/8':'border-white/8'}
+                  className={`group relative rounded-2xl overflow-hidden border transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 aspect-square block
+                    ${L?'bg-gray-100 border-black/8':'bg-[#0a0a0a] border-white/8'}
                     ${enrolled?'shadow-[0_0_0_1px_rgba(139,92,246,0.25),0_4px_20px_rgba(139,92,246,0.1)]':''}`}
                   style={{ filter: isPastSession ? 'grayscale(0.72) brightness(0.82)' : undefined, transition:'filter 300ms' }}
                   onMouseEnter={isPastSession ? evt => { evt.currentTarget.style.filter = 'grayscale(0.2) brightness(0.95)' } : undefined}
                   onMouseLeave={isPastSession ? evt => { evt.currentTarget.style.filter = 'grayscale(0.72) brightness(0.82)' } : undefined}>
-                  <div className="relative overflow-hidden flex-shrink-0" style={{ height:'156px' }}>
-                    {a.bannerUrl
-                      ? <img src={a.bannerUrl} alt={a.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      : <div className="w-full h-full flex items-center justify-center" style={{ background:'linear-gradient(135deg,#0d0720,#0a0a1e)' }}>
-                          <span className="font-clash font-black text-white/5" style={{ fontSize:'clamp(48px,7vw,80px)' }}>{a.name[0]}</span>
-                        </div>}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/15 to-transparent" />
-                    <div className="absolute top-2 left-2 flex items-center gap-1.5">
-                      <span className={`font-inter text-[8px] px-1.5 py-0.5 rounded-full border uppercase tracking-wider font-semibold backdrop-blur-sm ${STATUS_CLS[a.status]||''}`}>{a.status}</span>
-                      {a.showNewBadge && <span className="font-inter text-[8px] px-1.5 py-0.5 bg-violet-600 text-white rounded-full uppercase tracking-wider animate-pulse font-bold">NEW</span>}
-                    </div>
-                    <div className={`absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full font-inter text-[9px] font-bold uppercase tracking-wider border ${
-                      myRole === 'coordinator' ? 'bg-red-900/80 text-red-300 border-red-600/50'
-                      : enrolled ? 'bg-emerald-900/80 text-emerald-300 border-emerald-600/50'
-                      : 'bg-black/50 text-gray-400 border-white/15'
-                    }`} style={{ backdropFilter:'blur(8px)' }}>
-                      {enrolled
-                        ? <><svg width={8} height={8} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><polyline points="20 6 9 17 4 12"/></svg>
-                            {myRole === 'coordinator' ? 'Coordinator' : myRole === 'volunteer' ? 'Volunteer' : 'Enrolled'}
-                          </>
-                        : 'Not Enrolled'}
-                    </div>
+                  {a.bannerUrl
+                    ? <img src={a.bannerUrl} alt={a.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" />
+                    : <div className="w-full h-full flex items-center justify-center" style={{ background:'linear-gradient(135deg,#0d0720,#0a0a1e)' }}>
+                        <span className="font-clash font-black text-white/5" style={{ fontSize:'clamp(48px,7vw,80px)' }}>{a.name[0]}</span>
+                      </div>}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+                  <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                    <span className={`font-inter text-[8px] px-1.5 py-0.5 rounded-full border uppercase tracking-wider font-semibold backdrop-blur-sm ${STATUS_CLS[a.status]||''}`}>{a.status}</span>
+                    {a.showNewBadge && <span className="font-inter text-[8px] px-1.5 py-0.5 bg-violet-600 text-white rounded-full uppercase tracking-wider animate-pulse font-bold">NEW</span>}
                   </div>
-                  <div className={`p-3 space-y-1.5 flex-1 overflow-hidden ${L?'bg-white/80':'bg-[#0e0e12]/90'}`}>
-                    <p className={`font-inter text-sm font-semibold leading-tight ${L?'text-gray-900':'text-white'}`}>{a.name}</p>
-                    {a.subject && <p className="font-inter text-[10px] text-violet-400 font-medium">{a.subject}</p>}
-                    <div className="flex items-center gap-3 flex-wrap">
-                      {a.venue && <span className="font-inter text-xs text-gray-400">📍 {a.venue}</span>}
-                      {(a.eventDate || a.startDate) && <span className="font-inter text-xs text-gray-400">📅 {new Date(a.eventDate || a.startDate).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</span>}
-                    </div>
+                  <div className={`absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full font-inter text-[8px] font-bold uppercase tracking-wider border ${
+                    myRole === 'coordinator' ? 'bg-red-900/80 text-red-300 border-red-600/50'
+                    : enrolled ? 'bg-emerald-900/80 text-emerald-300 border-emerald-600/50'
+                    : 'bg-black/50 text-gray-400 border-white/15'
+                  }`} style={{ backdropFilter:'blur(8px)' }}>
+                    {enrolled
+                      ? <><svg width={7} height={7} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><polyline points="20 6 9 17 4 12"/></svg>
+                          {myRole === 'coordinator' ? 'Coordinator' : myRole === 'volunteer' ? 'Volunteer' : 'Enrolled'}
+                        </>
+                      : 'Not Enrolled'}
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-2">
+                    <p className="font-inter text-xs font-semibold leading-tight text-white truncate">{a.name}</p>
+                    {a.subject && <p className="font-inter text-[8px] text-violet-300 truncate mt-0.5">{a.subject}</p>}
+                    {(a.eventDate || a.startDate) && <p className="font-inter text-[8px] text-white/60 mt-0.5">{new Date(a.eventDate || a.startDate).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</p>}
                   </div>
                 </Link>
               )

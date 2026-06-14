@@ -39,6 +39,7 @@ async function drain() {
       await new Promise(r => setTimeout(r, delay))
     } else {
       console.error(`[emailQueue] "${label}" failed permanently after ${MAX_RETRIES} attempts — ${err.message}`)
+      console.error(`[emailQueue] Check EMAIL_USER / EMAIL_PASS env vars and Gmail App Password validity.`)
     }
   }
 

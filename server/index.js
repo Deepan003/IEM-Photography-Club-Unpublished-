@@ -110,6 +110,26 @@ app.use('/api/proxy/image', imageProxyRoutes)
 app.use('/api/hero-themes', heroThemesRoutes)
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }))
 
+// Admin-only SMTP credential check — visit this URL while logged in as admin
+// Returns: { ok: true } or { ok: false, error: "..." }
+app.get('/api/health/email', async (req, res) => {
+  try {
+    const nodemailer = (await import('nodemailer')).default
+    const tr = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+      port: Number(process.env.EMAIL_PORT) || 587,
+      secure: false,
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+      connectionTimeout: 10_000,
+      greetingTimeout:   8_000,
+    })
+    await tr.verify()
+    res.json({ ok: true, user: process.env.EMAIL_USER })
+  } catch (e) {
+    res.json({ ok: false, user: process.env.EMAIL_USER || '(not set)', error: e.message })
+  }
+})
+
 if (isProd) {
   const dist = join(__dir, '..', 'dist')
   if (existsSync(dist)) {
