@@ -624,13 +624,14 @@ function UserProfileModal({ user, onClose, onAction, currentUserRole }) {
             <div className="space-y-2">
               <p className="font-inter text-[10px] text-gray-500 uppercase tracking-widest">Actions</p>
               <div className="flex flex-wrap gap-2">
-                {user.status === 'pending_admin' && (
+                {/* Approve/Reject — for both pending_admin and pending_email users */}
+                {['pending_admin', 'pending_email'].includes(user.status) && (
                   <>
                     <GlassButton onClick={() => act(() => adminApi.approve(user._id), 'Approved')} disabled={busy}
                       className="font-inter text-xs px-3 text-emerald-400" style={{ borderRadius:'9px', minHeight:'32px' }}>
                       ✓ Approve
                     </GlassButton>
-                    <GlassButton onClick={() => setRejectOpen(r => !r)} disabled={busy}
+                    <GlassButton onClick={() => setRejectOpen(true)} disabled={busy}
                       className="font-inter text-xs px-3 text-red-400" style={{ borderRadius:'9px', minHeight:'32px' }}>
                       ✗ Reject
                     </GlassButton>
@@ -672,47 +673,12 @@ function UserProfileModal({ user, onClose, onAction, currentUserRole }) {
 
                 {/* Delete */}
                 {currentUserRole === 'admin' && (
-                  <GlassButton onClick={() => setDelConfirm(d => !d)} disabled={busy}
+                  <GlassButton onClick={() => setDelConfirm(true)} disabled={busy}
                     className="font-inter text-xs px-3 text-red-500" style={{ borderRadius:'9px', minHeight:'32px' }}>
                     🗑 Delete
                   </GlassButton>
                 )}
               </div>
-
-              {rejectOpen && (
-                <div className="space-y-2 p-3 auth-glass rounded-xl border border-red-900/30">
-                  <p className="font-inter text-[10px] text-red-400/80">Account will be permanently deleted — the email will be free to re-apply.</p>
-                  <input value={rejectMsg} onChange={e => setRejectMsg(e.target.value)}
-                    placeholder="Reason for rejection (optional)"
-                    className="glass-input w-full text-sm" style={{ borderRadius:'9px' }} />
-                  <div className="flex gap-2">
-                    <GlassButton onClick={() => act(() => adminApi.reject(user._id, rejectMsg), 'Rejected')} disabled={busy}
-                      className="flex-1 font-inter text-xs text-red-400" style={{ borderRadius:'9px', minHeight:'32px' }}>
-                      Reject &amp; Delete
-                    </GlassButton>
-                    <GlassButton onClick={() => setRejectOpen(false)}
-                      className="flex-1 font-inter text-xs" style={{ borderRadius:'9px', minHeight:'32px' }}>
-                      Cancel
-                    </GlassButton>
-                  </div>
-                </div>
-              )}
-
-              {delConfirm && (
-                <div className="p-3 auth-glass rounded-xl border border-red-900/40 space-y-2">
-                  <p className="font-inter text-xs text-red-300">Permanently delete {user.name}? Cannot be undone.</p>
-                  <div className="flex gap-2">
-                    <GlassButton onClick={() => act(() => adminApi.deleteUser(user._id), 'Deleted')} disabled={busy}
-                      className="flex-1 font-inter text-xs text-red-400" style={{ borderRadius:'9px', minHeight:'32px' }}>
-                      Yes, Delete Forever
-                    </GlassButton>
-                    <GlassButton onClick={() => setDelConfirm(false)}
-                      className="flex-1 font-inter text-xs" style={{ borderRadius:'9px', minHeight:'32px' }}>
-                      Cancel
-                    </GlassButton>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -721,6 +687,50 @@ function UserProfileModal({ user, onClose, onAction, currentUserRole }) {
           )}
         </div>
       </div>
+
+      {/* ── Delete confirmation — centered overlay, never hidden by scroll ── */}
+      {delConfirm && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-black/60 rounded-t-3xl sm:rounded-2xl" onClick={() => setDelConfirm(false)} />
+          <div className="relative auth-glass rounded-2xl p-5 w-full max-w-xs space-y-4 border border-red-900/40">
+            <p className="font-inter text-sm text-red-300 text-center">Permanently delete <span className="font-semibold text-white">{user.name}</span>?<br /><span className="text-xs text-red-400/70">This cannot be undone.</span></p>
+            <div className="flex gap-2">
+              <GlassButton onClick={() => act(() => adminApi.deleteUser(user._id), 'Deleted')} disabled={busy}
+                className="flex-1 font-inter text-xs text-red-400" style={{ borderRadius:'9px', minHeight:'38px' }}>
+                Yes, Delete Forever
+              </GlassButton>
+              <GlassButton onClick={() => setDelConfirm(false)}
+                className="flex-1 font-inter text-xs" style={{ borderRadius:'9px', minHeight:'38px' }}>
+                Cancel
+              </GlassButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reject confirmation — centered overlay, never hidden by scroll ── */}
+      {rejectOpen && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-black/60 rounded-t-3xl sm:rounded-2xl" onClick={() => setRejectOpen(false)} />
+          <div className="relative auth-glass rounded-2xl p-5 w-full max-w-xs space-y-3 border border-red-900/30">
+            <p className="font-inter text-xs text-red-400/80 text-center">Account will be permanently deleted — the email will be free to re-apply.</p>
+            <input value={rejectMsg} onChange={e => setRejectMsg(e.target.value)}
+              placeholder="Reason for rejection (optional)"
+              className="glass-input w-full text-sm" style={{ borderRadius:'9px' }} />
+            <div className="flex gap-2">
+              <GlassButton onClick={() => act(() => adminApi.reject(user._id, rejectMsg), 'Rejected')} disabled={busy}
+                className="flex-1 font-inter text-xs text-red-400" style={{ borderRadius:'9px', minHeight:'38px' }}>
+                Reject &amp; Delete
+              </GlassButton>
+              <GlassButton onClick={() => setRejectOpen(false)}
+                className="flex-1 font-inter text-xs" style={{ borderRadius:'9px', minHeight:'38px' }}>
+                Cancel
+              </GlassButton>
+            </div>
+          </div>
+        </div>
+      )}
+
       <DownloadingOverlay visible={dlBusy} message={dlMsg} />
     </div>
   )
@@ -802,7 +812,7 @@ function UsersTab({ currentUserRole, L }) {
   const stats = {
     total:    members.length,
     approved: members.filter(u => u.status === 'approved').length,
-    pending:  members.filter(u => u.status === 'pending_admin').length,
+    pending:  members.filter(u => ['pending_admin','pending_email'].includes(u.status)).length,
     banned:   members.filter(u => u.status === 'banned').length,
   }
 

@@ -20,6 +20,7 @@ function NavigateEffect({ to, onDone }) {
 }
 import AuthModal         from './components/auth/AuthModal.jsx'
 import LoginSuccess      from './components/LoginSuccess.jsx'
+import WelcomeOverlay    from './components/WelcomeOverlay.jsx'
 import { getToken, clearToken, authApi } from './api/auth.js'
 
 // ── Lazy-loaded components (code-split) ───────────────────────────────────────
@@ -123,6 +124,7 @@ export default function App() {
   const [authModal,    setAuthModal]    = useState(false)
   const [loginSuccess, setLoginSuccess] = useState(null)
   const [pendingNav,   setPendingNav]   = useState(null)
+  const [welcomeUser,  setWelcomeUser]  = useState(null)
 
   useEffect(() => {
     const open = () => setAuthModal(true)
@@ -194,12 +196,20 @@ export default function App() {
           <LoginSuccess
             user={loginSuccess}
             onDone={() => {
+              const u = loginSuccess
               setLoginSuccess(null)
-              setPendingNav(
-                ['admin','core'].includes(loginSuccess?.role) ? '/admin' : '/dashboard'
-              )
+              setPendingNav(['admin','core'].includes(u?.role) ? '/admin' : '/dashboard')
+              // Show welcome overlay once per member (non-admin) on first ever login
+              if (u && !['admin'].includes(u.role) && !localStorage.getItem(`welcome_seen_${u._id}`)) {
+                setWelcomeUser(u)
+              }
             }}
           />
+        )}
+
+        {/* ── First-login welcome overlay ── */}
+        {welcomeUser && (
+          <WelcomeOverlay user={welcomeUser} onClose={() => setWelcomeUser(null)} />
         )}
 
         {/* ── Main app — always renders so content is ready when preloader fades ── */}

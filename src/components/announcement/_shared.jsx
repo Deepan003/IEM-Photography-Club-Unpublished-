@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import DOMPurify from 'dompurify'
 import { Ic } from './_icons.jsx'
 import { fmt, fmtShort } from './_tokens.js'
@@ -395,9 +396,9 @@ export function Empty({ Icon, text, L }) {
 export function MailSendOverlay({ phase, leaving, recipientCount, L }) {
   if (!phase) return null
   const sending = phase === 'sending'
-  return (
-    <div className={`absolute inset-0 z-[60] flex items-center justify-center rounded-2xl mail-overlay ${leaving ? 'is-leaving' : ''}`}
-      style={{ background: L ? 'rgba(255,255,255,0.74)' : 'rgba(4,2,2,0.76)' }}>
+  return createPortal(
+    <div className={`fixed inset-0 z-[9999] flex items-center justify-center mail-overlay ${leaving ? 'is-leaving' : ''}`}
+      style={{ background: L ? 'rgba(255,255,255,0.74)' : 'rgba(4,2,2,0.82)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)' }}>
       <div className="flex flex-col items-center gap-4">
         <div className="relative w-16 h-16 flex items-center justify-center">
           <span className="absolute inset-0 rounded-full mail-ring" style={{border:'1.5px solid rgba(220,38,38,0.45)'}} />
@@ -432,7 +433,8 @@ export function MailSendOverlay({ phase, leaving, recipientCount, L }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
