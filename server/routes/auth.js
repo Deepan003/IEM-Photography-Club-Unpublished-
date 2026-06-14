@@ -44,14 +44,31 @@ router.post('/register', otpLimiter, async (req, res) => {
       return res.status(400).json({ error: 'End year must be after start year.' })
     }
 
+    // Check if OTP is required (do this before the existing-user check so we
+    // can handle pending_email users differently when OTP is disabled)
+    const otpSetting = await AppSettings.findOne({ key: 'auth.otpRequired' })
+    const otpRequired = otpSetting != null ? otpSetting.value : true
+
+    // Check passout before saving
+    if (isPassout(Number(startYear), Number(endYear))) {
+      return res.status(400).json({ error: 'Your programme end year has already passed. Cannot register.' })
+    }
+
     // Check unique email
     const existing = await User.findOne({ email: email.toLowerCase() })
     if (existing) {
-      // If they previously registered but email was never verified, resend OTP
       if (existing.status === 'pending_email') {
+        if (!otpRequired) {
+          // OTP is disabled — upgrade this stuck pending_email account to pending_admin
+          existing.status = 'pending_admin'
+          existing.clearOTP()
+          await existing.save()
+          return res.status(201).json({ message: 'Account created! Awaiting admin approval.', skipOtp: true })
+        }
+        // OTP is required — resend the verification code
         const otp = await existing.setOTP('email_verify')
         await existing.save()
-        await sendOTPEmail(email, existing.name, otp, 'email_verify').catch(() => {})
+        sendOTPEmail(email, existing.name, otp, 'email_verify')
         return res.status(409).json({
           error: 'An unverified account already exists for this email. A new OTP has been sent — please check your inbox.',
           code: 'RESENT_OTP',
@@ -59,15 +76,6 @@ router.post('/register', otpLimiter, async (req, res) => {
       }
       return res.status(409).json({ error: 'An account with this email already exists. Try logging in.' })
     }
-
-    // Check passout before saving
-    if (isPassout(Number(startYear), Number(endYear))) {
-      return res.status(400).json({ error: 'Your programme end year has already passed. Cannot register.' })
-    }
-
-    // Check if OTP is required
-    const otpSetting = await AppSettings.findOne({ key: 'auth.otpRequired' })
-    const otpRequired = otpSetting != null ? otpSetting.value : true
 
     if (!otpRequired) {
       // Skip email verification — go straight to pending admin approval
@@ -108,11 +116,7 @@ router.post('/register', otpLimiter, async (req, res) => {
     res.status(201).json({ message: 'OTP sent to your email. Please verify to continue.' })
   } catch (err) {
     console.error('[register]', err)
-    // Temporary debug: expose actual error so we can diagnose via frontend
-    res.status(500).json({
-      error: `[debug] ${err.name}: ${err.message}`,
-      _code: err.code,
-    })
+    res.status(500).json({ error: 'Registration failed. Please try again.' })
   }
 })
 
