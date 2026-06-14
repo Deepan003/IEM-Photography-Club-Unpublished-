@@ -64,16 +64,27 @@ function applyTheme(t) {
 }
 
 // ── Preloader ─────────────────────────────────────────────────────────────────
-function Preloader({ onComplete }) {
+// Rendered as a fixed overlay on top of the already-rendering main app.
+// This means main-page content is loaded in the background while the preloader
+// is visible, so when it fades there is zero flash or swap delay.
+function Preloader({ onComplete, ready }) {
   const [burning, setBurning] = useState(false)
+
   useEffect(() => {
-    const t1 = setTimeout(() => setBurning(true),  2000)
-    const t2 = setTimeout(onComplete,              2800)
+    // Don't start the countdown until auth is resolved (ready=true).
+    // This keeps the black screen while we're waiting for getMe() on first load.
+    if (!ready) return
+    const t1 = setTimeout(() => setBurning(true), 2000)
+    // Fire onComplete only AFTER the 1-second opacity transition finishes
+    const t2 = setTimeout(onComplete,             3100)
     return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [onComplete])
+  }, [ready, onComplete])
 
   return (
-    <div className={`fixed inset-0 z-[1000] bg-black flex items-center justify-center transition-opacity duration-1000 ${burning ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+    <div
+      className={`fixed inset-0 z-[9999] bg-black flex items-center justify-center transition-opacity duration-1000 ${burning ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      aria-hidden={burning}
+    >
       <div className="relative z-10 text-center px-4">
         <h1 className="font-cine text-xl sm:text-3xl md:text-6xl text-white tracking-[0.3em] uppercase animate-fade-in-slow">
           IEM PHOTOGRAPHY CLUB
@@ -103,15 +114,15 @@ if (typeof window !== 'undefined') {
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
   // Show the preloader ONCE per browser session (new tab = fresh splash, refresh = skip).
-  const [phase, setPhase] = useState(() => sessionStorage.getItem('iempc_phase') || 'preloader')
-  const advancePhase = (p) => { sessionStorage.setItem('iempc_phase', p); setPhase(p) }
+  const [showPreloader, setShowPreloader] = useState(
+    () => sessionStorage.getItem('iempc_phase') !== 'main'
+  )
   const [currentUser,  setCurrentUser]  = useState(null)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [theme,        setTheme]        = useState(() => localStorage.getItem('iempc_theme') || 'dark')
-  // ── Global auth modal — one instance, triggered from anywhere via event ──
   const [authModal,    setAuthModal]    = useState(false)
-  const [loginSuccess, setLoginSuccess] = useState(null)   // null | user object
-  const [pendingNav,   setPendingNav]   = useState(null)   // set after animation → NavigateEffect handles it
+  const [loginSuccess, setLoginSuccess] = useState(null)
+  const [pendingNav,   setPendingNav]   = useState(null)
 
   useEffect(() => {
     const open = () => setAuthModal(true)
@@ -123,19 +134,18 @@ export default function App() {
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark')
 
-  // Restore scroll position after the main app renders (phase = main)
+  // Restore scroll position once the main app is visible (preloader gone or skipped)
   useEffect(() => {
-    if (phase !== 'main') return
+    if (showPreloader || checkingAuth) return
     const savedPath = sessionStorage.getItem('iempc_scroll_path')
     const savedY    = parseInt(sessionStorage.getItem('iempc_scroll_y') || '0', 10)
     if (savedPath === window.location.pathname && savedY > 0) {
-      // Slight delay to let the page content render first
       const t = setTimeout(() => { window.scrollTo({ top: savedY, behavior: 'instant' }) }, 80)
       return () => clearTimeout(t)
     }
     sessionStorage.removeItem('iempc_scroll_y')
     sessionStorage.removeItem('iempc_scroll_path')
-  }, [phase])
+  }, [showPreloader, checkingAuth])
 
   useEffect(() => {
     if (!getToken()) { setCheckingAuth(false); return }
@@ -145,19 +155,28 @@ export default function App() {
       .finally(() => setCheckingAuth(false))
   }, [])
 
-  if (checkingAuth) return null
-
   const themeCtx = { theme, toggleTheme }
   const authCtx  = { user: currentUser, setUser: setCurrentUser }
 
-  // Splash screen shown once per browser session
-  if (phase === 'preloader') return <ThemeCtx.Provider value={themeCtx}><Preloader onComplete={() => advancePhase('main')} /></ThemeCtx.Provider>
+  const handlePreloaderComplete = () => {
+    sessionStorage.setItem('iempc_phase', 'main')
+    setShowPreloader(false)
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
     <ToastProvider>
     <ThemeCtx.Provider value={themeCtx}>
       <AuthCtx.Provider value={authCtx}>
+
+        {/* ── Preloader overlay — sits on top (z-9999), fades out revealing the
+             main app that has already been rendering underneath.
+             `ready` delays the countdown until auth is resolved so the black
+             screen persists while getMe() is in-flight. ── */}
+        {showPreloader && (
+          <Preloader onComplete={handlePreloaderComplete} ready={!checkingAuth} />
+        )}
+
         {/* ── Global auth modal ── */}
         {authModal && !currentUser && (
           <AuthModal
@@ -165,79 +184,78 @@ export default function App() {
             onAuthSuccess={user => {
               setCurrentUser(user)
               setAuthModal(false)
-              setLoginSuccess(user)   // trigger the success animation
+              setLoginSuccess(user)
             }}
           />
         )}
 
-        {/* ── Login success animation (outside Router — no useNavigate) ── */}
+        {/* ── Login success animation ── */}
         {loginSuccess && (
           <LoginSuccess
             user={loginSuccess}
             onDone={() => {
               setLoginSuccess(null)
-              // Admin/core go to admin panel, everyone else to dashboard
-              // loginSuccess IS the user object — use its role, not the undefined 'user' variable
               setPendingNav(
-                ['admin','core'].includes(loginSuccess?.role) ? '/admin'
-                : '/dashboard'
+                ['admin','core'].includes(loginSuccess?.role) ? '/admin' : '/dashboard'
               )
             }}
           />
         )}
-        <BrowserRouter>
-          <Suspense fallback={null}>
-            {/* Scroll performance: isolate BrowserRouter tree so JS work doesn't block paint */}
-            <div style={{ isolation: 'isolate', minHeight: '100vh' }}>
-            <Routes>
-              {/* Public site */}
-              <Route path="/"              element={<MainPage />} />
-              <Route path="/postcards"     element={<PostcardsPage />} />
-              <Route path="/gallery"       element={<ClubGalleryPage />} />
-              <Route path="/events"        element={<EventsPage />} />
-              <Route path="/events/:id"    element={<EventDetailPage />} />
-              <Route path="/members"       element={<MembersPage />} />
-              <Route path="/members/:id"     element={<UserProfilePage />} />
-              <Route path="/core-member/:id" element={<CoreMemberProfilePage />} />
-              <Route path="/alumni"        element={<AlumniPage />} />
-              <Route path="/core"          element={<CoreCommitteePage />} />
-              <Route path="/join"          element={<Navigate to="/#join" replace />} />
-              <Route path="/competitions"        element={<CompetitionsPage />} />
-              <Route path="/competitions/:id"   element={<CompetitionsPage />} />
-              <Route path="/activities"          element={<ActivitiesPage />} />
-              <Route path="/activities/:id"      element={<ActivitiesPage />} />
-              <Route path="/magazines"           element={<MagazinesPage />} />
-              <Route path="/magazine/:id"       element={<MagazinePublicPage />} />
-              <Route path="/events-gallery"     element={<EventsGalleryPage />} />
-              <Route path="/events-gallery/:id" element={<EventGalleryDetailPage />} />
 
-              {/* Auth-required */}
-              <Route path="/dashboard" element={
-                currentUser
-                  ? ['admin','core'].includes(currentUser.role)
-                    ? <Navigate to="/admin" replace />
-                    : <MemberDashboard onLogout={() => { clearToken(); setCurrentUser(null) }} />
-                  : <Navigate to="/" replace />
-              } />
-              <Route path="/coordinator-dashboard" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/settings"   element={currentUser ? <UserSettingsPage /> : <Navigate to="/" replace />} />
-              <Route path="/feed"       element={<FeedPage />} />
-              <Route path="/my-events"  element={currentUser ? <UserEventsPage /> : <Navigate to="/" replace />} />
-              <Route path="/admin"      element={
-                currentUser && ['admin','core'].includes(currentUser.role)
-                  ? <AdminDashboard />
-                  : <Navigate to="/" replace />
-              } />
+        {/* ── Main app — always renders so content is ready when preloader fades ── */}
+        {!checkingAuth && (
+          <BrowserRouter>
+            <Suspense fallback={null}>
+              <div style={{ isolation: 'isolate', minHeight: '100vh' }}>
+              <Routes>
+                <Route path="/"              element={<MainPage />} />
+                <Route path="/postcards"     element={<PostcardsPage />} />
+                <Route path="/gallery"       element={<ClubGalleryPage />} />
+                <Route path="/events"        element={<EventsPage />} />
+                <Route path="/events/:id"    element={<EventDetailPage />} />
+                <Route path="/members"       element={<MembersPage />} />
+                <Route path="/members/:id"     element={<UserProfilePage />} />
+                <Route path="/core-member/:id" element={<CoreMemberProfilePage />} />
+                <Route path="/alumni"        element={<AlumniPage />} />
+                <Route path="/core"          element={<CoreCommitteePage />} />
+                <Route path="/join"          element={<Navigate to="/#join" replace />} />
+                <Route path="/competitions"        element={<CompetitionsPage />} />
+                <Route path="/competitions/:id"   element={<CompetitionsPage />} />
+                <Route path="/activities"          element={<ActivitiesPage />} />
+                <Route path="/activities/:id"      element={<ActivitiesPage />} />
+                <Route path="/magazines"           element={<MagazinesPage />} />
+                <Route path="/magazine/:id"       element={<MagazinePublicPage />} />
+                <Route path="/events-gallery"     element={<EventsGalleryPage />} />
+                <Route path="/events-gallery/:id" element={<EventGalleryDetailPage />} />
 
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-            </div>
-          </Suspense>
+                <Route path="/dashboard" element={
+                  currentUser
+                    ? ['admin','core'].includes(currentUser.role)
+                      ? <Navigate to="/admin" replace />
+                      : <MemberDashboard onLogout={() => { clearToken(); setCurrentUser(null) }} />
+                    : <Navigate to="/" replace />
+                } />
+                <Route path="/coordinator-dashboard" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/settings"   element={currentUser ? <UserSettingsPage /> : <Navigate to="/" replace />} />
+                <Route path="/feed"       element={<FeedPage />} />
+                <Route path="/my-events"  element={currentUser ? <UserEventsPage /> : <Navigate to="/" replace />} />
+                <Route path="/admin"      element={
+                  currentUser && ['admin','core'].includes(currentUser.role)
+                    ? <AdminDashboard />
+                    : <Navigate to="/" replace />
+                } />
 
-          {pendingNav && (
-            <NavigateEffect to={pendingNav} onDone={() => setPendingNav(null)} />
-          )}
-        </BrowserRouter>
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+              </div>
+            </Suspense>
+
+            {pendingNav && (
+              <NavigateEffect to={pendingNav} onDone={() => setPendingNav(null)} />
+            )}
+          </BrowserRouter>
+        )}
+
       </AuthCtx.Provider>
     </ThemeCtx.Provider>
     </ToastProvider>

@@ -151,7 +151,7 @@
 | **Auth** | JWT (jsonwebtoken) + bcryptjs | Token-based auth, hashed passwords |
 | **Database** | MongoDB + Mongoose 8 | Document store, flexible schemas |
 | **Storage** | AWS S3 (SDK v3) | Photo / file uploads |
-| **Email** | Nodemailer | Signup approval, notifications |
+| **Email** | Resend HTTP API | Signup OTPs, announcements, notifications |
 | **Security** | Helmet, CORS, rate-limit | HTTP headers, origin policy, DDoS guard |
 | **Build** | Vite manualChunks | Code splitting, lazy admin bundle |
 
@@ -295,10 +295,9 @@ AWS_SECRET_ACCESS_KEY=your_secret
 AWS_REGION=ap-south-1
 AWS_BUCKET_NAME=your-bucket-name
 
-# Email (Nodemailer)
-EMAIL_USER=your@email.com
-EMAIL_PASS=your_app_password
-EMAIL_FROM=IEM Photography Club <your@email.com>
+# Email (Resend)
+RESEND_API_KEY=re_your_api_key
+EMAIL_FROM=IEM Photography Club <onboarding@resend.dev>
 ```
 
 ```bash

@@ -1066,7 +1066,7 @@ As described in [Section 9.2](#92-file-size-limits--enforced-at-streaming-level)
 
 **File:** `server/routes/globalAnnouncements.js`
 
-Bulk announcement emails are sent in batches of 10 recipients at a time with sequential awaiting. This prevents the SMTP system from being flooded and avoids connection pool exhaustion.
+Bulk announcement emails are sent in batches of 10 recipients at a time with sequential awaiting via the Resend HTTP API. This prevents the email API from being flooded and avoids exhausting rate limits.
 
 ---
 
@@ -1087,9 +1087,8 @@ All secrets are loaded from a `.env` file at server startup using `dotenv`. The 
 | `AWS_SECRET_ACCESS_KEY` | S3 secret key — server-side only |
 | `AWS_REGION` | S3 bucket region |
 | `S3_BUCKET_NAME` | S3 bucket name |
-| `EMAIL_USER` | Gmail address for sending OTPs and announcements |
-| `EMAIL_PASS` | Gmail App Password |
-| `EMAIL_FROM` | Display name for outgoing emails |
+| `RESEND_API_KEY` | Resend API key for sending OTPs and announcements |
+| `EMAIL_FROM` | Display name and address for outgoing emails |
 | `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins (optional in same-origin deploy) |
 
 ---
@@ -1192,6 +1191,30 @@ When a user is added to an event or competition, or their role within it changes
 
 ---
 
+### 20.5 Email Transport — Resend HTTP API (No SMTP)
+
+**Files:** `server/utils/resend.js`, `server/utils/emailQueue.js`
+
+The application was originally designed with nodemailer over SMTP (port 587, Gmail). This was replaced with the **Resend HTTP API** for the following reasons:
+
+- Render's free tier blocks outbound SMTP connections on port 587. Attempting to connect silently hangs until the OTP timeout, making email flows completely broken in production.
+- The Resend SDK communicates exclusively over HTTPS (port 443), which is never blocked.
+- Resend provides delivery analytics, bounce tracking, and a web UI for debugging sent emails.
+
+**Security properties of this transport:**
+
+| Property | Detail |
+| --- | --- |
+| Protocol | HTTPS (TLS 1.2/1.3) — all API calls are encrypted in transit |
+| Authentication | API key in `Authorization: Bearer` header — never in URL |
+| Credential storage | API key in server-only `.env` — never bundled into the frontend |
+| Rate limits | Resend enforces per-second and daily send limits — adds a second layer of DDoS guard on top of the app-level rate limiter |
+| From address | Locked to `EMAIL_FROM` env var — users cannot control the `From` header |
+
+**Limitation:** Without a verified sending domain, Resend restricts the `From` address to `onboarding@resend.dev`, which only delivers to the Resend account owner's email. Full multi-recipient delivery requires a verified domain configured in Resend and reflected in `EMAIL_FROM`.
+
+---
+
 ## 21. Replay Attack Prevention
 
 ---
@@ -1245,16 +1268,11 @@ Uncaught exceptions and unhandled promise rejections are logged to the console (
 
 ---
 
-### 23.1 nodemailer — High Severity CVEs (Pending Update)
+### 23.1 nodemailer CVEs — Resolved via Resend Migration
 
-The currently installed `nodemailer@^6.9.14` has several high-severity CVEs. The recommended fix — `npm install nodemailer@latest` — installs v8.x which is marked as a breaking change. Email functionality (OTPs and announcements) must be tested after upgrading before the update is deployed.
+nodemailer has been fully removed from the application and replaced with the **Resend HTTP API** (`resend` npm package). All CVEs that previously applied to nodemailer are no longer relevant — there is no SMTP library in the dependency tree.
 
-| CVE | Description | Exploitability in This App |
-|---|---|---|
-| GHSA-mm7p-fcc7-pg87 | Email to unintended domain via address parsing | Low — recipient addresses come from the database |
-| GHSA-rcmh-qjqh-p98v | AddressParser Regex DoS | Low — sends are rate-limited to 10/10min |
-| GHSA-c7w3-x93f-qmm8 | SMTP injection via envelope.size | Not exploitable — app never sets envelope.size |
-| GHSA-vvjj-xcjg-gr5g | SMTP injection via transport name | Not exploitable — transport name is hardcoded |
+See [Section 20.5](#205-email-transport--resend-http-api-no-smtp) for the full rationale and security properties of the new transport.
 
 ---
 
@@ -1313,7 +1331,7 @@ This table is the complete record of every vulnerability identified, assessed, a
 | 29 | Pastejacking | Social Engineering | N/A | Not applicable | No copyable terminal commands or code blocks displayed |
 | 30 | Vite inline script blocking CSP | Misconfiguration | Info | Fixed | `modulePreload: { polyfill: false }` in `vite.config.js` |
 | 31 | Error messages revealing stack traces in prod | Information Disclosure | Medium | Mitigated | Global error handler returns generic message in production |
-| 32 | nodemailer CVEs | Dependency | High | Pending | Update to nodemailer v8.x — test email flows first |
+| 32 | nodemailer CVEs | Dependency | High | **Fixed** | Replaced nodemailer entirely with Resend HTTP API — no SMTP library in dependency tree |
 | 33 | xlsx prototype pollution / ReDoS | Dependency | Low | Pending | Client-side only; low risk; replace when convenient |
 
 ---
