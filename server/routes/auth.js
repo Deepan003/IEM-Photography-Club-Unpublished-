@@ -76,7 +76,7 @@ router.post('/register', otpLimiter, async (req, res) => {
         enrollmentNumber, rollNumber,
         startYear: Number(startYear), endYear: Number(endYear),
         email, password, devices,
-        status: 'pending_approval',
+        status: 'pending_admin',
       })
       await user.save()
       return res.status(201).json({ message: 'Account created! Awaiting admin approval.', skipOtp: true })
