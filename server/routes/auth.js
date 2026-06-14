@@ -102,17 +102,8 @@ router.post('/register', otpLimiter, async (req, res) => {
     const otp = await user.setOTP('email_verify')
     await user.save()
 
-    // Try to send OTP — if email fails, delete the user so they can retry cleanly
-    try {
-      await sendOTPEmail(email, name, otp, 'email_verify')
-    } catch (mailErr) {
-      console.error('[register] Email send failed:', mailErr.message)
-      await User.deleteOne({ _id: user._id })
-      return res.status(500).json({
-        error: 'Could not send OTP email. Check that your Gmail App Password is set correctly in .env, then try again.',
-      })
-    }
-
+    // sendOTPEmail is fire-and-forget (enqueued with auto-retry) — returns void
+    sendOTPEmail(email, name, otp, 'email_verify')
     res.status(201).json({ message: 'OTP sent to your email. Please verify to continue.' })
   } catch (err) {
     console.error('[register]', err)
