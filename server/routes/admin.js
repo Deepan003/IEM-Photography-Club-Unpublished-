@@ -32,7 +32,7 @@ const guard  = [adminLimiter, requireAuth, requireRole('admin', 'core')]
 // GET /api/admin/pending
 router.get('/pending', guard, async (req, res) => {
   try {
-    const users = await User.find({ status: 'pending_admin' })
+    const users = await User.find({ status: { $in: ['pending_admin', 'pending_email'] } })
       .select('-password -otpHash -otpExpiry -otpPurpose')
       .sort({ createdAt: -1 })
     res.json({ users })
@@ -68,7 +68,7 @@ router.post('/approve/:id', guard, async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
     if (!user) return res.status(404).json({ error: 'User not found.' })
-    if (user.status !== 'pending_admin') {
+    if (!['pending_admin', 'pending_email'].includes(user.status)) {
       return res.status(400).json({ error: 'User is not in pending state.' })
     }
 
@@ -77,7 +77,7 @@ router.post('/approve/:id', guard, async (req, res) => {
     user.approvedAt = new Date()
     await user.save()
 
-    await sendApprovalEmail(user.email, user.name).catch(console.error)
+    sendApprovalEmail(user.email, user.name)
     res.json({ message: `${user.name}'s account approved.` })
   } catch (err) {
     res.status(500).json({ error: 'Approval failed.' })
@@ -93,7 +93,7 @@ router.post('/reject/:id', guard, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found.' })
 
     // Email first — we need user.email/name before the document is gone
-    await sendRejectionEmail(user.email, user.name, reason).catch(console.error)
+    sendRejectionEmail(user.email, user.name, reason)
     await User.findByIdAndDelete(req.params.id)
     res.json({ message: `${user.name}'s application rejected and removed.` })
   } catch (err) {

@@ -1,5 +1,6 @@
 import { Router }   from 'express'
 import AppSettings  from '../models/AppSettings.js'
+import User         from '../models/User.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 
 const router = Router()
@@ -130,6 +131,14 @@ router.patch('/:key', adminOrCore, async (req, res) => {
       { key: req.params.key, value, label: DEFAULTS[req.params.key]?.label, updatedBy: req.user._id },
       { upsert: true, new: true }
     )
+    // When OTP is turned off, promote any stuck pending_email users to pending_admin
+    // so they immediately appear in the admin approval queue
+    if (req.params.key === 'auth.otpRequired' && !value) {
+      await User.updateMany(
+        { status: 'pending_email' },
+        { $set: { status: 'pending_admin' }, $unset: { otpHash: '', otpExpiry: '', otpPurpose: '' } }
+      )
+    }
     res.json({ setting })
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
