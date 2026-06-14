@@ -1,26 +1,15 @@
-import nodemailer from 'nodemailer'
+import { Resend }       from 'resend'
 import { enqueueEmail } from './emailQueue.js'
 
-// ── Lazy transporter ──────────────────────────────────────────────────────────
-// Do NOT create the transporter at module load time.
-// ES module imports are hoisted — when this file is first imported, dotenv
-// has not yet run, so process.env vars are still undefined.
-// Creating it inside each function guarantees we read the real values.
-function transport() {
-  return nodemailer.createTransport({
-    host:              process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port:              Number(process.env.EMAIL_PORT) || 587,
-    secure:            false,
-    auth:              { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    connectionTimeout: 15_000,
-    greetingTimeout:   10_000,
-    socketTimeout:     30_000,
-  })
-}
+function client() { return new Resend(process.env.RESEND_API_KEY) }
 
 const from = () =>
-  process.env.EMAIL_FROM ||
-  `"IEM Photography Club" <${process.env.EMAIL_USER}>`
+  process.env.EMAIL_FROM || 'IEM Photography Club <onboarding@resend.dev>'
+
+async function resendSend(opts) {
+  const { error } = await client().emails.send(opts)
+  if (error) throw new Error(error.message || JSON.stringify(error))
+}
 
 // ── Shared HTML wrapper ───────────────────────────────────────────────────────
 function wrap(title, body) {
@@ -69,7 +58,7 @@ export function sendOTPEmail(to, name, otp, purpose) {
     </div>
     <p style="color:#555;font-size:13px">If you did not request this, ignore this email.</p>`
 
-  enqueueEmail(() => transport().sendMail({ from: from(), to, subject, html: wrap(heading, body) }), `OTP → ${to}`)
+  enqueueEmail(() => resendSend({ from: from(), to, subject, html: wrap(heading, body) }), `OTP → ${to}`)
 }
 
 // ── Approval ──────────────────────────────────────────────────────────────────
@@ -87,7 +76,7 @@ export function sendApprovalEmail(to, name) {
       </a>
     </div>`
 
-  enqueueEmail(() => transport().sendMail({
+  enqueueEmail(() => resendSend({
     from: from(), to,
     subject: '🎉 Your membership has been approved!',
     html: wrap('Welcome to the Club!', body),
@@ -149,7 +138,7 @@ export function sendMagazinePublishedEmail({ to, name, magazineName, isRepublish
          content: pdfBase64, encoding: 'base64', contentType: 'application/pdf' }]
     : []
 
-  enqueueEmail(() => transport().sendMail({ from: from(), to, subject, html: wrap(isRepublish ? '✨ Magazine Updated!' : '🎉 Your Magazine is Live!', body), attachments }), `magazine → ${to}`)
+  enqueueEmail(() => resendSend({ from: from(), to, subject, html: wrap(isRepublish ? '✨ Magazine Updated!' : '🎉 Your Magazine is Live!', body), attachments }), `magazine → ${to}`)
 }
 
 // ── Rejection ─────────────────────────────────────────────────────────────────
@@ -164,7 +153,7 @@ export function sendRejectionEmail(to, name, reason = '') {
       Contact a Core member if you believe this is an error.
     </p>`
 
-  enqueueEmail(() => transport().sendMail({
+  enqueueEmail(() => resendSend({
     from: from(), to,
     subject: 'IEM Photography Club — Application Update',
     html: wrap('Application Status', body),

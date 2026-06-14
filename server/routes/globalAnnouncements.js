@@ -1,5 +1,5 @@
-import nodemailer          from 'nodemailer'
 import sanitizeHtml        from 'sanitize-html'
+import { sendBulk, FROM } from '../utils/resend.js'
 import { Router }          from 'express'
 import rateLimit           from 'express-rate-limit'
 import GlobalAnnouncement  from '../models/GlobalAnnouncement.js'
@@ -36,19 +36,6 @@ async function canAnnounce(req, res, next) {
 }
 const announceAccess = [requireAuth, canAnnounce]
 
-// ── Email transport ───────────────────────────────────────────────────────────
-function mailer() {
-  return nodemailer.createTransport({
-    host:              process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port:              Number(process.env.EMAIL_PORT) || 587,
-    secure:            false,
-    auth:              { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    connectionTimeout: 15_000,   // fail fast if SMTP unreachable
-    greetingTimeout:   10_000,
-    socketTimeout:     30_000,
-  })
-}
-const FROM = () => process.env.EMAIL_FROM || `"IEM Photography Club" <${process.env.EMAIL_USER}>`
 
 // ── Auto-link bare URLs ───────────────────────────────────────────────────────
 function autoLink(html) {
@@ -154,35 +141,10 @@ async function buildMemberRecipients(preset, filters = {}) {
   return users
 }
 
-// ── Send emails in batches ────────────────────────────────────────────────────
-async function sendBatch(tr, from, recipients, subject, html, cc = [], bcc = [], attachments = []) {
-  let sent = 0
-  let firstError = null
-  const opts = { from }
-  if (cc.length)  opts.cc  = cc.join(',')
-  if (bcc.length) opts.bcc = bcc.join(',')
-  if (attachments.length) {
-    opts.attachments = attachments.map(a => ({
-      filename:    a.name,
-      path:        a.url,
-      contentType: a.mime || undefined,
-    }))
-  }
-
-  for (let i = 0; i < recipients.length; i += 10) {
-    const batch = recipients.slice(i, i + 10)
-    await Promise.all(batch.map(r =>
-      tr.sendMail({ ...opts, to: r.email, subject, html })
-        .then(() => { sent++ })
-        .catch(e => {
-          console.error(`[announce] failed ${r.email}:`, e.message)
-          if (!firstError) firstError = e
-        })
-    ))
-  }
-
-  // If nothing was sent at all, surface the SMTP error so callers can report it
-  if (sent === 0 && firstError) throw firstError
+// ── Send emails in batches via Resend ────────────────────────────────────────
+async function sendBatch(recipients, subject, html, cc = [], bcc = [], attachments = []) {
+  const sent = await sendBulk(recipients, subject, html, { cc, bcc, attachments })
+  if (sent === 0 && recipients.length > 0) throw new Error('Failed to deliver any emails — check RESEND_API_KEY and EMAIL_FROM in Render env vars.')
   return sent
 }
 
@@ -448,8 +410,7 @@ router.post('/send', sendLimiter, announceAccess, async (req, res) => {
     if (!recipients.length) return res.status(400).json({ error: 'No recipients matched.' })
 
     const html = buildEmailHtml(subject, content)
-    const tr   = mailer()
-    const sent = await sendBatch(tr, FROM(), recipients, subject, html, ccEmails, bccEmails, attachments)
+    const sent = await sendBatch(recipients, subject, html, ccEmails, bccEmails, attachments)
 
     if (draftId) await GlobalAnnouncement.deleteOne({ _id: draftId, sentBy: req.user._id })
 
@@ -480,8 +441,7 @@ router.post('/compose/send', sendLimiter, announceAccess, async (req, res) => {
     if (!toRecipients.length) return res.status(400).json({ error: 'At least one recipient required.' })
 
     const html = buildEmailHtml(subject, content)
-    const tr   = mailer()
-    const sent = await sendBatch(tr, FROM(), toRecipients.filter(r=>r.email), subject, html, ccEmails, bccEmails, attachments)
+    const sent = await sendBatch(toRecipients.filter(r=>r.email), subject, html, ccEmails, bccEmails, attachments)
 
     if (draftId) await GlobalAnnouncement.deleteOne({ _id: draftId, sentBy: req.user._id })
 
@@ -607,8 +567,7 @@ router.post('/ctx/:type/:id/send', requireAuth, async (req, res) => {
     if (!recipients.length) return res.status(400).json({ error: 'No recipients found for this context.' })
 
     const html = buildEmailHtml(subject, content)
-    const tr   = mailer()
-    const sent = await sendBatch(tr, FROM(), recipients, subject, html, ccEmails, bccEmails, attachments)
+    const sent = await sendBatch(recipients, subject, html, ccEmails, bccEmails, attachments)
 
     if (draftId) await GlobalAnnouncement.deleteOne({ _id: draftId, sentBy: req.user._id })
 

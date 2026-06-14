@@ -1,5 +1,5 @@
-import nodemailer  from 'nodemailer'
-import { Router }  from 'express'
+import { Router }             from 'express'
+import { sendEmail, FROM }    from '../utils/resend.js'
 import Event        from '../models/Event.js'
 import Announcement from '../models/Announcement.js'
 import User         from '../models/User.js'
@@ -23,16 +23,6 @@ async function adminOrEventCoord(req, res, next) {
   } catch (e) { return res.status(500).json({ error: e.message }) }
 }
 
-// ── Email transporter (lazy-initialised, reuses env vars set by dotenv) ───────
-function createMailer() {
-  return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST   || 'smtp.gmail.com',
-    port: Number(process.env.EMAIL_PORT) || 587,
-    secure: false,
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  })
-}
-const FROM = () => process.env.EMAIL_FROM || process.env.EMAIL_USER
 
 // ── Event-added notification email ────────────────────────────────────────────
 async function sendEventAddedEmail(to, memberName, event, isReAdded = false) {
@@ -65,7 +55,7 @@ async function sendEventAddedEmail(to, memberName, event, isReAdded = false) {
     <p style="color:#555;font-size:12px;margin:0">IEM Photography Club — automated notification</p>
   </div>`
 
-  await createMailer().sendMail({ from: FROM(), to, subject, html })
+  await sendEmail({ to, subject, html })
 }
 
 // ── Announcement email ────────────────────────────────────────────────────────
@@ -91,11 +81,7 @@ async function sendAnnouncementEmail(to, name, event, content) {
     <p style="color:#444;font-size:13px;margin:24px 0 0;border-top:1px solid #111;padding-top:16px">IEM Photography Club — ${new Date().toLocaleDateString('en-IN')}</p>
   </div>`
 
-  await createMailer().sendMail({
-    from: FROM(), to,
-    subject: `📢 ${event.name} — Announcement`,
-    html,
-  })
+  await sendEmail({ to, subject: `📢 ${event.name} — Announcement`, html })
 }
 
 // ── EVENTS CRUD ───────────────────────────────────────────────────────────────
@@ -170,7 +156,6 @@ router.put('/:id', [requireAuth, adminOrEventCoord], async (req, res) => {
 
     // Notify members when event name changes
     if (nameChanged) {
-      const mailer  = createMailer()
       const members = (event.members || []).map(m => m.user).filter(u => u?.email)
       for (const u of members) {
         const html = `<div style="background:#050505;padding:40px 32px;font-family:'Segoe UI',sans-serif;max-width:520px;margin:auto;border-radius:16px;border:1px solid #222">
@@ -185,7 +170,7 @@ router.put('/:id', [requireAuth, adminOrEventCoord], async (req, res) => {
           </div>
           <p style="color:#555;font-size:12px;margin:0">IEM Photography Club — automated notification</p>
         </div>`
-        await mailer.sendMail({ from: FROM(), to: u.email, subject: `Event renamed: "${event.name}"`, html }).catch(() => {})
+        await sendEmail({ to: u.email, subject: `Event renamed: "${event.name}"`, html }).catch(() => {})
       }
     }
 
@@ -350,11 +335,7 @@ router.patch('/:id/members/:userId/role', senior, async (req, res) => {
           <p style="color:#aaa;font-size:13px">You have been ${verb} within the event team. ${isPromotion ? 'Congratulations!' : 'Please check with your event lead for more details.'}</p>
           <p style="color:#555;font-size:12px;margin:20px 0 0">IEM Photography Club — automated notification</p>
         </div>`
-        createMailer().sendMail({
-          from: FROM(), to: user.email,
-          subject: `Your role in "${event.name}" has been updated`,
-          html,
-        }).catch(() => {})
+        sendEmail({ to: user.email, subject: `Your role in "${event.name}" has been updated`, html }).catch(() => {})
       }
     }
 
@@ -438,8 +419,7 @@ router.post('/:id/announcements', requireAuth, async (req, res) => {
     // Fire-and-forget emails with optional custom subject
     targets.forEach(u => {
       if (subject) {
-        createMailer().sendMail({
-          from: FROM(),
+        sendEmail({
           to: u.email,
           subject: `📢 ${subject}`,
           html: `<div style="background:#050505;padding:40px 36px;font-family:'Segoe UI',sans-serif;max-width:540px;margin:auto;border-radius:18px;border:1px solid rgba(220,38,38,0.2);box-shadow:0 24px 80px rgba(0,0,0,0.8)">

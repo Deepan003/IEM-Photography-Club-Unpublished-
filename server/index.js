@@ -110,23 +110,21 @@ app.use('/api/proxy/image', imageProxyRoutes)
 app.use('/api/hero-themes', heroThemesRoutes)
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }))
 
-// Admin-only SMTP credential check — visit this URL while logged in as admin
-// Returns: { ok: true } or { ok: false, error: "..." }
+// Resend credential check — visit /api/health/email to verify RESEND_API_KEY works
 app.get('/api/health/email', async (req, res) => {
   try {
-    const nodemailer = (await import('nodemailer')).default
-    const tr = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-      port: Number(process.env.EMAIL_PORT) || 587,
-      secure: false,
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-      connectionTimeout: 10_000,
-      greetingTimeout:   8_000,
+    const { Resend } = await import('resend')
+    const r = new Resend(process.env.RESEND_API_KEY)
+    const { error } = await r.emails.send({
+      from:    process.env.EMAIL_FROM || 'IEM Photography Club <onboarding@resend.dev>',
+      to:      'delivered@resend.dev',
+      subject: 'Health check',
+      html:    '<p>ok</p>',
     })
-    await tr.verify()
-    res.json({ ok: true, user: process.env.EMAIL_USER })
+    if (error) throw new Error(error.message || JSON.stringify(error))
+    res.json({ ok: true, from: process.env.EMAIL_FROM || '(default onboarding@resend.dev)' })
   } catch (e) {
-    res.json({ ok: false, user: process.env.EMAIL_USER || '(not set)', error: e.message })
+    res.json({ ok: false, error: e.message })
   }
 })
 

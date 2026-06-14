@@ -1,23 +1,12 @@
-import nodemailer  from 'nodemailer'
 import { Router }   from 'express'
 import Competition   from '../models/Competition.js'
 import User          from '../models/User.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { deleteObject } from '../utils/s3.js'
-
-function createMailer() {
-  return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST   || 'smtp.gmail.com',
-    port: Number(process.env.EMAIL_PORT || 587),
-    secure: false,
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  })
-}
-const FROM = () => `"IEM Photography Club" <${process.env.EMAIL_USER}>`
+import { sendEmail } from '../utils/resend.js'
 
 async function sendVolunteerAddedEmail(toEmail, toName, comp, role) {
   try {
-    const mailer = createMailer()
     const html = `<div style="background:#050505;padding:40px 32px;font-family:'Segoe UI',sans-serif;max-width:520px;margin:auto;border-radius:16px;border:1px solid #222">
       <h2 style="color:#fff;font-size:16px;letter-spacing:3px;text-transform:uppercase;border-bottom:2px solid #dc2626;padding-bottom:12px;margin-bottom:20px">📷 IEM Photography Club</h2>
       <p style="color:#aaa;font-size:14px">Hi ${toName},</p>
@@ -29,13 +18,12 @@ async function sendVolunteerAddedEmail(toEmail, toName, comp, role) {
       </div>
       <p style="color:#555;font-size:12px;margin:0">IEM Photography Club — automated notification</p>
     </div>`
-    await mailer.sendMail({ from: FROM(), to: toEmail, subject: `You've been added to ${comp.name}`, html })
+    await sendEmail({ to: toEmail, subject: `You've been added to ${comp.name}`, html })
   } catch { /* non-fatal */ }
 }
 
 async function sendVolRoleChangeEmail(toEmail, toName, comp, from, to) {
   try {
-    const mailer = createMailer()
     const promoted = to === 'coordinator'
     const html = `<div style="background:#050505;padding:40px 32px;font-family:'Segoe UI',sans-serif;max-width:520px;margin:auto;border-radius:16px;border:1px solid #222">
       <h2 style="color:#fff;font-size:16px;letter-spacing:3px;text-transform:uppercase;border-bottom:2px solid #dc2626;padding-bottom:12px;margin-bottom:20px">📷 IEM Photography Club</h2>
@@ -48,7 +36,7 @@ async function sendVolRoleChangeEmail(toEmail, toName, comp, from, to) {
       </div>
       <p style="color:#555;font-size:12px;margin:0">IEM Photography Club — automated notification</p>
     </div>`
-    await mailer.sendMail({ from: FROM(), to: toEmail, subject: `Role update in ${comp.name}`, html })
+    await sendEmail({ to: toEmail, subject: `Role update in ${comp.name}`, html })
   } catch { /* non-fatal */ }
 }
 
@@ -428,8 +416,8 @@ router.post('/:id/announcements', [requireAuth, adminOrCompVolunteer], async (re
     const senderLabel = sentByRole === 'coordinator' ? `${req.user.name} (Coordinator)` : req.user.name
     const emailSubject = subject?.trim() ? `📢 ${subject.trim()}` : `📢 Announcement: ${comp.name}`
     targets.forEach(u => {
-      createMailer().sendMail({
-        from: FROM(), to: u.email, subject: emailSubject,
+      sendEmail({
+        to: u.email, subject: emailSubject,
         html: `<div style="background:#050505;padding:40px 36px;font-family:'Segoe UI',sans-serif;max-width:540px;margin:auto;border-radius:18px;border:1px solid rgba(220,38,38,0.2)">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
             <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#dc2626,#7f1d1d);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📷</div>
